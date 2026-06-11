@@ -45,6 +45,7 @@ prisma/dev.db
 *.prisma
 
 # IDE
+.claude
 .idea/
 .vscode/
 *.swp

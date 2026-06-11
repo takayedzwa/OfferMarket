@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Body, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Body, Query, UseGuards, BadRequestException } from '@nestjs/common';
 import { EmployersService } from './employers.service';
 
 class SimpleAuthGuard {

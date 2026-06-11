@@ -1,90 +1,8 @@
 import { IsString, IsInt, IsOptional, IsArray, IsBoolean, Min, Max, IsIn, ValidateNested, IsNotEmpty, ArrayMinSize } from 'class-validator';
 import { Type } from 'class-transformer';
 
-/**
- * CREATE OFFER DTO
- *
- * This DTO enforces the STRUCTURED OFFER primitive.
- * ALL fields are required - no partial offers allowed.
- */
-
-export class CreateOfferDto {
-  // ===========================================================================
-  // BASIC INFO
-  // ===========================================================================
-
-  @IsString()
-  @IsNotEmpty()
-  jobTitle: string;
-
-  @IsString()
-  @IsOptional()
-  department?: string;
-
-  @IsString()
-  @IsNotEmpty()
-  jobDescription: string;
-
-  @IsString()
-  workerId: string;
-
-  // ===========================================================================
-  // COMPENSATION (ALL REQUIRED)
-  // ===========================================================================
-
-  @ValidateNested()
-  @Type(() => CompensationDto)
-  compensation: CompensationDto;
-
-  // ===========================================================================
-  // CONTRACT (ALL REQUIRED)
-  // ===========================================================================
-
-  @ValidateNested()
-  @Type(() => ContractDto)
-  contract: ContractDto;
-
-  // ===========================================================================
-  // BENEFITS (ALL REQUIRED)
-  // ===========================================================================
-
-  @ValidateNested()
-  @Type(() => BenefitsDto)
-  benefits: BenefitsDto;
-
-  // ===========================================================================
-  // WORK ARRANGEMENT (ALL REQUIRED)
-  // ===========================================================================
-
-  @ValidateNested()
-  @Type(() => WorkArrangementDto)
-  workArrangement: WorkArrangementDto;
-
-  // ===========================================================================
-  // REQUIREMENTS (ALL REQUIRED)
-  // ===========================================================================
-
-  @ValidateNested()
-  @Type(() => RequirementsDto)
-  requirements: RequirementsDto;
-
-  // ===========================================================================
-  // METADATA
-  // ===========================================================================
-
-  @IsInt()
-  @Min(1)
-  @Max(30)
-  @IsOptional()
-  expiresInDays?: number = 14;
-
-  @IsString()
-  @IsOptional()
-  source?: string;
-}
-
 // ===========================================================================
-// COMPENSATION DTO
+// COMPENSATION DTO (must be defined first for CreateOfferDto references)
 // ===========================================================================
 
 export class CompensationDto {
@@ -271,4 +189,58 @@ export class RequirementsDto {
   @Min(0)
   @IsOptional()
   requiredExperienceYears?: number = 0;
+}
+
+// ===========================================================================
+// CREATE OFFER DTO
+// ===========================================================================
+
+export class CreateOfferDto {
+  // Basic info
+  @IsString()
+  @IsNotEmpty()
+  jobTitle: string;
+
+  @IsString()
+  @IsOptional()
+  department?: string;
+
+  @IsString()
+  @IsNotEmpty()
+  jobDescription: string;
+
+  @IsString()
+  workerId: string;
+
+  // Nested DTOs (all required)
+  @ValidateNested()
+  @Type(() => CompensationDto)
+  compensation: CompensationDto;
+
+  @ValidateNested()
+  @Type(() => ContractDto)
+  contract: ContractDto;
+
+  @ValidateNested()
+  @Type(() => BenefitsDto)
+  benefits: BenefitsDto;
+
+  @ValidateNested()
+  @Type(() => WorkArrangementDto)
+  workArrangement: WorkArrangementDto;
+
+  @ValidateNested()
+  @Type(() => RequirementsDto)
+  requirements: RequirementsDto;
+
+  // Metadata
+  @IsInt()
+  @Min(1)
+  @Max(30)
+  @IsOptional()
+  expiresInDays?: number = 14;
+
+  @IsString()
+  @IsOptional()
+  source?: string;
 }

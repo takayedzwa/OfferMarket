@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import { Availability, ProfileVisibility, SkillLevel } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateWorkerDto, UpdateWorkerDto } from './dto/worker.dto';
 
@@ -37,7 +38,7 @@ export class WorkersService {
           country: createDto.country || 'NL',
           yearsOfExperience: createDto.yearsOfExperience,
           primaryTrade: createDto.primaryTrade,
-          availability: createDto.availability || 'NOT_AVAILABLE',
+          availability: createDto.availability as Availability || Availability.NOT_AVAILABLE,
           noticePeriodDays: createDto.noticePeriodDays,
           desiredSalaryMin: createDto.desiredSalaryMin,
           desiredSalaryMax: createDto.desiredSalaryMax,
@@ -47,7 +48,7 @@ export class WorkersService {
           workSchedulePrefs: createDto.workSchedulePrefs || [],
           industryPrefs: createDto.industryPrefs || [],
           careerPriorities: createDto.careerPriorities || [],
-          profileVisibility: createDto.profileVisibility || 'ALL_VERIFIED',
+          profileVisibility: createDto.profileVisibility as ProfileVisibility || ProfileVisibility.ALL_VERIFIED,
           isProfileComplete: completeness >= 90,
           profileCompletenessPct: completeness
         },
@@ -119,11 +120,9 @@ export class WorkersService {
   async getPublicProfile(publicId: string, viewerEmployerId?: string) {
     const worker = await this.prisma.worker.findUnique({
       where: { publicId },
-      where: { deletedAt: null },
       include: {
         region: true,
         skills: {
-          where: { level: { not: null } },
           include: {
             skill: true
           }
@@ -134,7 +133,7 @@ export class WorkersService {
       }
     });
 
-    if (!worker) {
+    if (!worker || worker.deletedAt) {
       throw new NotFoundException('Profile not found');
     }
 
@@ -188,7 +187,7 @@ export class WorkersService {
       primaryTrade: publicProfile.primaryTrade,
 
       // Skills (no identifying details)
-      skills: publicProfile.skills.map(s => ({
+      skills: worker.skills.map(s => ({
         name: s.skill.name,
         level: s.level,
         yearsOfExperience: s.yearsOfExperience,
@@ -196,7 +195,7 @@ export class WorkersService {
       })),
 
       // Certifications (verified only)
-      certifications: publicProfile.certifications.map(c => ({
+      certifications: worker.certifications.map(c => ({
         name: c.name,
         isValid: !c.validUntil || c.validUntil > new Date(),
         validUntil: c.validUntil
@@ -257,7 +256,20 @@ export class WorkersService {
     return this.prisma.worker.update({
       where: { userId },
       data: {
-        ...updateDto,
+        regionId: updateDto.regionId,
+        yearsOfExperience: updateDto.yearsOfExperience,
+        primaryTrade: updateDto.primaryTrade,
+        availability: updateDto.availability as Availability,
+        noticePeriodDays: updateDto.noticePeriodDays,
+        desiredSalaryMin: updateDto.desiredSalaryMin,
+        desiredSalaryMax: updateDto.desiredSalaryMax,
+        desiredHourlyRate: updateDto.desiredHourlyRate,
+        employmentTypes: updateDto.employmentTypes,
+        travelDistanceKm: updateDto.travelDistanceKm,
+        workSchedulePrefs: updateDto.workSchedulePrefs,
+        industryPrefs: updateDto.industryPrefs,
+        careerPriorities: updateDto.careerPriorities,
+        profileVisibility: updateDto.profileVisibility as ProfileVisibility,
         isProfileComplete: completeness >= 90,
         profileCompletenessPct: completeness
       }
@@ -361,7 +373,7 @@ export class WorkersService {
   // HELPER METHODS
   // ============================================================================
 
-  private async generateWorkerPublicId(tx: PrismaService): Promise<string> {
+  private async generateWorkerPublicId(tx: any): Promise<string> {
     const lastWorker = await tx.worker.findFirst({
       orderBy: { createdAt: 'desc' }
     });

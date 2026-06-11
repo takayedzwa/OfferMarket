@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, BadRequestException as BadRequestExceptionAlias } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 
 @Injectable()
@@ -84,7 +84,7 @@ export class EmployersService {
         id: true,
         verificationStatus: true,
         verifiedAt: true,
-        company: true
+        companyName: true
       }
     });
 

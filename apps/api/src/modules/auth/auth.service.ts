@@ -100,7 +100,8 @@ export class AuthService {
           companyName: company.name,
           kvkNumber: company.kvkNumber,
           website: company.website,
-          verificationStatus: 'PENDING'
+          verificationStatus: 'PENDING',
+          registeredAddress: { street: '', city: '', postalCode: '', country: 'NL' }
         }
       });
 

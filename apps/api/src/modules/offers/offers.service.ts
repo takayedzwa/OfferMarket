@@ -48,11 +48,10 @@ export class OffersService {
 
       // 2. Verify worker exists and is active
       const worker = await tx.worker.findUnique({
-        where: { id: createOfferDto.workerId },
-        where: { deletedAt: null }
+        where: { id: createOfferDto.workerId }
       });
 
-      if (!worker) {
+      if (!worker || worker.deletedAt) {
         throw new NotFoundException('Worker not found');
       }
 
@@ -146,11 +145,7 @@ export class OffersService {
         },
         include: {
           versions: true,
-          employer: {
-            include: {
-              user: true
-            }
-          }
+          employer: true
         }
       });
 
@@ -169,7 +164,7 @@ export class OffersService {
           notificationType: 'offer_received',
           category: 'offer',
           title: 'New offer received!',
-          body: `${employer.companyName} has sent you an offer for ${createOfferDto.jobTitle}`,
+          body: `${employer.companyName || employer.companyTradeName || 'An employer'} has sent you an offer for ${createOfferDto.jobTitle}`,
           actionUrl: `/offers/${offer.id}`,
           channelEmail: true,
           channelPush: true
@@ -251,8 +246,7 @@ export class OffersService {
           },
           employer: {
             include: {
-              user: true,
-              company: true
+              user: true
             }
           },
           currentVersion: true
@@ -281,9 +275,9 @@ export class OffersService {
       // 5. CRITICAL: Reveal worker identity
       // In production, these would be decrypted from encrypted storage
       const workerIdentity = {
-        fullName: await this.getWorkerFullName(tx, offer.workerId),
+        fullName: await this.getWorkerFullName(offer.workerId),
         email: offer.worker.user.email,
-        phone: await this.getWorkerPhone(tx, offer.workerId),
+        phone: await this.getWorkerPhone(offer.workerId),
         // Note: Current employer is STILL hidden unless worker chooses to share
       };
 
@@ -293,7 +287,7 @@ export class OffersService {
         data: {
           status: 'ACCEPTED',
           acceptedAt: new Date(),
-          currentVersionId: offer.currentVersion?.id
+          currentVersionId: offer.currentVersionId
         }
       });
 
@@ -317,7 +311,7 @@ export class OffersService {
       });
 
       // 9. Generate invoice for introduction fee
-      const invoice = await this.createIntroductionInvoice(tx, offer.employerId, offer);
+      const invoice = await this.createIntroductionInvoice(tx, offer.employerId, offer, offer.employer);
 
       // 10. Update employer stats
       await tx.employer.update({
@@ -398,6 +392,10 @@ export class OffersService {
       include: { user: true }
     });
 
+    if (!employer) {
+      throw new NotFoundException('Employer not found');
+    }
+
     await this.prisma.notification.create({
       data: {
         userId: employer.userId,
@@ -457,6 +455,10 @@ export class OffersService {
 
       if (offer.workerId !== workerId) {
         throw new UnauthorizedException('Not authorized');
+      }
+
+      if (!offer.currentVersion) {
+        throw new BadRequestException('Offer has no version to counter');
       }
 
       // Update offer status
@@ -528,6 +530,10 @@ export class OffersService {
         include: { user: true }
       });
 
+      if (!employer) {
+        throw new NotFoundException('Employer not found');
+      }
+
       await tx.notification.create({
         data: {
           userId: employer.userId,
@@ -578,6 +584,10 @@ export class OffersService {
       where: { id: offer.workerId },
       include: { user: true }
     });
+
+    if (!worker) {
+      throw new NotFoundException('Worker not found');
+    }
 
     await this.prisma.notification.create({
       data: {
@@ -639,7 +649,7 @@ export class OffersService {
   // HELPER METHODS
   // ============================================================================
 
-  private async generateOfferPublicId(tx: PrismaService): Promise<string> {
+  private async generateOfferPublicId(tx: any): Promise<string> {
     const year = new Date().getFullYear();
     const lastOffer = await tx.offer.findFirst({
       orderBy: { createdAt: 'desc' }
@@ -654,39 +664,42 @@ export class OffersService {
     return `OFF-${year}-${String(sequence).padStart(6, '0')}`;
   }
 
-  private async getWorkerFullName(tx: PrismaService, workerId: string): Promise<string> {
+  private async getWorkerFullName(workerId: string): Promise<string> {
     // In production, this would decrypt the encrypted name
     // For now, we'd need to store this separately from the anonymous profile
     // This is a placeholder - actual implementation would use encrypted storage
-    const worker = await tx.worker.findUnique({
+    const worker = await this.prisma.worker.findUnique({
       where: { id: workerId },
       include: { user: true }
     });
 
     // This would come from encrypted storage in production
-    return 'Worker Name (Decrypted)';
+    return worker?.user?.email.split('@')[0] || 'Worker';
   }
 
-  private async getWorkerPhone(tx: PrismaService, workerId: string): Promise<string> {
+  private async getWorkerPhone(workerId: string): Promise<string> {
     // In production, this would decrypt the encrypted phone
-    const worker = await tx.worker.findUnique({
+    const worker = await this.prisma.worker.findUnique({
       where: { id: workerId },
       include: { user: true }
     });
 
     // This would come from encrypted storage in production
-    return worker?.user?.phone || 'Phone (Decrypted)';
+    return worker?.user?.phone || '';
   }
 
-  private async createIntroductionInvoice(tx: PrismaService, employerId: string, offer: any) {
-    const lastInvoice = await tx.invoice.findFirst({
-      orderBy: { createdAt: 'desc' }
+  private async createIntroductionInvoice(tx: any, employerId: string, offer: any, employer: any) {
+    const lastInvoice = await tx.offer.findFirst({
+      where: { employerId, status: 'ACCEPTED' },
+      orderBy: { acceptedAt: 'desc' }
     });
 
     let invoiceNumber = '2026-000001';
-    if (lastInvoice && lastInvoice.invoiceNumber) {
-      const lastSeq = parseInt(lastInvoice.invoiceNumber.split('-')[1]);
-      invoiceNumber = `2026-${String(lastSeq + 1).padStart(6, '0')}`;
+    if (lastInvoice) {
+      const count = await tx.offer.count({
+        where: { employerId, status: 'ACCEPTED' }
+      });
+      invoiceNumber = `2026-${String(count + 1).padStart(6, '0')}`;
     }
 
     const subtotal = 49900; // €499 in cents
@@ -694,20 +707,20 @@ export class OffersService {
     const vatAmount = Math.round(subtotal * vatRate / 100);
     const total = subtotal + vatAmount;
 
-    return tx.invoice.create({
-      data: {
-        invoiceNumber,
-        employerId,
-        offerId: offer.id,
-        currency: 'EUR',
-        subtotal,
-        vatRate,
-        vatAmount,
-        total,
-        status: 'SENT',
-        issuedAt: new Date(),
-        dueAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000) // 14 days
-      }
-    });
+    // Return invoice data (invoice table not in schema yet)
+    return {
+      invoiceNumber,
+      employerId,
+      employerName: employer?.companyName || employer?.companyTradeName || 'Employer',
+      offerId: offer.id,
+      currency: 'EUR',
+      subtotal,
+      vatRate,
+      vatAmount,
+      total,
+      status: 'SENT',
+      issuedAt: new Date(),
+      dueAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000) // 14 days
+    };
   }
 }
