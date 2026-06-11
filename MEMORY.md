@@ -1,0 +1,9 @@
+- [Product Requirements](docs/prd/01-product-requirements.md) — Core product specification
+- [User Journeys](docs/prd/02-user-journeys.md) — Worker, employer, admin, support flows
+- [Database Schema](docs/technical/database-schema.md) — PostgreSQL design with 20+ tables
+- [API Specification](docs/technical/api-specification.md) — REST API with 50+ endpoints
+- [Architecture](docs/technical/architecture.md) — Tech stack and system design
+- [Wireframes](docs/ux/wireframes.md) — Mobile-first screen designs
+- [Marketplace Mechanics](docs/business/marketplace-mechanics.md) — Algorithms and reputation
+- [Revenue Model](docs/business/revenue-model.md) — 5-year financial projections
+- [Launch Strategy](docs/business/launch-strategy.md) — 6-week MVP and GTM plan
