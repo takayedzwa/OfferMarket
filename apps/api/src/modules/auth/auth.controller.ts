@@ -1,9 +1,22 @@
-import { Controller, Post, Body, BadRequestException } from '@nestjs/common';
+import { Controller, Post, Body, BadRequestException, Get, Query } from '@nestjs/common';
 import { AuthService } from './auth.service';
 
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
+
+  // ============================================================================
+  // GET CURRENT USER
+  // ============================================================================
+
+  @Get('me')
+  async getMe(@Query('userId') userId: string, @Query('userRole') userRole: string) {
+    return {
+      id: userId,
+      role: userRole,
+      email: 'user@example.com'
+    };
+  }
 
   // ============================================================================
   // REGISTER WORKER

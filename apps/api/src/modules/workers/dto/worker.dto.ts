@@ -1,4 +1,4 @@
-import { IsString, IsInt, IsOptional, IsArray, IsIn, Min, Max, ArrayMinSize } from 'class-validator';
+import { IsString, IsInt, IsOptional, IsArray, IsIn, Min, Max, ArrayMinSize, IsDateString } from 'class-validator';
 
 /**
  * WORKER DTOs
@@ -11,6 +11,10 @@ export class CreateWorkerDto {
   @IsString()
   @IsOptional()
   regionId?: string;
+
+  @IsString()
+  @IsOptional()
+  postalCode?: string;
 
   @IsString()
   @IsOptional()
@@ -59,7 +63,7 @@ export class CreateWorkerDto {
 
   @IsInt()
   @Min(0)
-  @Max(200)
+  @Max(500)
   @IsOptional()
   travelDistanceKm?: number = 30;
 
@@ -88,6 +92,10 @@ export class UpdateWorkerDto {
   @IsString()
   @IsOptional()
   regionId?: string;
+
+  @IsString()
+  @IsOptional()
+  postalCode?: string;
 
   @IsInt()
   @Min(0)
@@ -132,7 +140,7 @@ export class UpdateWorkerDto {
 
   @IsInt()
   @Min(0)
-  @Max(200)
+  @Max(500)
   @IsOptional()
   travelDistanceKm?: number;
 
