@@ -19,6 +19,30 @@ export class WorkersService {
   constructor(private prisma: PrismaService) {}
 
   // ============================================================================
+  // GET AVAILABLE TRADES
+  // ============================================================================
+
+  async getAvailableTrades() {
+    // Worker trades configuration
+    // To add new trades: add to this array with available: true
+    // Currently launching with Electrician only
+    const trades = [
+      { value: 'Electrician', label: 'Electrician', available: true },
+      { value: 'HVAC Technician', label: 'HVAC Technician', available: false, comingSoon: true },
+      { value: 'Solar Installer', label: 'Solar Installer', available: false, comingSoon: true },
+      { value: 'Plumber', label: 'Plumber', available: false, comingSoon: true },
+      { value: 'Maintenance Technician', label: 'Maintenance Technician', available: false, comingSoon: true },
+      { value: 'Logistics Worker', label: 'Logistics Worker', available: false, comingSoon: true },
+    ];
+
+    return {
+      trades,
+      currentlyAvailable: trades.filter(t => t.available),
+      comingSoon: trades.filter(t => t.comingSoon)
+    };
+  }
+
+  // ============================================================================
   // CREATE WORKER PROFILE
   // ============================================================================
 
@@ -253,10 +277,14 @@ export class WorkersService {
     const newData = { ...currentData, ...updateDto };
     const completeness = this.calculateCompleteness(newData);
 
+    // Handle empty regionId - convert to null to avoid FK constraint violation
+    const regionId = updateDto.regionId && updateDto.regionId.trim() ? updateDto.regionId : null;
+
     return this.prisma.worker.update({
       where: { userId },
       data: {
-        regionId: updateDto.regionId,
+        regionId,
+        postalCode: updateDto.postalCode,
         yearsOfExperience: updateDto.yearsOfExperience,
         primaryTrade: updateDto.primaryTrade,
         availability: updateDto.availability as Availability,

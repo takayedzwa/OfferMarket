@@ -23,6 +23,20 @@ export class WorkersController {
   constructor(private readonly workersService: WorkersService) {}
 
   // ===========================================================================
+  // GET AVAILABLE TRADES
+  // ===========================================================================
+
+  /**
+   * GET /workers/trades
+   *
+   * Get list of available worker trades
+   */
+  @Get('trades')
+  async getAvailableTrades() {
+    return this.workersService.getAvailableTrades();
+  }
+
+  // ===========================================================================
   // GET MY PROFILE (Worker's private view)
   // ===========================================================================
 
