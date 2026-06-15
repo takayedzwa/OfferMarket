@@ -49,6 +49,8 @@ function RegisterContent() {
         localStorage.setItem("accessToken", tokens.accessToken);
         localStorage.setItem("userId", user.id);
         localStorage.setItem("userRole", user.role);
+        localStorage.setItem("userEmail", user.email);
+        localStorage.setItem("userPhone", phone || '');
 
         // Redirect to create worker profile
         router.push("/profile/setup");
@@ -71,6 +73,13 @@ function RegisterContent() {
         localStorage.setItem("accessToken", tokens.accessToken);
         localStorage.setItem("userId", user.id);
         localStorage.setItem("userRole", user.role);
+        localStorage.setItem("userEmail", user.email);
+        localStorage.setItem("userPhone", phone || '');
+
+        // Store company data for pre-population
+        localStorage.setItem("employerCompanyName", companyName);
+        localStorage.setItem("employerKvkNumber", kvkNumber);
+        localStorage.setItem("employerWebsite", website || '');
 
         // Redirect to create employer profile
         router.push("/profile/setup-employer");

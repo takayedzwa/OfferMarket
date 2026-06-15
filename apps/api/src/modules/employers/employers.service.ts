@@ -16,6 +16,11 @@ export class EmployersService {
         throw new BadRequestException('An employer with this KvK number already exists');
       }
 
+      // Ensure registeredAddress is a proper JSON object
+      const registeredAddress = typeof createDto.registeredAddress === 'string'
+        ? JSON.parse(createDto.registeredAddress)
+        : createDto.registeredAddress;
+
       const employer = await tx.employer.create({
         data: {
           userId,
@@ -26,8 +31,18 @@ export class EmployersService {
           companySize: createDto.companySize,
           industry: createDto.industry,
           foundedYear: createDto.foundedYear,
-          registeredAddress: createDto.registeredAddress,
-          businessAddress: createDto.businessAddress,
+          registeredAddress: registeredAddress || {
+            street: '',
+            houseNumber: '',
+            postalCode: '',
+            city: '',
+            country: 'NL'
+          },
+          businessAddress: createDto.businessAddress ? (
+            typeof createDto.businessAddress === 'string'
+              ? JSON.parse(createDto.businessAddress)
+              : createDto.businessAddress
+          ) : null,
           website: createDto.website,
           phone: createDto.phone,
           billingEmail: createDto.billingEmail,

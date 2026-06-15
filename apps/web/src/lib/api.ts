@@ -153,7 +153,7 @@ export const employersApi = {
   // Get company details
   getMyCompany: () => {
     const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
-    return api.get('/employers/me/company', { params: { userId } });
+    return api.get('/employers/me', { params: { userId } });
   },
 };
 
