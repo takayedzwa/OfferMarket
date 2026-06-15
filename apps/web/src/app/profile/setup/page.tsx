@@ -38,7 +38,7 @@ export default function SetupWorkerProfile() {
   const [error, setError] = useState("");
   const [trades, setTrades] = useState<any[]>([]);
 
-  // Load available trades from backend
+  // Load available trades from backend and pre-populate user data
   useEffect(() => {
     workersApi.getTrades()
       .then((res) => setTrades(res.data.trades || []))
@@ -48,6 +48,13 @@ export default function SetupWorkerProfile() {
           { value: "Electrician", label: "Electrician", available: true },
         ]);
       });
+
+    // Pre-populate with saved user data from registration
+    const savedPhone = localStorage.getItem('userPhone');
+    const savedEmail = localStorage.getItem('userEmail');
+    if (savedEmail && !formData.postalCode) {
+      // Could use email to infer region if needed
+    }
   }, []);
 
   const [formData, setFormData] = useState({
@@ -505,17 +512,30 @@ export default function SetupWorkerProfile() {
       {/* Header */}
       <header className="bg-white border-b">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-4 h-16">
-            <button
-              onClick={() => router.back()}
-              className="p-2 hover:bg-gray-100 rounded-lg"
-            >
-              <ArrowLeft className="w-5 h-5 text-gray-600" />
-            </button>
-            <div>
-              <h1 className="text-lg font-semibold text-gray-900">Create Your Profile</h1>
-              <p className="text-sm text-gray-500">Step {currentStep} of {steps.length}</p>
+          <div className="flex items-center justify-between h-16">
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => router.push("/dashboard/worker")}
+                className="p-2 hover:bg-gray-100 rounded-lg"
+                title="Back to Dashboard"
+              >
+                <ArrowLeft className="w-5 h-5 text-gray-600" />
+              </button>
+              <div>
+                <h1 className="text-lg font-semibold text-gray-900">Create Your Profile</h1>
+                <p className="text-sm text-gray-500">Step {currentStep} of {steps.length}</p>
+              </div>
             </div>
+            <button
+              onClick={() => {
+                localStorage.clear();
+                sessionStorage.clear();
+                router.push("/login");
+              }}
+              className="text-sm text-gray-600 hover:text-gray-900 px-4 py-2"
+            >
+              Sign Out
+            </button>
           </div>
         </div>
       </header>

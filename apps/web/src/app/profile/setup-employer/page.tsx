@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../../contexts/AuthContext";
 import { employersApi } from "../../../lib/api";
@@ -18,6 +18,7 @@ export default function SetupEmployerProfile() {
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
   const [formData, setFormData] = useState({
     // Step 1: Company Info
@@ -38,16 +39,84 @@ export default function SetupEmployerProfile() {
     country: "NL",
   });
 
+  // Pre-populate with saved data from registration (only on mount)
+  useEffect(() => {
+    const draft = localStorage.getItem('employerProfileDraft');
+    if (draft) {
+      try {
+        const savedData = JSON.parse(draft);
+        setFormData((prev) => ({ ...prev, ...savedData }));
+        return;
+      } catch (e) {
+        console.error('Failed to load saved draft');
+      }
+    }
+
+    // Pre-populate from registration data
+    const companyName = localStorage.getItem('employerCompanyName');
+    const kvkNumber = localStorage.getItem('employerKvkNumber');
+    const website = localStorage.getItem('employerWebsite');
+
+    if (companyName || kvkNumber || website) {
+      setFormData((prev) => ({
+        ...prev,
+        companyName: companyName || prev.companyName,
+        kvkNumber: kvkNumber || prev.kvkNumber,
+        website: website || prev.website,
+      }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const updateField = (field: string, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+    // Clear validation error when field is updated
+    if (validationErrors[field]) {
+      setValidationErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
+      });
+    }
+  };
+
+  const validateStep = (step: number): boolean => {
+    const errors: Record<string, string> = {};
+
+    if (step === 1) {
+      if (!formData.companyName.trim()) errors.companyName = "Company name is required";
+      if (!formData.kvkNumber.trim()) errors.kvkNumber = "KvK number is required";
+      else if (formData.kvkNumber.length !== 8) errors.kvkNumber = "KvK number must be 8 digits";
+    }
+
+    if (step === 2) {
+      if (!formData.street.trim()) errors.street = "Street is required";
+      if (!formData.houseNumber.trim()) errors.houseNumber = "House number is required";
+      if (!formData.postalCode.trim()) errors.postalCode = "Postal code is required";
+      if (!formData.city.trim()) errors.city = "City is required";
+    }
+
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleNext = () => {
+    if (validateStep(currentStep)) {
+      setCurrentStep((s) => Math.min(steps.length, s + 1));
+    }
   };
 
   const handleSubmit = async () => {
+    if (!validateStep(2)) {
+      setCurrentStep(2);
+      return;
+    }
+
     setLoading(true);
     setError("");
 
     try {
-      const createData: any = {
+      const profileData: any = {
         companyName: formData.companyName,
         companyTradeName: formData.companyTradeName || formData.companyName,
         kvkNumber: formData.kvkNumber,
@@ -65,7 +134,17 @@ export default function SetupEmployerProfile() {
         },
       };
 
-      await employersApi.createProfile(createData);
+      // Check if profile exists, if so update, otherwise create
+      try {
+        await employersApi.getMyProfile();
+        await employersApi.updateProfile(profileData);
+      } catch (checkErr: any) {
+        if (checkErr.response?.status === 404) {
+          await employersApi.createProfile(profileData);
+        } else {
+          throw checkErr;
+        }
+      }
 
       router.push("/dashboard/employer");
     } catch (err: any) {
@@ -73,6 +152,14 @@ export default function SetupEmployerProfile() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSaveForLater = () => {
+    // Save progress to localStorage
+    localStorage.setItem('employerProfileDraft', JSON.stringify(formData));
+    // Clear any existing employer profile check to allow dashboard to load
+    sessionStorage.setItem('skipEmployerProfileCheck', 'true');
+    router.push("/dashboard/employer");
   };
 
   const renderStep = () => {
@@ -88,9 +175,12 @@ export default function SetupEmployerProfile() {
                 type="text"
                 value={formData.companyName}
                 onChange={(e) => updateField("companyName", e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
+                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none ${validationErrors.companyName ? 'border-red-300' : 'border-gray-300'}`}
                 placeholder="Your Company B.V."
               />
+              {validationErrors.companyName && (
+                <p className="mt-1 text-sm text-red-600">{validationErrors.companyName}</p>
+              )}
             </div>
 
             <div>
@@ -115,10 +205,13 @@ export default function SetupEmployerProfile() {
                 type="text"
                 value={formData.kvkNumber}
                 onChange={(e) => updateField("kvkNumber", e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
+                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none ${validationErrors.kvkNumber ? 'border-red-300' : 'border-gray-300'}`}
                 placeholder="12345678"
                 maxLength={8}
               />
+              {validationErrors.kvkNumber && (
+                <p className="mt-1 text-sm text-red-600">{validationErrors.kvkNumber}</p>
+              )}
             </div>
 
             <div>
@@ -192,27 +285,33 @@ export default function SetupEmployerProfile() {
             <div className="grid grid-cols-3 gap-4">
               <div className="col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Street
+                  Street *
                 </label>
                 <input
                   type="text"
                   value={formData.street}
                   onChange={(e) => updateField("street", e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
+                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none ${validationErrors.street ? 'border-red-300' : 'border-gray-300'}`}
                   placeholder="Main Street"
                 />
+                {validationErrors.street && (
+                  <p className="mt-1 text-sm text-red-600">{validationErrors.street}</p>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  House Number
+                  House Number *
                 </label>
                 <input
                   type="text"
                   value={formData.houseNumber}
                   onChange={(e) => updateField("houseNumber", e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
+                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none ${validationErrors.houseNumber ? 'border-red-300' : 'border-gray-300'}`}
                   placeholder="123"
                 />
+                {validationErrors.houseNumber && (
+                  <p className="mt-1 text-sm text-red-600">{validationErrors.houseNumber}</p>
+                )}
               </div>
             </div>
 
@@ -232,27 +331,33 @@ export default function SetupEmployerProfile() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Postal Code
+                  Postal Code *
                 </label>
                 <input
                   type="text"
                   value={formData.postalCode}
                   onChange={(e) => updateField("postalCode", e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
+                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none ${validationErrors.postalCode ? 'border-red-300' : 'border-gray-300'}`}
                   placeholder="1234 AB"
                 />
+                {validationErrors.postalCode && (
+                  <p className="mt-1 text-sm text-red-600">{validationErrors.postalCode}</p>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  City
+                  City *
                 </label>
                 <input
                   type="text"
                   value={formData.city}
                   onChange={(e) => updateField("city", e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
+                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none ${validationErrors.city ? 'border-red-300' : 'border-gray-300'}`}
                   placeholder="Amsterdam"
                 />
+                {validationErrors.city && (
+                  <p className="mt-1 text-sm text-red-600">{validationErrors.city}</p>
+                )}
               </div>
             </div>
 
@@ -366,17 +471,30 @@ export default function SetupEmployerProfile() {
       {/* Header */}
       <header className="bg-white border-b">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-4 h-16">
-            <button
-              onClick={() => router.back()}
-              className="p-2 hover:bg-gray-100 rounded-lg"
-            >
-              <ArrowLeft className="w-5 h-5 text-gray-600" />
-            </button>
-            <div>
-              <h1 className="text-lg font-semibold text-gray-900">Create Company Profile</h1>
-              <p className="text-sm text-gray-500">Step {currentStep} of {steps.length}</p>
+          <div className="flex items-center justify-between h-16">
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => router.push("/dashboard/employer")}
+                className="p-2 hover:bg-gray-100 rounded-lg"
+                title="Back to Dashboard"
+              >
+                <ArrowLeft className="w-5 h-5 text-gray-600" />
+              </button>
+              <div>
+                <h1 className="text-lg font-semibold text-gray-900">Create Company Profile</h1>
+                <p className="text-sm text-gray-500">Step {currentStep} of {steps.length}</p>
+              </div>
             </div>
+            <button
+              onClick={() => {
+                localStorage.clear();
+                sessionStorage.clear();
+                router.push("/login");
+              }}
+              className="text-sm text-gray-600 hover:text-gray-900 px-4 py-2"
+            >
+              Sign Out
+            </button>
           </div>
         </div>
       </header>
@@ -433,21 +551,19 @@ export default function SetupEmployerProfile() {
         </div>
 
         {/* Navigation */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between py-4">
           <button
             type="button"
-            onClick={() => setCurrentStep((s) => Math.max(1, s - 1))}
-            disabled={currentStep === 1}
-            className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
+            onClick={handleSaveForLater}
+            className="text-sm text-gray-600 hover:text-gray-900 px-4 py-2 -ml-4"
           >
-            <ArrowLeft className="w-4 h-4" />
-            Previous
+            Save & Finish Later
           </button>
 
           {currentStep < steps.length ? (
             <button
               type="button"
-              onClick={() => setCurrentStep((s) => Math.min(steps.length, s + 1))}
+              onClick={handleNext}
               className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
             >
               Next
@@ -457,7 +573,7 @@ export default function SetupEmployerProfile() {
             <button
               type="button"
               onClick={handleSubmit}
-              disabled={loading || !formData.companyName || !formData.kvkNumber || !formData.street || !formData.postalCode || !formData.city}
+              disabled={loading}
               className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? "Creating Profile..." : "Create Company Profile"}

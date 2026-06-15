@@ -19,10 +19,13 @@ export default function EmployerDashboard() {
     async function loadData() {
       if (!user) return;
 
+      // Check if user is coming from save-for-later
+      const skipCheck = typeof window !== 'undefined' && sessionStorage.getItem('skipEmployerProfileCheck') === 'true';
+
       try {
         const [employerRes, offersRes] = await Promise.all([
           employersApi.getMyCompany().catch((err) => {
-            if (err.response?.status === 404) {
+            if (err.response?.status === 404 && !skipCheck) {
               // No employer profile exists, redirect to setup
               router.push("/profile/setup-employer");
             }
@@ -100,6 +103,26 @@ export default function EmployerDashboard() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Draft Profile Banner - shown when user has saved for later */}
+        {!employer && typeof window !== 'undefined' && localStorage.getItem('employerProfileDraft') && (
+          <div className="mb-8 p-4 bg-yellow-50 border border-yellow-200 rounded-xl">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-semibold text-yellow-800">Draft Company Profile Saved</h3>
+                <p className="text-sm text-yellow-700 mt-1">
+                  You have an incomplete company profile. Continue setting it up when you're ready.
+                </p>
+              </div>
+              <Link
+                href="/profile/setup-employer"
+                className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 text-sm font-medium"
+              >
+                Continue Setup →
+              </Link>
+            </div>
+          </div>
+        )}
+
         {/* Company Status Banner */}
         {employer && (
           <div className="mb-8 p-4 bg-white border rounded-xl shadow-sm">
@@ -125,7 +148,7 @@ export default function EmployerDashboard() {
                 </div>
               </div>
               <Link
-                href="/profile/company"
+                href="/profile/edit-company"
                 className="text-sm text-blue-600 hover:text-blue-700 font-medium"
               >
                 Edit Company →
