@@ -43,6 +43,121 @@ export class WorkersService {
   }
 
   // ============================================================================
+  // SEARCH WORKERS (For Employers - Anonymous Profiles)
+  // ============================================================================
+
+  async searchWorkers(filters: {
+    trade?: string;
+    regionId?: string;
+    availability?: string;
+    minExperience?: number;
+    maxExperience?: number;
+    page?: number;
+    limit?: number;
+  }) {
+    const {
+      trade,
+      regionId,
+      availability,
+      minExperience,
+      maxExperience,
+      page = 1,
+      limit = 20
+    } = filters;
+
+    const where: any = {
+      deletedAt: null,
+      profileVisibility: 'ALL_VERIFIED'
+    };
+
+    if (trade) {
+      where.primaryTrade = trade;
+    }
+
+    if (regionId) {
+      where.regionId = regionId;
+    }
+
+    if (availability) {
+      where.availability = availability;
+    }
+
+    if (minExperience !== undefined || maxExperience !== undefined) {
+      where.yearsOfExperience = {};
+      if (minExperience !== undefined) {
+        where.yearsOfExperience.gte = minExperience;
+      }
+      if (maxExperience !== undefined) {
+        where.yearsOfExperience.lte = maxExperience;
+      }
+    }
+
+    const [workers, total] = await Promise.all([
+      this.prisma.worker.findMany({
+        where,
+        skip: (page - 1) * limit,
+        take: limit,
+        include: {
+          region: true,
+          skills: {
+            include: {
+              skill: true
+            }
+          },
+          certifications: {
+            where: { verificationStatus: 'VERIFIED' }
+          }
+        },
+        orderBy: { updatedAt: 'desc' }
+      }),
+      this.prisma.worker.count({ where })
+    ]);
+
+    // Transform to anonymous profiles
+    const anonymousWorkers = workers.map(worker => ({
+      publicId: worker.publicId,
+      region: worker.region ? {
+        name: worker.region.name,
+        province: worker.region.province,
+        type: worker.region.type
+      } : null,
+      yearsOfExperience: worker.yearsOfExperience,
+      primaryTrade: worker.primaryTrade,
+      availability: worker.availability,
+      skills: worker.skills.map(s => ({
+        name: s.skill.name,
+        level: s.level,
+        yearsOfExperience: s.yearsOfExperience,
+        isCertified: s.isVerified
+      })),
+      certifications: worker.certifications.map(c => ({
+        name: c.name,
+        isValid: !c.validUntil || c.validUntil > new Date(),
+        validUntil: c.validUntil
+      })),
+      desiredSalaryRange: {
+        min: worker.desiredSalaryMin,
+        max: worker.desiredSalaryMax
+      },
+      employmentTypes: worker.employmentTypes,
+      travelDistanceKm: worker.travelDistanceKm,
+      profileCompletenessPct: worker.profileCompletenessPct,
+      reputationScore: worker.reputationScore,
+      lastActive: worker.updatedAt
+    }));
+
+    return {
+      workers: anonymousWorkers,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
+    };
+  }
+
+  // ============================================================================
   // CREATE WORKER PROFILE
   // ============================================================================
 
@@ -143,7 +258,7 @@ export class WorkersService {
    */
   async getPublicProfile(publicId: string, viewerEmployerId?: string) {
     const worker = await this.prisma.worker.findUnique({
-      where: { publicId },
+      where: { publicId: String(publicId) },
       include: {
         region: true,
         skills: {

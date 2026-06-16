@@ -80,6 +80,9 @@ export const workersApi = {
   // Get available trades
   getTrades: () => api.get('/workers/trades'),
 
+  // Search workers (for employers)
+  searchWorkers: (params?: any) => api.get('/workers/search', { params }),
+
   // Get my private profile
   getMyProfile: () => {
     const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
@@ -198,7 +201,10 @@ export const offersApi = {
   getWorkerOffers: () => api.get('/offers/worker/me'),
 
   // Get offers for employer
-  getEmployerOffers: () => api.get('/offers/employer/me'),
+  getEmployerOffers: () => {
+    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
+    return api.get('/offers', { params: { employerId: userId } });
+  },
 };
 
 // ============================================================================

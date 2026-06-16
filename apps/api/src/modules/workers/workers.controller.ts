@@ -37,6 +37,40 @@ export class WorkersController {
   }
 
   // ===========================================================================
+  // SEARCH WORKERS (For Employers - Anonymous Profiles)
+  // ===========================================================================
+
+  /**
+   * GET /workers/search
+   *
+   * Search available workers (anonymous profiles for employers)
+   */
+  @Get('search')
+  @UseGuards(SimpleAuthGuard)
+  async searchWorkers(
+    @Query('trade') trade?: string,
+    @Query('regionId') regionId?: string,
+    @Query('availability') availability?: string,
+    @Query('minExperience') minExperience?: string,
+    @Query('maxExperience') maxExperience?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string
+  ) {
+    const minExp = minExperience && !isNaN(Number(minExperience)) ? Number(minExperience) : undefined;
+    const maxExp = maxExperience && !isNaN(Number(maxExperience)) ? Number(maxExperience) : undefined;
+
+    return this.workersService.searchWorkers({
+      trade,
+      regionId,
+      availability,
+      minExperience: minExp,
+      maxExperience: maxExp,
+      page: page ? parseInt(String(page)) : 1,
+      limit: limit ? parseInt(String(limit)) : 20
+    });
+  }
+
+  // ===========================================================================
   // GET MY PROFILE (Worker's private view)
   // ===========================================================================
 
@@ -112,7 +146,6 @@ export class WorkersController {
    * - Verified certifications only
    */
   @Get(':publicId')
-  @UsePipes(new AnonymousProfilePipe())
   async getPublicProfile(
     @Param('publicId') publicId: string,
     @Query('employerId') employerId?: string
