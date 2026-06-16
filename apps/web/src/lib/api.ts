@@ -73,6 +73,24 @@ export const authApi = {
 };
 
 // ============================================================================
+// ENUMS API
+// ============================================================================
+
+export const enumsApi = {
+  // Get all enums at once
+  getAll: () => api.get('/enums'),
+
+  // Individual enum endpoints
+  getAvailability: () => api.get('/enums/availability'),
+  getProfileVisibility: () => api.get('/enums/profile-visibility'),
+  getSkillLevel: () => api.get('/enums/skill-level'),
+  getWorkSchedule: () => api.get('/enums/work-schedule'),
+  getIndustry: () => api.get('/enums/industry'),
+  getCareerPriority: () => api.get('/enums/career-priority'),
+  getEmploymentType: () => api.get('/enums/employment-type'),
+};
+
+// ============================================================================
 // WORKER API
 // ============================================================================
 

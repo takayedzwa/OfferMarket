@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
-import { Availability, ProfileVisibility, SkillLevel } from '@prisma/client';
+import { Availability, ProfileVisibility, SkillLevel, EmploymentType, WorkScheduleType, IndustryType, CareerPriority } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateWorkerDto, UpdateWorkerDto } from './dto/worker.dto';
 
@@ -182,11 +182,11 @@ export class WorkersService {
           desiredSalaryMin: createDto.desiredSalaryMin,
           desiredSalaryMax: createDto.desiredSalaryMax,
           desiredHourlyRate: createDto.desiredHourlyRate,
-          employmentTypes: createDto.employmentTypes || [],
+          employmentTypes: (createDto.employmentTypes || []) as EmploymentType[],
           travelDistanceKm: createDto.travelDistanceKm || 30,
-          workSchedulePrefs: createDto.workSchedulePrefs || [],
-          industryPrefs: createDto.industryPrefs || [],
-          careerPriorities: createDto.careerPriorities || [],
+          workSchedulePrefs: (createDto.workSchedulePrefs || []) as WorkScheduleType[],
+          industryPrefs: (createDto.industryPrefs || []) as IndustryType[],
+          careerPriorities: (createDto.careerPriorities || []) as CareerPriority[],
           profileVisibility: createDto.profileVisibility as ProfileVisibility || ProfileVisibility.ALL_VERIFIED,
           isProfileComplete: completeness >= 90,
           profileCompletenessPct: completeness
@@ -407,11 +407,11 @@ export class WorkersService {
         desiredSalaryMin: updateDto.desiredSalaryMin,
         desiredSalaryMax: updateDto.desiredSalaryMax,
         desiredHourlyRate: updateDto.desiredHourlyRate,
-        employmentTypes: updateDto.employmentTypes,
+        employmentTypes: updateDto.employmentTypes as EmploymentType[],
         travelDistanceKm: updateDto.travelDistanceKm,
-        workSchedulePrefs: updateDto.workSchedulePrefs,
-        industryPrefs: updateDto.industryPrefs,
-        careerPriorities: updateDto.careerPriorities,
+        workSchedulePrefs: updateDto.workSchedulePrefs as WorkScheduleType[],
+        industryPrefs: updateDto.industryPrefs as IndustryType[],
+        careerPriorities: updateDto.careerPriorities as CareerPriority[],
         profileVisibility: updateDto.profileVisibility as ProfileVisibility,
         isProfileComplete: completeness >= 90,
         profileCompletenessPct: completeness

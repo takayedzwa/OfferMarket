@@ -1,0 +1,3 @@
+- [offer-validation-pipe-fix](offer-validation-pipe-fix.md) - Fix OfferValidationPipe to handle nested DTOs correctly
+- [global-validation-pipe-config](global-validation-pipe-config.md) - Configure global ValidationPipe to not interfere with nested DTOs
+- [worker-enum-transform-fix](worker-enum-transform-fix.md) - Fix worker profile creation with @Transform for enum values
