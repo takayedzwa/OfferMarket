@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards, UsePipes, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards, BadRequestException } from '@nestjs/common';
 import { WorkersService } from './workers.service';
 import { AnonymousProfilePipe } from './pipes/anonymous-profile.pipe';
 import { CreateWorkerDto, UpdateWorkerDto, BlockCompanyDto } from './dto/worker.dto';

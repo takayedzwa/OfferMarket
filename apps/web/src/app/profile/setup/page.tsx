@@ -284,7 +284,7 @@ export default function SetupWorkerProfile() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Region (optional)
+                  City
                 </label>
                 <input
                   type="text"
@@ -298,7 +298,7 @@ export default function SetupWorkerProfile() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Work Radius / Travel Distance (km)
+                Work Radius (km)
               </label>
               <input
                 type="number"
@@ -405,6 +405,54 @@ export default function SetupWorkerProfile() {
                   />
                   <span className="text-sm text-gray-700">Contract</span>
                 </label>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Work Schedule Preferences (optional)
+              </label>
+              <div className="space-y-2">
+                {["STANDARD", "FLEXIBLE", "WEEKEND", "EVENING", "ROTATING"].map((schedule) => (
+                  <label key={schedule} className="flex items-center gap-2 text-sm text-gray-700">
+                    <input
+                      type="checkbox"
+                      checked={formData.workSchedulePrefs.includes(schedule)}
+                      onChange={(e) => {
+                        const prefs = e.target.checked
+                          ? [...formData.workSchedulePrefs, schedule]
+                          : formData.workSchedulePrefs.filter((p) => p !== schedule);
+                        updateField("workSchedulePrefs", prefs);
+                      }}
+                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-600"
+                    />
+                    {schedule.charAt(0) + schedule.slice(1).toLowerCase()}
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Industry Preferences (optional)
+              </label>
+              <div className="space-y-2">
+                {["CONSTRUCTION", "INDUSTRIAL", "RESIDENTIAL", "COMMERCIAL", "INFRASTRUCTURE", "ENERGY", "TELECOM"].map((industry) => (
+                  <label key={industry} className="flex items-center gap-2 text-sm text-gray-700">
+                    <input
+                      type="checkbox"
+                      checked={formData.industryPrefs.includes(industry)}
+                      onChange={(e) => {
+                        const prefs = e.target.checked
+                          ? [...formData.industryPrefs, industry]
+                          : formData.industryPrefs.filter((p) => p !== industry);
+                        updateField("industryPrefs", prefs);
+                      }}
+                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-600"
+                    />
+                    {industry.charAt(0) + industry.slice(1).toLowerCase()}
+                  </label>
+                ))}
               </div>
             </div>
           </div>

@@ -13,10 +13,11 @@ async function bootstrap() {
 
   // Global validation pipe - minimal to avoid interfering with nested DTOs
   // OfferValidationPipe handles full validation for offers endpoint
+  // transform: true is needed for class-transformer decorators (@Transform) to work
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: false,
-      transform: false,
+      transform: true,
     }),
   );
 

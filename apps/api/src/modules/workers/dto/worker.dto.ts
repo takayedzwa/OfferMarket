@@ -1,4 +1,5 @@
 import { IsString, IsInt, IsOptional, IsArray, IsIn, Min, Max, ArrayMinSize, IsDateString } from 'class-validator';
+import { Transform } from 'class-transformer';
 
 /**
  * WORKER DTOs
@@ -31,6 +32,7 @@ export class CreateWorkerDto {
   primaryTrade?: string;
 
   @IsString()
+  @Transform(({ value }) => value?.toUpperCase())
   @IsIn(['IMMEDIATE', 'ONE_MONTH', 'THREE_MONTHS', 'SIX_MONTHS', 'NOT_AVAILABLE'])
   @IsOptional()
   availability?: string;
@@ -83,6 +85,7 @@ export class CreateWorkerDto {
   careerPriorities?: string[];
 
   @IsString()
+  @Transform(({ value }) => value?.toUpperCase())
   @IsIn(['ALL_VERIFIED', 'SELECTED_COMPANIES', 'HIDDEN'])
   @IsOptional()
   profileVisibility?: string = 'ALL_VERIFIED';
@@ -108,6 +111,7 @@ export class UpdateWorkerDto {
   primaryTrade?: string;
 
   @IsString()
+  @Transform(({ value }) => value?.toUpperCase())
   @IsIn(['IMMEDIATE', 'ONE_MONTH', 'THREE_MONTHS', 'SIX_MONTHS', 'NOT_AVAILABLE'])
   @IsOptional()
   availability?: string;
@@ -160,6 +164,7 @@ export class UpdateWorkerDto {
   careerPriorities?: string[];
 
   @IsString()
+  @Transform(({ value }) => value?.toUpperCase())
   @IsIn(['ALL_VERIFIED', 'SELECTED_COMPANIES', 'HIDDEN'])
   @IsOptional()
   profileVisibility?: string;

@@ -39,6 +39,9 @@ export default function EditWorkerProfile() {
     profileVisibility: "ALL_VERIFIED" as "ALL_VERIFIED" | "SELECTED_COMPANIES" | "HIDDEN",
   });
 
+  const workScheduleOptions = ["STANDARD", "FLEXIBLE", "WEEKEND", "EVENING", "ROTATING"];
+  const industryOptions = ["CONSTRUCTION", "INDUSTRIAL", "RESIDENTIAL", "COMMERCIAL", "INFRASTRUCTURE", "ENERGY", "TELECOM"];
+
   // Load trades and current profile
   useEffect(() => {
     workersApi.getTrades()
@@ -186,21 +189,34 @@ export default function EditWorkerProfile() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Work Radius (km)
+                City
               </label>
               <input
-                type="number"
-                min="0"
-                max="500"
-                value={formData.travelDistanceKm}
-                onChange={(e) => updateField("travelDistanceKm", parseInt(e.target.value) || 30)}
+                type="text"
+                value={formData.regionId}
+                onChange={(e) => updateField("regionId", e.target.value)}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
+                placeholder="e.g., Amsterdam"
               />
             </div>
           </div>
-          <p className="text-sm text-gray-500 -mt-4">
-            You are willing to work or be found by employers within {formData.travelDistanceKm} km of your location
-          </p>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Work Radius (km)
+            </label>
+            <input
+              type="number"
+              min="0"
+              max="500"
+              value={formData.travelDistanceKm}
+              onChange={(e) => updateField("travelDistanceKm", parseInt(e.target.value) || 30)}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
+            />
+            <p className="mt-1 text-sm text-gray-500">
+              You are willing to work or be found by employers within {formData.travelDistanceKm} km of your location
+            </p>
+          </div>
 
           {/* Years of Experience */}
           <div>
@@ -289,18 +305,79 @@ export default function EditWorkerProfile() {
             </div>
           </div>
 
-          {/* Region */}
+          {/* Work Schedule Preferences */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Region (optional)
+              Work Schedule Preferences (optional)
             </label>
-            <input
-              type="text"
-              value={formData.regionId}
-              onChange={(e) => updateField("regionId", e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
-              placeholder="e.g., Amsterdam, Rotterdam"
-            />
+            <div className="space-y-2">
+              {workScheduleOptions.map((schedule) => (
+                <label key={schedule} className="flex items-center gap-2 text-sm text-gray-700">
+                  <input
+                    type="checkbox"
+                    checked={formData.workSchedulePrefs.includes(schedule)}
+                    onChange={(e) => {
+                      const prefs = e.target.checked
+                        ? [...formData.workSchedulePrefs, schedule]
+                        : formData.workSchedulePrefs.filter((p) => p !== schedule);
+                      updateField("workSchedulePrefs", prefs);
+                    }}
+                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-600"
+                  />
+                  {schedule.charAt(0) + schedule.slice(1).toLowerCase()}
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {/* Industry Preferences */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Industry Preferences (optional)
+            </label>
+            <div className="space-y-2">
+              {industryOptions.map((industry) => (
+                <label key={industry} className="flex items-center gap-2 text-sm text-gray-700">
+                  <input
+                    type="checkbox"
+                    checked={formData.industryPrefs.includes(industry)}
+                    onChange={(e) => {
+                      const prefs = e.target.checked
+                        ? [...formData.industryPrefs, industry]
+                        : formData.industryPrefs.filter((p) => p !== industry);
+                      updateField("industryPrefs", prefs);
+                    }}
+                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-600"
+                  />
+                  {industry.charAt(0) + industry.slice(1).toLowerCase()}
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {/* Career Priorities */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Career Priorities (optional)
+            </label>
+            <div className="space-y-2">
+              {["WORK_LIFE_BALANCE", "HIGH_SALARY", "CAREER_GROWTH", "REMOTE_FLEXIBILITY", "JOB_SECURITY", "IMPACTFUL_WORK"].map((priority) => (
+                <label key={priority} className="flex items-center gap-2 text-sm text-gray-700">
+                  <input
+                    type="checkbox"
+                    checked={formData.careerPriorities.includes(priority)}
+                    onChange={(e) => {
+                      const priorities = e.target.checked
+                        ? [...formData.careerPriorities, priority]
+                        : formData.careerPriorities.filter((p) => p !== priority);
+                      updateField("careerPriorities", priorities);
+                    }}
+                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-600"
+                  />
+                  {priority.replace(/_/g, " ")}
+                </label>
+              ))}
+            </div>
           </div>
 
           {/* Profile Visibility */}
