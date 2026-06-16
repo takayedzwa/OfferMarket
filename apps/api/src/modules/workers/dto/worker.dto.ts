@@ -1,4 +1,6 @@
-import { IsString, IsInt, IsOptional, IsArray, IsIn, Min, Max, ArrayMinSize, IsDateString } from 'class-validator';
+import { IsString, IsInt, IsOptional, IsArray, IsIn, Min, Max } from 'class-validator';
+import { Transform } from 'class-transformer';
+import { Availability, ProfileVisibility, EmploymentType, WorkScheduleType, IndustryType, CareerPriority } from '@prisma/client';
 
 /**
  * WORKER DTOs
@@ -6,6 +8,14 @@ import { IsString, IsInt, IsOptional, IsArray, IsIn, Min, Max, ArrayMinSize, IsD
  * These DTOs are for the worker's PRIVATE profile data
  * (what they see when editing), not the public anonymous view
  */
+
+// Enum values from Prisma for validation
+const AVAILABILITY_VALUES = Object.values(Availability);
+const PROFILE_VISIBILITY_VALUES = Object.values(ProfileVisibility);
+const EMPLOYMENT_TYPE_VALUES = Object.values(EmploymentType);
+const WORK_SCHEDULE_VALUES = Object.values(WorkScheduleType);
+const INDUSTRY_VALUES = Object.values(IndustryType);
+const CAREER_PRIORITY_VALUES = Object.values(CareerPriority);
 
 export class CreateWorkerDto {
   @IsString()
@@ -31,7 +41,8 @@ export class CreateWorkerDto {
   primaryTrade?: string;
 
   @IsString()
-  @IsIn(['IMMEDIATE', 'ONE_MONTH', 'THREE_MONTHS', 'SIX_MONTHS', 'NOT_AVAILABLE'])
+  @Transform(({ value }) => value?.toUpperCase())
+  @IsIn(AVAILABILITY_VALUES)
   @IsOptional()
   availability?: string;
 
@@ -58,6 +69,8 @@ export class CreateWorkerDto {
 
   @IsArray()
   @IsString({ each: true })
+  @Transform(({ value }) => value?.map((v: string) => v.toUpperCase()))
+  @IsIn(EMPLOYMENT_TYPE_VALUES, { each: true })
   @IsOptional()
   employmentTypes?: string[];
 
@@ -69,21 +82,28 @@ export class CreateWorkerDto {
 
   @IsArray()
   @IsString({ each: true })
+  @Transform(({ value }) => value?.map((v: string) => v.toUpperCase()))
+  @IsIn(WORK_SCHEDULE_VALUES, { each: true })
   @IsOptional()
   workSchedulePrefs?: string[];
 
   @IsArray()
   @IsString({ each: true })
+  @Transform(({ value }) => value?.map((v: string) => v.toUpperCase()))
+  @IsIn(INDUSTRY_VALUES, { each: true })
   @IsOptional()
   industryPrefs?: string[];
 
   @IsArray()
   @IsString({ each: true })
+  @Transform(({ value }) => value?.map((v: string) => v.toUpperCase()))
+  @IsIn(CAREER_PRIORITY_VALUES, { each: true })
   @IsOptional()
   careerPriorities?: string[];
 
   @IsString()
-  @IsIn(['ALL_VERIFIED', 'SELECTED_COMPANIES', 'HIDDEN'])
+  @Transform(({ value }) => value?.toUpperCase())
+  @IsIn(PROFILE_VISIBILITY_VALUES)
   @IsOptional()
   profileVisibility?: string = 'ALL_VERIFIED';
 }
@@ -108,7 +128,8 @@ export class UpdateWorkerDto {
   primaryTrade?: string;
 
   @IsString()
-  @IsIn(['IMMEDIATE', 'ONE_MONTH', 'THREE_MONTHS', 'SIX_MONTHS', 'NOT_AVAILABLE'])
+  @Transform(({ value }) => value?.toUpperCase())
+  @IsIn(AVAILABILITY_VALUES)
   @IsOptional()
   availability?: string;
 
@@ -135,6 +156,8 @@ export class UpdateWorkerDto {
 
   @IsArray()
   @IsString({ each: true })
+  @Transform(({ value }) => value?.map((v: string) => v.toUpperCase()))
+  @IsIn(EMPLOYMENT_TYPE_VALUES, { each: true })
   @IsOptional()
   employmentTypes?: string[];
 
@@ -146,21 +169,28 @@ export class UpdateWorkerDto {
 
   @IsArray()
   @IsString({ each: true })
+  @Transform(({ value }) => value?.map((v: string) => v.toUpperCase()))
+  @IsIn(WORK_SCHEDULE_VALUES, { each: true })
   @IsOptional()
   workSchedulePrefs?: string[];
 
   @IsArray()
   @IsString({ each: true })
+  @Transform(({ value }) => value?.map((v: string) => v.toUpperCase()))
+  @IsIn(INDUSTRY_VALUES, { each: true })
   @IsOptional()
   industryPrefs?: string[];
 
   @IsArray()
   @IsString({ each: true })
+  @Transform(({ value }) => value?.map((v: string) => v.toUpperCase()))
+  @IsIn(CAREER_PRIORITY_VALUES, { each: true })
   @IsOptional()
   careerPriorities?: string[];
 
   @IsString()
-  @IsIn(['ALL_VERIFIED', 'SELECTED_COMPANIES', 'HIDDEN'])
+  @Transform(({ value }) => value?.toUpperCase())
+  @IsIn(PROFILE_VISIBILITY_VALUES)
   @IsOptional()
   profileVisibility?: string;
 }

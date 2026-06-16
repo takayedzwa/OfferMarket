@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../../contexts/AuthContext";
-import { workersApi } from "../../../lib/api";
+import { workersApi, enumsApi } from "../../../lib/api";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 
 // Enums matching backend Prisma definitions
@@ -23,6 +23,12 @@ enum SkillLevel {
   MASTER = "MASTER",
 }
 
+interface EnumOption {
+  value: string;
+  label: string;
+  description?: string;
+}
+
 const steps = [
   { id: 1, title: "Basic Info", description: "Availability and experience" },
   { id: 2, title: "Trade & Skills", description: "Primary trade and skills" },
@@ -37,15 +43,68 @@ export default function SetupWorkerProfile() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [trades, setTrades] = useState<any[]>([]);
+  const [workScheduleOptions, setWorkScheduleOptions] = useState<EnumOption[]>([]);
+  const [industryOptions, setIndustryOptions] = useState<EnumOption[]>([]);
+  const [careerPriorityOptions, setCareerPriorityOptions] = useState<EnumOption[]>([]);
+  const [employmentTypeOptions, setEmploymentTypeOptions] = useState<EnumOption[]>([]);
 
-  // Load available trades from backend and pre-populate user data
+  // Load enums and trades from backend
   useEffect(() => {
+    // Load available trades
     workersApi.getTrades()
       .then((res) => setTrades(res.data.trades || []))
       .catch(() => {
-        // Fallback if API fails
-        setTrades([
-          { value: "Electrician", label: "Electrician", available: true },
+        setTrades([{ value: "Electrician", label: "Electrician", available: true }]);
+      });
+
+    // Load enum options from backend
+    enumsApi.getWorkSchedule()
+      .then((res) => setWorkScheduleOptions(res.data))
+      .catch(() => {
+        setWorkScheduleOptions([
+          { value: "STANDARD", label: "Standard" },
+          { value: "FLEXIBLE", label: "Flexible" },
+          { value: "WEEKEND", label: "Weekend" },
+          { value: "EVENING", label: "Evening" },
+          { value: "ROTATING", label: "Rotating" },
+        ]);
+      });
+
+    enumsApi.getIndustry()
+      .then((res) => setIndustryOptions(res.data))
+      .catch(() => {
+        setIndustryOptions([
+          { value: "CONSTRUCTION", label: "Construction" },
+          { value: "INDUSTRIAL", label: "Industrial" },
+          { value: "RESIDENTIAL", label: "Residential" },
+          { value: "COMMERCIAL", label: "Commercial" },
+          { value: "INFRASTRUCTURE", label: "Infrastructure" },
+          { value: "ENERGY", label: "Energy" },
+          { value: "TELECOM", label: "Telecom" },
+        ]);
+      });
+
+    enumsApi.getCareerPriority()
+      .then((res) => setCareerPriorityOptions(res.data))
+      .catch(() => {
+        setCareerPriorityOptions([
+          { value: "WORK_LIFE_BALANCE", label: "Work Life Balance" },
+          { value: "HIGH_SALARY", label: "High Salary" },
+          { value: "CAREER_GROWTH", label: "Career Growth" },
+          { value: "REMOTE_FLEXIBILITY", label: "Remote Flexibility" },
+          { value: "JOB_SECURITY", label: "Job Security" },
+          { value: "IMPACTFUL_WORK", label: "Impactful Work" },
+        ]);
+      });
+
+    enumsApi.getEmploymentType()
+      .then((res) => setEmploymentTypeOptions(res.data))
+      .catch(() => {
+        setEmploymentTypeOptions([
+          { value: "FULL_TIME", label: "Full-time" },
+          { value: "PART_TIME", label: "Part-time" },
+          { value: "FREELANCE", label: "Freelance" },
+          { value: "CONTRACT", label: "Contract" },
         ]);
       });
 
@@ -284,7 +343,7 @@ export default function SetupWorkerProfile() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Region (optional)
+                  City
                 </label>
                 <input
                   type="text"
@@ -298,7 +357,7 @@ export default function SetupWorkerProfile() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Work Radius / Travel Distance (km)
+                Work Radius (km)
               </label>
               <input
                 type="number"
@@ -349,62 +408,73 @@ export default function SetupWorkerProfile() {
                 Employment Types
               </label>
               <div className="space-y-2">
-                <label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={formData.employmentTypes.includes("FULL_TIME")}
-                    onChange={(e) => {
-                      const types = e.target.checked
-                        ? [...formData.employmentTypes, "FULL_TIME"]
-                        : formData.employmentTypes.filter((t) => t !== "FULL_TIME");
-                      updateField("employmentTypes", types);
-                    }}
-                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-600"
-                  />
-                  <span className="text-sm text-gray-700">Full-time</span>
-                </label>
-                <label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={formData.employmentTypes.includes("PART_TIME")}
-                    onChange={(e) => {
-                      const types = e.target.checked
-                        ? [...formData.employmentTypes, "PART_TIME"]
-                        : formData.employmentTypes.filter((t) => t !== "PART_TIME");
-                      updateField("employmentTypes", types);
-                    }}
-                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-600"
-                  />
-                  <span className="text-sm text-gray-700">Part-time</span>
-                </label>
-                <label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={formData.employmentTypes.includes("FREELANCE")}
-                    onChange={(e) => {
-                      const types = e.target.checked
-                        ? [...formData.employmentTypes, "FREELANCE"]
-                        : formData.employmentTypes.filter((t) => t !== "FREELANCE");
-                      updateField("employmentTypes", types);
-                    }}
-                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-600"
-                  />
-                  <span className="text-sm text-gray-700">Freelance</span>
-                </label>
-                <label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={formData.employmentTypes.includes("CONTRACT")}
-                    onChange={(e) => {
-                      const types = e.target.checked
-                        ? [...formData.employmentTypes, "CONTRACT"]
-                        : formData.employmentTypes.filter((t) => t !== "CONTRACT");
-                      updateField("employmentTypes", types);
-                    }}
-                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-600"
-                  />
-                  <span className="text-sm text-gray-700">Contract</span>
-                </label>
+                {employmentTypeOptions.map((type) => (
+                  <label key={type.value} className="flex items-center gap-2 text-sm text-gray-700">
+                    <input
+                      type="checkbox"
+                      checked={formData.employmentTypes.includes(type.value)}
+                      onChange={(e) => {
+                        const types = e.target.checked
+                          ? [...formData.employmentTypes, type.value]
+                          : formData.employmentTypes.filter((t) => t !== type.value);
+                        updateField("employmentTypes", types);
+                      }}
+                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-600"
+                    />
+                    {type.label}
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Work Schedule Preferences (optional)
+              </label>
+              <div className="space-y-2">
+                {workScheduleOptions.map((schedule) => (
+                  <label key={schedule.value} className="flex items-center gap-2 text-sm text-gray-700">
+                    <input
+                      type="checkbox"
+                      checked={formData.workSchedulePrefs.includes(schedule.value)}
+                      onChange={(e) => {
+                        const prefs = e.target.checked
+                          ? [...formData.workSchedulePrefs, schedule.value]
+                          : formData.workSchedulePrefs.filter((p) => p !== schedule.value);
+                        updateField("workSchedulePrefs", prefs);
+                      }}
+                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-600"
+                    />
+                    {schedule.label}
+                    {schedule.description && (
+                      <span className="text-xs text-gray-500 ml-1">- {schedule.description}</span>
+                    )}
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Industry Preferences (optional)
+              </label>
+              <div className="space-y-2">
+                {industryOptions.map((industry) => (
+                  <label key={industry.value} className="flex items-center gap-2 text-sm text-gray-700">
+                    <input
+                      type="checkbox"
+                      checked={formData.industryPrefs.includes(industry.value)}
+                      onChange={(e) => {
+                        const prefs = e.target.checked
+                          ? [...formData.industryPrefs, industry.value]
+                          : formData.industryPrefs.filter((p) => p !== industry.value);
+                        updateField("industryPrefs", prefs);
+                      }}
+                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-600"
+                    />
+                    {industry.label}
+                  </label>
+                ))}
               </div>
             </div>
           </div>
@@ -471,20 +541,20 @@ export default function SetupWorkerProfile() {
                 Career Priorities (optional)
               </label>
               <div className="space-y-2">
-                {["WORK_LIFE_BALANCE", "HIGH_SALARY", "CAREER_GROWTH", "REMOTE_FLEXIBILITY", "JOB_SECURITY", "IMPACTFUL_WORK"].map((priority) => (
-                  <label key={priority} className="flex items-center gap-2 text-sm text-gray-700">
+                {careerPriorityOptions.map((priority) => (
+                  <label key={priority.value} className="flex items-center gap-2 text-sm text-gray-700">
                     <input
                       type="checkbox"
-                      checked={formData.careerPriorities.includes(priority)}
+                      checked={formData.careerPriorities.includes(priority.value)}
                       onChange={(e) => {
                         const priorities = e.target.checked
-                          ? [...formData.careerPriorities, priority]
-                          : formData.careerPriorities.filter((p) => p !== priority);
+                          ? [...formData.careerPriorities, priority.value]
+                          : formData.careerPriorities.filter((p) => p !== priority.value);
                         updateField("careerPriorities", priorities);
                       }}
                       className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-600"
                     />
-                    {priority.replace(/_/g, " ")}
+                    {priority.label}
                   </label>
                 ))}
               </div>

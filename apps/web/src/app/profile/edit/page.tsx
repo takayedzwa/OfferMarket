@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../../contexts/AuthContext";
-import { workersApi } from "../../../lib/api";
+import { workersApi, enumsApi } from "../../../lib/api";
 import { ArrowLeft, Save } from "lucide-react";
 
 enum Availability {
@@ -14,6 +14,12 @@ enum Availability {
   NOT_AVAILABLE = "NOT_AVAILABLE",
 }
 
+interface EnumOption {
+  value: string;
+  label: string;
+  description?: string;
+}
+
 export default function EditWorkerProfile() {
   const router = useRouter();
   const { user } = useAuth();
@@ -21,6 +27,10 @@ export default function EditWorkerProfile() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [trades, setTrades] = useState<any[]>([]);
+  const [workScheduleOptions, setWorkScheduleOptions] = useState<EnumOption[]>([]);
+  const [industryOptions, setIndustryOptions] = useState<EnumOption[]>([]);
+  const [careerPriorityOptions, setCareerPriorityOptions] = useState<EnumOption[]>([]);
+  const [employmentTypeOptions, setEmploymentTypeOptions] = useState<EnumOption[]>([]);
 
   const [formData, setFormData] = useState({
     availability: Availability.IMMEDIATE,
@@ -39,12 +49,64 @@ export default function EditWorkerProfile() {
     profileVisibility: "ALL_VERIFIED" as "ALL_VERIFIED" | "SELECTED_COMPANIES" | "HIDDEN",
   });
 
-  // Load trades and current profile
+  // Load trades, enums, and current profile
   useEffect(() => {
+    // Load available trades
     workersApi.getTrades()
       .then((res) => setTrades(res.data.trades || []))
       .catch(() => {
         setTrades([{ value: "Electrician", label: "Electrician", available: true }]);
+      });
+
+    // Load enum options from backend
+    enumsApi.getWorkSchedule()
+      .then((res) => setWorkScheduleOptions(res.data))
+      .catch(() => {
+        setWorkScheduleOptions([
+          { value: "STANDARD", label: "Standard" },
+          { value: "FLEXIBLE", label: "Flexible" },
+          { value: "WEEKEND", label: "Weekend" },
+          { value: "EVENING", label: "Evening" },
+          { value: "ROTATING", label: "Rotating" },
+        ]);
+      });
+
+    enumsApi.getIndustry()
+      .then((res) => setIndustryOptions(res.data))
+      .catch(() => {
+        setIndustryOptions([
+          { value: "CONSTRUCTION", label: "Construction" },
+          { value: "INDUSTRIAL", label: "Industrial" },
+          { value: "RESIDENTIAL", label: "Residential" },
+          { value: "COMMERCIAL", label: "Commercial" },
+          { value: "INFRASTRUCTURE", label: "Infrastructure" },
+          { value: "ENERGY", label: "Energy" },
+          { value: "TELECOM", label: "Telecom" },
+        ]);
+      });
+
+    enumsApi.getCareerPriority()
+      .then((res) => setCareerPriorityOptions(res.data))
+      .catch(() => {
+        setCareerPriorityOptions([
+          { value: "WORK_LIFE_BALANCE", label: "Work Life Balance" },
+          { value: "HIGH_SALARY", label: "High Salary" },
+          { value: "CAREER_GROWTH", label: "Career Growth" },
+          { value: "REMOTE_FLEXIBILITY", label: "Remote Flexibility" },
+          { value: "JOB_SECURITY", label: "Job Security" },
+          { value: "IMPACTFUL_WORK", label: "Impactful Work" },
+        ]);
+      });
+
+    enumsApi.getEmploymentType()
+      .then((res) => setEmploymentTypeOptions(res.data))
+      .catch(() => {
+        setEmploymentTypeOptions([
+          { value: "FULL_TIME", label: "Full-time" },
+          { value: "PART_TIME", label: "Part-time" },
+          { value: "FREELANCE", label: "Freelance" },
+          { value: "CONTRACT", label: "Contract" },
+        ]);
       });
 
     workersApi.getMyProfile()
@@ -186,21 +248,34 @@ export default function EditWorkerProfile() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Work Radius (km)
+                City
               </label>
               <input
-                type="number"
-                min="0"
-                max="500"
-                value={formData.travelDistanceKm}
-                onChange={(e) => updateField("travelDistanceKm", parseInt(e.target.value) || 30)}
+                type="text"
+                value={formData.regionId}
+                onChange={(e) => updateField("regionId", e.target.value)}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
+                placeholder="e.g., Amsterdam"
               />
             </div>
           </div>
-          <p className="text-sm text-gray-500 -mt-4">
-            You are willing to work or be found by employers within {formData.travelDistanceKm} km of your location
-          </p>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Work Radius (km)
+            </label>
+            <input
+              type="number"
+              min="0"
+              max="500"
+              value={formData.travelDistanceKm}
+              onChange={(e) => updateField("travelDistanceKm", parseInt(e.target.value) || 30)}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
+            />
+            <p className="mt-1 text-sm text-gray-500">
+              You are willing to work or be found by employers within {formData.travelDistanceKm} km of your location
+            </p>
+          </div>
 
           {/* Years of Experience */}
           <div>
@@ -270,37 +345,101 @@ export default function EditWorkerProfile() {
               Employment Types
             </label>
             <div className="space-y-2">
-              {["FULL_TIME", "PART_TIME", "FREELANCE", "CONTRACT"].map((type) => (
-                <label key={type} className="flex items-center gap-2 text-sm text-gray-700">
+              {employmentTypeOptions.map((type) => (
+                <label key={type.value} className="flex items-center gap-2 text-sm text-gray-700">
                   <input
                     type="checkbox"
-                    checked={formData.employmentTypes.includes(type)}
+                    checked={formData.employmentTypes.includes(type.value)}
                     onChange={(e) => {
                       const types = e.target.checked
-                        ? [...formData.employmentTypes, type]
-                        : formData.employmentTypes.filter((t) => t !== type);
+                        ? [...formData.employmentTypes, type.value]
+                        : formData.employmentTypes.filter((t) => t !== type.value);
                       updateField("employmentTypes", types);
                     }}
                     className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-600"
                   />
-                  {type.replace("_", " ")}
+                  {type.label}
                 </label>
               ))}
             </div>
           </div>
 
-          {/* Region */}
+          {/* Work Schedule Preferences */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Region (optional)
+              Work Schedule Preferences (optional)
             </label>
-            <input
-              type="text"
-              value={formData.regionId}
-              onChange={(e) => updateField("regionId", e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
-              placeholder="e.g., Amsterdam, Rotterdam"
-            />
+            <div className="space-y-2">
+              {workScheduleOptions.map((schedule) => (
+                <label key={schedule.value} className="flex items-center gap-2 text-sm text-gray-700">
+                  <input
+                    type="checkbox"
+                    checked={formData.workSchedulePrefs.includes(schedule.value)}
+                    onChange={(e) => {
+                      const prefs = e.target.checked
+                        ? [...formData.workSchedulePrefs, schedule.value]
+                        : formData.workSchedulePrefs.filter((p) => p !== schedule.value);
+                      updateField("workSchedulePrefs", prefs);
+                    }}
+                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-600"
+                  />
+                  {schedule.label}
+                  {schedule.description && (
+                    <span className="text-xs text-gray-500 ml-1">- {schedule.description}</span>
+                  )}
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {/* Industry Preferences */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Industry Preferences (optional)
+            </label>
+            <div className="space-y-2">
+              {industryOptions.map((industry) => (
+                <label key={industry.value} className="flex items-center gap-2 text-sm text-gray-700">
+                  <input
+                    type="checkbox"
+                    checked={formData.industryPrefs.includes(industry.value)}
+                    onChange={(e) => {
+                      const prefs = e.target.checked
+                        ? [...formData.industryPrefs, industry.value]
+                        : formData.industryPrefs.filter((p) => p !== industry.value);
+                      updateField("industryPrefs", prefs);
+                    }}
+                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-600"
+                  />
+                  {industry.label}
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {/* Career Priorities */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Career Priorities (optional)
+            </label>
+            <div className="space-y-2">
+              {careerPriorityOptions.map((priority) => (
+                <label key={priority.value} className="flex items-center gap-2 text-sm text-gray-700">
+                  <input
+                    type="checkbox"
+                    checked={formData.careerPriorities.includes(priority.value)}
+                    onChange={(e) => {
+                      const priorities = e.target.checked
+                        ? [...formData.careerPriorities, priority.value]
+                        : formData.careerPriorities.filter((p) => p !== priority.value);
+                      updateField("careerPriorities", priorities);
+                    }}
+                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-600"
+                  />
+                  {priority.label}
+                </label>
+              ))}
+            </div>
           </div>
 
           {/* Profile Visibility */}
