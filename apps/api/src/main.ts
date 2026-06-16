@@ -11,15 +11,12 @@ async function bootstrap() {
     credentials: true,
   });
 
-  // Global validation pipe
+  // Global validation pipe - minimal to avoid interfering with nested DTOs
+  // OfferValidationPipe handles full validation for offers endpoint
   app.useGlobalPipes(
     new ValidationPipe({
-      whitelist: true,
-      forbidNonWhitelisted: true,
-      transform: true,
-      transformOptions: {
-        enableImplicitConversion: true,
-      },
+      whitelist: false,
+      transform: false,
     }),
   );
 

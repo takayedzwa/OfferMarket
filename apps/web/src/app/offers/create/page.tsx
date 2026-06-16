@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "../../../contexts/AuthContext";
-import { offersApi } from "../../../lib/api";
+import { offersApi, employersApi } from "../../../lib/api";
 import {
   ArrowLeft,
   ArrowRight,
@@ -17,6 +17,8 @@ import {
   CheckCircle2,
   X,
   Building2,
+  AlertTriangle,
+  Loader,
 } from "lucide-react";
 
 const steps = [
@@ -30,11 +32,37 @@ const steps = [
 
 export default function CreateOfferPage() {
   const router = useRouter();
-  const { user } = useAuth();
+  const searchParams = useSearchParams();
+  const { user, logout } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [verificationStatus, setVerificationStatus] = useState<"PENDING" | "VERIFIED" | "EXPIRED" | "REVOKED" | "UNVERIFIED" | null>(null);
+  const [loadingVerification, setLoadingVerification] = useState(true);
+
+  // Check employer verification status on mount
+  useEffect(() => {
+    const checkVerification = async () => {
+      try {
+        const res = await employersApi.getVerificationStatus();
+        setVerificationStatus(res.data.status || "UNVERIFIED");
+      } catch (err) {
+        setVerificationStatus("UNVERIFIED");
+      } finally {
+        setLoadingVerification(false);
+      }
+    };
+    checkVerification();
+  }, []);
+
+  // Read workerId from query params on mount
+  useEffect(() => {
+    const workerIdFromQuery = searchParams.get("workerId");
+    if (workerIdFromQuery) {
+      setFormData(prev => ({ ...prev, workerId: workerIdFromQuery }));
+    }
+  }, [searchParams]);
 
   const [formData, setFormData] = useState({
     // Job Details
@@ -55,6 +83,7 @@ export default function CreateOfferPage() {
     durationMonths: 12,
     probationMonths: 2,
     noticePeriodMonths: 1,
+    hoursPerWeek: 40,
 
     // Benefits
     vacationDays: 25,
@@ -66,6 +95,10 @@ export default function CreateOfferPage() {
     laptopProvided: true,
     educationBudget: 0,
     otherBenefits: "",
+    holidayAllowancePct: 8,
+    trainingBudget: 0,
+    companyVehicle: "not_provided" as "full_use" | "work_only" | "not_provided",
+    travelAllowanceType: "not_provided" as "per_km" | "ns_card" | "monthly" | "not_provided",
 
     // Work Arrangement
     workArrangementType: "HYBRID" as "REMOTE" | "HYBRID" | "ONSITE",
@@ -73,6 +106,9 @@ export default function CreateOfferPage() {
     remoteDaysPerWeek: 3,
     travelRequired: false,
     relocationAssistance: false,
+    scheduleType: ["daytime"] as string[],
+    remoteWorkPct: 50,
+    physicalRequirements: "",
 
     // Requirements
     requiredSkills: [] as string[],
@@ -81,6 +117,7 @@ export default function CreateOfferPage() {
     educationLevel: "" as "HIGH_SCHOOL" | "BACHELOR" | "MASTER" | "PHD" | "",
     languages: [] as { language: string; level: string }[],
     certifications: [] as string[],
+    requiredCertifications: [] as string[],
   });
 
   const updateField = (field: string, value: any) => {
@@ -103,6 +140,12 @@ export default function CreateOfferPage() {
   };
 
   const handleSubmit = async () => {
+    // Check verification status before submitting
+    if (verificationStatus !== "VERIFIED") {
+      setError("Your company must be verified before submitting offers. Please complete your KvK verification.");
+      return;
+    }
+
     setSubmitting(true);
     setError("");
 
@@ -119,673 +162,121 @@ export default function CreateOfferPage() {
 
   const buildOfferData = () => ({
     jobTitle: formData.jobTitle,
-    description: formData.description,
+    jobDescription: formData.description,
     workerId: formData.workerId || undefined,
     compensation: {
-      salary: {
-        min: formData.salaryMin,
-        max: formData.salaryMax,
-        currency: formData.currency,
-      },
-      equity: formData.equity || undefined,
-      bonus: formData.bonus
-        ? {
-            amount: formData.bonus,
-            type: formData.bonusType,
-          }
-        : undefined,
+      salaryMin: formData.salaryMin,
+      salaryMax: formData.salaryMax,
+      salaryPeriod: "year",
+      signOnBonus: formData.bonus || 0,
+      performanceBonusPct: 0,
     },
     contract: {
-      type: formData.contractType,
-      durationMonths: formData.contractType === "FIXED_TERM" ? formData.durationMonths : undefined,
-      probationPeriodMonths: formData.probationMonths,
-      noticePeriodMonths: formData.noticePeriodMonths,
+      type: formData.contractType.toLowerCase(),
+      hoursPerWeek: formData.hoursPerWeek,
+      probationMonths: formData.probationMonths,
     },
     benefits: {
       vacationDays: formData.vacationDays,
-      pensionContribution: formData.pensionContribution,
-      healthInsurance: formData.healthInsurance,
-      travelAllowance: formData.travelAllowance,
-      mealAllowance: formData.mealAllowance,
+      holidayAllowancePct: formData.holidayAllowancePct,
+      pensionContributionPct: formData.pensionContribution,
+      trainingBudget: formData.educationBudget || 0,
+      companyVehicle: formData.companyVehicle,
+      travelAllowanceType: formData.travelAllowanceType,
       phoneProvided: formData.phoneProvided,
-      laptopProvided: formData.laptopProvided,
-      educationBudget: formData.educationBudget || undefined,
-      otherBenefits: formData.otherBenefits || undefined,
+      toolsProvided: formData.laptopProvided,
     },
     workArrangement: {
-      type: formData.workArrangementType,
-      officeLocation: formData.officeLocation || undefined,
-      remoteDaysPerWeek:
-        formData.workArrangementType !== "ONSITE" ? formData.remoteDaysPerWeek : undefined,
-      travelRequired: formData.travelRequired,
-      relocationAssistance: formData.relocationAssistance,
+      scheduleType: formData.scheduleType,
+      remoteWorkPct: formData.remoteWorkPct,
+      physicalRequirements: formData.physicalRequirements || "None",
     },
     requirements: {
-      skills: formData.requiredSkills.map((s) => ({ skill: s, required: true })),
-      preferredSkills: formData.preferredSkills.map((s) => ({ skill: s, required: false })),
-      minExperienceYears: formData.minExperienceYears,
-      educationLevel: formData.educationLevel || undefined,
-      languages: formData.languages,
-      certifications: formData.certifications,
+      requiredCertifications: formData.requiredCertifications.length > 0 ? formData.requiredCertifications : ["Relevant trade certification"],
+      requiredExperienceYears: formData.minExperienceYears,
     },
   });
 
-  const renderStep = () => {
-    switch (currentStep) {
-      case 1:
-        return (
-          <div className="space-y-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Job Title *
-              </label>
-              <input
-                type="text"
-                value={formData.jobTitle}
-                onChange={(e) => updateField("jobTitle", e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
-                placeholder="Senior Software Engineer"
-              />
-            </div>
+  const isSubmitDisabled = loadingVerification ||
+    submitting ||
+    !formData.jobTitle ||
+    !formData.description ||
+    verificationStatus !== "VERIFIED";
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Target Worker (optional)
-              </label>
-              <input
-                type="text"
-                value={formData.workerId}
-                onChange={(e) => updateField("workerId", e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
-                placeholder="Worker public ID or leave empty for open offer"
-              />
-              <p className="mt-1 text-sm text-gray-500">
-                Leave empty to make this offer visible to all matching workers
-              </p>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Job Description *
-              </label>
-              <textarea
-                value={formData.description}
-                onChange={(e) => updateField("description", e.target.value)}
-                rows={8}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none resize-none"
-                placeholder="Describe the role, responsibilities, team, and company culture..."
-              />
-            </div>
-          </div>
-        );
-
-      case 2:
-        return (
-          <div className="space-y-6">
-            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <p className="text-sm text-blue-800 font-medium mb-1">Salary Range Rule</p>
-              <p className="text-sm text-blue-700">
-                The difference between min and max salary must not exceed €5,000
-              </p>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Minimum Salary (€)
-                </label>
-                <input
-                  type="number"
-                  value={formData.salaryMin}
-                  onChange={(e) => updateField("salaryMin", parseInt(e.target.value) || 0)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Maximum Salary (€)
-                </label>
-                <input
-                  type="number"
-                  value={formData.salaryMax}
-                  onChange={(e) => updateField("salaryMax", parseInt(e.target.value) || 0)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
-                />
-              </div>
-            </div>
-
-            {formData.salaryMax - formData.salaryMin > 5000 && (
-              <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-                Salary range spread ({(formData.salaryMax - formData.salaryMin).toLocaleString()}€)
-                exceeds maximum allowed (€5,000)
-              </div>
-            )}
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Equity / Stock Options (%)
-              </label>
-              <input
-                type="number"
-                min="0"
-                max="100"
-                step="0.1"
-                value={formData.equity}
-                onChange={(e) => updateField("equity", parseFloat(e.target.value) || 0)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
-                placeholder="0"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Bonus Amount (€)
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  value={formData.bonus}
-                  onChange={(e) => updateField("bonus", parseInt(e.target.value) || 0)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Bonus Type
-                </label>
-                <select
-                  value={formData.bonusType}
-                  onChange={(e) =>
-                    updateField("bonusType", e.target.value as "annual" | "performance" | "signing")
-                  }
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
-                >
-                  <option value="">Select type</option>
-                  <option value="annual">Annual</option>
-                  <option value="performance">Performance</option>
-                  <option value="signing">Signing</option>
-                </select>
-              </div>
-            </div>
-          </div>
-        );
-
-      case 3:
-        return (
-          <div className="space-y-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Contract Type
-              </label>
-              <select
-                value={formData.contractType}
-                onChange={(e) =>
-                  updateField("contractType", e.target.value as "PERMANENT" | "FIXED_TERM" | "FREELANCE" | "CONTRACT")
-                }
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
-              >
-                <option value="PERMANENT">Permanent (Indefinite)</option>
-                <option value="FIXED_TERM">Fixed Term</option>
-                <option value="FREELANCE">Freelance</option>
-                <option value="CONTRACT">Contract</option>
-              </select>
-            </div>
-
-            {formData.contractType === "FIXED_TERM" && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Duration (months)
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  max="36"
-                  value={formData.durationMonths}
-                  onChange={(e) => updateField("durationMonths", parseInt(e.target.value) || 12)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
-                />
-              </div>
-            )}
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Probation Period (months)
-              </label>
-              <input
-                type="number"
-                min="0"
-                max="6"
-                value={formData.probationMonths}
-                onChange={(e) => updateField("probationMonths", parseInt(e.target.value) || 0)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Notice Period (months)
-              </label>
-              <input
-                type="number"
-                min="0"
-                max="12"
-                value={formData.noticePeriodMonths}
-                onChange={(e) => updateField("noticePeriodMonths", parseInt(e.target.value) || 1)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
-              />
-            </div>
-          </div>
-        );
-
-      case 4:
-        return (
-          <div className="space-y-6">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Vacation Days
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  max="40"
-                  value={formData.vacationDays}
-                  onChange={(e) => updateField("vacationDays", parseInt(e.target.value) || 25)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Pension Contribution (%)
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  value={formData.pensionContribution}
-                  onChange={(e) =>
-                    updateField("pensionContribution", parseInt(e.target.value) || 0)
-                  }
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
-                />
-              </div>
-            </div>
-
-            <div>
-              <p className="block text-sm font-medium text-gray-700 mb-3">Standard Benefits</p>
-              <div className="space-y-3">
-                <label className="flex items-center gap-3">
-                  <input
-                    type="checkbox"
-                    checked={formData.healthInsurance}
-                    onChange={(e) => updateField("healthInsurance", e.target.checked)}
-                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-600"
-                  />
-                  <span className="text-sm text-gray-700">Health insurance contribution</span>
-                </label>
-                <label className="flex items-center gap-3">
-                  <input
-                    type="checkbox"
-                    checked={formData.travelAllowance}
-                    onChange={(e) => updateField("travelAllowance", e.target.checked)}
-                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-600"
-                  />
-                  <span className="text-sm text-gray-700">Travel allowance</span>
-                </label>
-                <label className="flex items-center gap-3">
-                  <input
-                    type="checkbox"
-                    checked={formData.mealAllowance}
-                    onChange={(e) => updateField("mealAllowance", e.target.checked)}
-                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-600"
-                  />
-                  <span className="text-sm text-gray-700">Meal allowance / Lunch provided</span>
-                </label>
-                <label className="flex items-center gap-3">
-                  <input
-                    type="checkbox"
-                    checked={formData.phoneProvided}
-                    onChange={(e) => updateField("phoneProvided", e.target.checked)}
-                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-600"
-                  />
-                  <span className="text-sm text-gray-700">Phone provided</span>
-                </label>
-                <label className="flex items-center gap-3">
-                  <input
-                    type="checkbox"
-                    checked={formData.laptopProvided}
-                    onChange={(e) => updateField("laptopProvided", e.target.checked)}
-                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-600"
-                  />
-                  <span className="text-sm text-gray-700">Laptop provided</span>
-                </label>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Education Budget (€)
-              </label>
-              <input
-                type="number"
-                min="0"
-                value={formData.educationBudget}
-                onChange={(e) => updateField("educationBudget", parseInt(e.target.value) || 0)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
-                placeholder="2000"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Other Benefits
-              </label>
-              <textarea
-                value={formData.otherBenefits}
-                onChange={(e) => updateField("otherBenefits", e.target.value)}
-                rows={3}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none resize-none"
-                placeholder="Gym membership, flexible hours, etc."
-              />
-            </div>
-          </div>
-        );
-
-      case 5:
-        return (
-          <div className="space-y-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Work Arrangement
-              </label>
-              <div className="grid grid-cols-3 gap-3">
-                <button
-                  type="button"
-                  onClick={() => updateField("workArrangementType", "REMOTE")}
-                  className={`p-4 rounded-lg border-2 text-center transition-all ${
-                    formData.workArrangementType === "REMOTE"
-                      ? "border-blue-600 bg-blue-50"
-                      : "border-gray-200 hover:border-gray-300"
-                  }`}
-                >
-                  <MapPin className="w-6 h-6 mx-auto mb-2 text-gray-600" />
-                  <div className="text-sm font-medium">Remote</div>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => updateField("workArrangementType", "HYBRID")}
-                  className={`p-4 rounded-lg border-2 text-center transition-all ${
-                    formData.workArrangementType === "HYBRID"
-                      ? "border-blue-600 bg-blue-50"
-                      : "border-gray-200 hover:border-gray-300"
-                  }`}
-                >
-                  <Briefcase className="w-6 h-6 mx-auto mb-2 text-gray-600" />
-                  <div className="text-sm font-medium">Hybrid</div>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => updateField("workArrangementType", "ONSITE")}
-                  className={`p-4 rounded-lg border-2 text-center transition-all ${
-                    formData.workArrangementType === "ONSITE"
-                      ? "border-blue-600 bg-blue-50"
-                      : "border-gray-200 hover:border-gray-300"
-                  }`}
-                >
-                  <Building2 className="w-6 h-6 mx-auto mb-2 text-gray-600" />
-                  <div className="text-sm font-medium">On-site</div>
-                </button>
-              </div>
-            </div>
-
-            {(formData.workArrangementType === "HYBRID" ||
-              formData.workArrangementType === "ONSITE") && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Office Location
-                </label>
-                <input
-                  type="text"
-                  value={formData.officeLocation}
-                  onChange={(e) => updateField("officeLocation", e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
-                  placeholder="Amsterdam, Netherlands"
-                />
-              </div>
-            )}
-
-            {formData.workArrangementType !== "ONSITE" && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Remote Days per Week
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  max="5"
-                  value={formData.remoteDaysPerWeek}
-                  onChange={(e) =>
-                    updateField("remoteDaysPerWeek", parseInt(e.target.value) || 0)
-                  }
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
-                />
-              </div>
-            )}
-
-            <div className="space-y-3">
-              <label className="flex items-center gap-3">
-                <input
-                  type="checkbox"
-                  checked={formData.travelRequired}
-                  onChange={(e) => updateField("travelRequired", e.target.checked)}
-                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-600"
-                />
-                <span className="text-sm text-gray-700">Position requires occasional travel</span>
-              </label>
-              <label className="flex items-center gap-3">
-                <input
-                  type="checkbox"
-                  checked={formData.relocationAssistance}
-                  onChange={(e) => updateField("relocationAssistance", e.target.checked)}
-                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-600"
-                />
-                <span className="text-sm text-gray-700">Relocation assistance provided</span>
-              </label>
-            </div>
-          </div>
-        );
-
-      case 6:
-        return (
-          <div className="space-y-6">
-            <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg">
-              <p className="text-sm text-purple-800 font-medium mb-2">Required Skills</p>
-              <input
-                type="text"
-                placeholder="Add a skill and press Enter"
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    const value = (e.target as HTMLInputElement).value.trim();
-                    if (value && !formData.requiredSkills.includes(value)) {
-                      updateField("requiredSkills", [...formData.requiredSkills, value]);
-                      (e.target as HTMLInputElement).value = "";
-                    }
-                  }
-                }}
-                className="w-full px-4 py-2 border border-purple-200 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent outline-none"
-              />
-              {formData.requiredSkills.length > 0 && (
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {formData.requiredSkills.map((skill, i) => (
-                    <span
-                      key={i}
-                      className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm flex items-center gap-2"
-                    >
-                      {skill}
-                      <button
-                        type="button"
-                        onClick={() =>
-                          updateField(
-                            "requiredSkills",
-                            formData.requiredSkills.filter((_, idx) => idx !== i)
-                          )
-                        }
-                        className="hover:text-purple-900"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <p className="text-sm text-blue-800 font-medium mb-2">Preferred Skills (Nice to Have)</p>
-              <input
-                type="text"
-                placeholder="Add a skill and press Enter"
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    const value = (e.target as HTMLInputElement).value.trim();
-                    if (value && !formData.preferredSkills.includes(value)) {
-                      updateField("preferredSkills", [...formData.preferredSkills, value]);
-                      (e.target as HTMLInputElement).value = "";
-                    }
-                  }
-                }}
-                className="w-full px-4 py-2 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
-              />
-              {formData.preferredSkills.length > 0 && (
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {formData.preferredSkills.map((skill, i) => (
-                    <span
-                      key={i}
-                      className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm flex items-center gap-2"
-                    >
-                      {skill}
-                      <button
-                        type="button"
-                        onClick={() =>
-                          updateField(
-                            "preferredSkills",
-                            formData.preferredSkills.filter((_, idx) => idx !== i)
-                          )
-                        }
-                        className="hover:text-blue-900"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Minimum Years of Experience
-              </label>
-              <input
-                type="number"
-                min="0"
-                max="30"
-                value={formData.minExperienceYears}
-                onChange={(e) =>
-                  updateField("minExperienceYears", parseInt(e.target.value) || 0)
-                }
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Education Level
-              </label>
-              <select
-                value={formData.educationLevel}
-                onChange={(e) =>
-                  updateField("educationLevel", e.target.value as "HIGH_SCHOOL" | "BACHELOR" | "MASTER" | "PHD")
-                }
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
-              >
-                <option value="">No preference</option>
-                <option value="HIGH_SCHOOL">High School</option>
-                <option value="BACHELOR">Bachelor's Degree</option>
-                <option value="MASTER">Master's Degree</option>
-                <option value="PHD">PhD</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Required Certifications
-              </label>
-              <textarea
-                value={formData.certifications.join("\n")}
-                onChange={(e) =>
-                  updateField(
-                    "certifications",
-                    e.target.value.split("\n").filter(Boolean)
-                  )
-                }
-                rows={4}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none resize-none"
-                placeholder="One certification per line"
-              />
-            </div>
-          </div>
-        );
-
+  const getVerificationMessage = () => {
+    if (loadingVerification) return { text: "Checking verification status...", color: "text-gray-600" };
+    switch (verificationStatus) {
+      case "VERIFIED":
+        return { text: "Company verified", color: "text-green-600" };
+      case "PENDING":
+        return { text: "Verification pending - complete KvK verification to submit offers", color: "text-yellow-600" };
+      case "EXPIRED":
+      case "REVOKED":
+        return { text: "Verification expired - please re-verify your company", color: "text-red-600" };
       default:
-        return null;
+        return { text: "Company not verified - complete KvK verification to submit offers", color: "text-red-600" };
     }
   };
+
+  const verifMsg = getVerificationMessage();
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-white border-b sticky top-0 z-10">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
               <button
                 onClick={() => router.back()}
                 className="p-2 hover:bg-gray-100 rounded-lg"
+                title="Back"
               >
                 <ArrowLeft className="w-5 h-5 text-gray-600" />
               </button>
-              <div>
-                <h1 className="text-lg font-semibold text-gray-900">Create New Offer</h1>
-                <p className="text-sm text-gray-500">Step {currentStep} of {steps.length}</p>
+              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold text-lg">O</span>
               </div>
+              <span className="text-xl font-bold text-gray-900">OfferMarket</span>
             </div>
-            <div className="flex items-center gap-2">
+
+            <div className="flex items-center gap-4">
+              <span className={`text-sm ${verifMsg.color} flex items-center gap-1`}>
+                {verificationStatus === "VERIFIED" ? <CheckCircle2 className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
+                {verifMsg.text}
+              </span>
               <button
-                onClick={handleSaveDraft}
-                disabled={saving || currentStep === 1}
-                className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 disabled:opacity-50"
+                onClick={logout}
+                className="text-sm text-gray-600 hover:text-gray-900"
               >
-                <Save className="w-4 h-4" />
-                <span className="hidden sm:inline">Save Draft</span>
+                Sign out
               </button>
-              {currentStep === steps.length && (
-                <button
-                  onClick={handleSubmit}
-                  disabled={submitting || !formData.jobTitle || !formData.description}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-                >
-                  <Send className="w-4 h-4" />
-                  Submit Offer
-                </button>
-              )}
             </div>
           </div>
         </div>
       </header>
+
+      {/* Verification Warning Banner */}
+      {verificationStatus !== "VERIFIED" && !loadingVerification && (
+        <div className="bg-yellow-50 border-b border-yellow-200">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-yellow-800">
+                <AlertTriangle className="w-5 h-5" />
+                <span className="font-medium">Company Not Verified</span>
+                <span className="text-yellow-600">-</span>
+                <span className="text-yellow-600">Complete your KvK verification to submit offers</span>
+              </div>
+              <button
+                onClick={() => router.push("/profile/edit-company")}
+                className="text-sm text-yellow-800 hover:text-yellow-900 font-medium"
+              >
+                Verify Now →
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Progress Steps */}
@@ -820,11 +311,391 @@ export default function CreateOfferPage() {
         {/* Form */}
         <div className="bg-white rounded-xl border shadow-sm p-6 mb-6">
           {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+            <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
               {error}
             </div>
           )}
-          {renderStep()}
+
+          {/* Step 1: Job Details */}
+          {currentStep === 1 && (
+            <div className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Job Title *
+                </label>
+                <input
+                  type="text"
+                  value={formData.jobTitle}
+                  onChange={(e) => updateField("jobTitle", e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
+                  placeholder="Senior Electrician"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Target Worker (optional)
+                </label>
+                <input
+                  type="text"
+                  value={formData.workerId}
+                  onChange={(e) => updateField("workerId", e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
+                  placeholder="Worker public ID or leave empty for open offer"
+                />
+                <p className="mt-1 text-sm text-gray-500">
+                  Leave empty to make this offer visible to all matching workers
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Job Description *
+                </label>
+                <textarea
+                  value={formData.description}
+                  onChange={(e) => updateField("description", e.target.value)}
+                  rows={8}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none resize-none"
+                  placeholder="Describe the role, responsibilities, team, and company culture..."
+                />
+                <p className="mt-1 text-sm text-gray-500">
+                  Minimum 50 characters
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Step 2: Compensation */}
+          {currentStep === 2 && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Minimum Salary (€) *
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.salaryMin}
+                    onChange={(e) => updateField("salaryMin", parseInt(e.target.value) || 0)}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
+                    placeholder="60000"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Maximum Salary (€) *
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.salaryMax}
+                    onChange={(e) => updateField("salaryMax", parseInt(e.target.value) || 0)}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
+                    placeholder="80000"
+                  />
+                </div>
+              </div>
+              <p className="text-sm text-gray-500">
+                Salary range spread cannot exceed €5,000. Minimum salary must be at least €20,000/year.
+              </p>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Sign-on Bonus (€)
+                </label>
+                <input
+                  type="number"
+                  value={formData.bonus}
+                  onChange={(e) => updateField("bonus", parseInt(e.target.value) || 0)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
+                  placeholder="0"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Step 3: Contract */}
+          {currentStep === 3 && (
+            <div className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Contract Type *
+                </label>
+                <select
+                  value={formData.contractType}
+                  onChange={(e) => updateField("contractType", e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
+                >
+                  <option value="PERMANENT">Permanent</option>
+                  <option value="FIXED_TERM">Fixed Term</option>
+                  <option value="FREELANCE">Freelance</option>
+                  <option value="CONTRACT">Contract</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Hours Per Week *
+                </label>
+                <input
+                  type="number"
+                  value={formData.hoursPerWeek}
+                  onChange={(e) => updateField("hoursPerWeek", parseInt(e.target.value) || 40)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
+                  min="12"
+                  max="40"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Probation Period (months)
+                </label>
+                <input
+                  type="number"
+                  value={formData.probationMonths}
+                  onChange={(e) => updateField("probationMonths", parseInt(e.target.value) || 0)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
+                  min="0"
+                  max="6"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Step 4: Benefits */}
+          {currentStep === 4 && (
+            <div className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Vacation Days Per Year *
+                </label>
+                <input
+                  type="number"
+                  value={formData.vacationDays}
+                  onChange={(e) => updateField("vacationDays", parseInt(e.target.value) || 25)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
+                  min="20"
+                  max="40"
+                />
+                <p className="mt-1 text-sm text-gray-500">NL minimum is 20 days</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Holiday Allowance (%) *
+                </label>
+                <input
+                  type="number"
+                  value={formData.holidayAllowancePct}
+                  onChange={(e) => updateField("holidayAllowancePct", parseInt(e.target.value) || 8)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
+                  min="0"
+                  max="12"
+                />
+                <p className="mt-1 text-sm text-gray-500">NL standard is 8%</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Pension Contribution (%) *
+                </label>
+                <input
+                  type="number"
+                  value={formData.pensionContribution}
+                  onChange={(e) => updateField("pensionContribution", parseInt(e.target.value) || 0)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
+                  min="0"
+                  max="15"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Training Budget (€) *
+                </label>
+                <input
+                  type="number"
+                  value={formData.educationBudget}
+                  onChange={(e) => updateField("educationBudget", parseInt(e.target.value) || 0)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
+                  min="0"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Company Vehicle
+                </label>
+                <select
+                  value={formData.companyVehicle}
+                  onChange={(e) => updateField("companyVehicle", e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
+                >
+                  <option value="not_provided">Not provided</option>
+                  <option value="work_only">Work use only</option>
+                  <option value="full_use">Full use (including private)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Travel Allowance
+                </label>
+                <select
+                  value={formData.travelAllowanceType}
+                  onChange={(e) => updateField("travelAllowanceType", e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
+                >
+                  <option value="not_provided">Not provided</option>
+                  <option value="per_km">Per km reimbursement</option>
+                  <option value="ns_card">NS Business Card</option>
+                  <option value="monthly">Monthly allowance</option>
+                </select>
+              </div>
+
+              <div className="space-y-3">
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={formData.phoneProvided}
+                    onChange={(e) => updateField("phoneProvided", e.target.checked)}
+                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-600"
+                  />
+                  <span className="text-sm text-gray-700">Phone provided</span>
+                </label>
+
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={formData.laptopProvided}
+                    onChange={(e) => updateField("laptopProvided", e.target.checked)}
+                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-600"
+                  />
+                  <span className="text-sm text-gray-700">Laptop/Tools provided</span>
+                </label>
+              </div>
+            </div>
+          )}
+
+          {/* Step 5: Work Setup */}
+          {currentStep === 5 && (
+            <div className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Work Arrangement
+                </label>
+                <select
+                  value={formData.workArrangementType}
+                  onChange={(e) => updateField("workArrangementType", e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
+                >
+                  <option value="ONSITE">On-site only</option>
+                  <option value="HYBRID">Hybrid</option>
+                  <option value="REMOTE">Remote only</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Remote Work Percentage (%)
+                </label>
+                <input
+                  type="number"
+                  value={formData.remoteWorkPct}
+                  onChange={(e) => updateField("remoteWorkPct", parseInt(e.target.value) || 0)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
+                  min="0"
+                  max="100"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Office Location
+                </label>
+                <input
+                  type="text"
+                  value={formData.officeLocation}
+                  onChange={(e) => updateField("officeLocation", e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
+                  placeholder="Amsterdam, NL"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Physical Requirements *
+                </label>
+                <textarea
+                  value={formData.physicalRequirements}
+                  onChange={(e) => updateField("physicalRequirements", e.target.value)}
+                  rows={4}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none resize-none"
+                  placeholder="Describe any physical requirements (e.g., lifting, standing, driving)..."
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Schedule Type
+                </label>
+                <div className="space-y-2">
+                  {["daytime", "shift", "weekend", "on_call"].map((type) => (
+                    <label key={type} className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={formData.scheduleType.includes(type)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            updateField("scheduleType", [...formData.scheduleType, type]);
+                          } else {
+                            updateField("scheduleType", formData.scheduleType.filter((s) => s !== type));
+                          }
+                        }}
+                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-600"
+                      />
+                      <span className="text-sm text-gray-700 capitalize">{type.replace("_", " ")}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Step 6: Requirements */}
+          {currentStep === 6 && (
+            <div className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Required Certifications *
+                </label>
+                <input
+                  type="text"
+                  value={formData.requiredCertifications.join(", ")}
+                  onChange={(e) => updateField("requiredCertifications", e.target.value.split(",").map((s: string) => s.trim()).filter(Boolean))}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
+                  placeholder="e.g., NEN 3140, VCA certified (comma-separated)"
+                />
+                <p className="mt-1 text-sm text-gray-500">
+                  At least one certification is required. Use "Relevant trade certification" if unsure.
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Minimum Experience (years)
+                </label>
+                <input
+                  type="number"
+                  value={formData.minExperienceYears}
+                  onChange={(e) => updateField("minExperienceYears", parseInt(e.target.value) || 0)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
+                  min="0"
+                />
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Navigation */}
@@ -839,7 +710,29 @@ export default function CreateOfferPage() {
             Previous
           </button>
 
-          {currentStep < steps.length ? (
+          <div className="flex items-center gap-4">
+            <button
+              type="button"
+              onClick={handleSaveDraft}
+              disabled={saving || currentStep === 1}
+              className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 disabled:opacity-50"
+            >
+              <Save className="w-4 h-4" />
+              <span className="hidden sm:inline">Save Draft</span>
+            </button>
+            {currentStep === steps.length && (
+              <button
+                onClick={handleSubmit}
+                disabled={isSubmitDisabled}
+                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {submitting ? <Loader className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                {submitting ? "Submitting..." : "Submit Offer"}
+              </button>
+            )}
+          </div>
+
+          {currentStep < steps.length && (
             <button
               type="button"
               onClick={() => setCurrentStep((s) => Math.min(steps.length, s + 1))}
@@ -847,15 +740,6 @@ export default function CreateOfferPage() {
             >
               Next
               <ArrowRight className="w-4 h-4" />
-            </button>
-          ) : (
-            <button
-              onClick={handleSubmit}
-              disabled={submitting || !formData.jobTitle || !formData.description}
-              className="flex items-center gap-2 px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Send className="w-4 h-4" />
-              {submitting ? "Submitting..." : "Submit Offer"}
             </button>
           )}
         </div>

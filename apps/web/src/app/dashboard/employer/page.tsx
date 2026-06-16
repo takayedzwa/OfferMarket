@@ -76,6 +76,9 @@ export default function EmployerDashboard() {
               <Link href="/dashboard/employer" className="text-gray-600 hover:text-gray-900">
                 Dashboard
               </Link>
+              <Link href="/workers" className="text-gray-600 hover:text-gray-900">
+                Find Workers
+              </Link>
               <Link href="/offers/create" className="text-gray-600 hover:text-gray-900">
                 Create Offer
               </Link>

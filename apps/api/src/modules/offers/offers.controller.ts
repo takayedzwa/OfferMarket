@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UsePipes, BadRequestException, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, Query, BadRequestException, UseGuards } from '@nestjs/common';
 import { OffersService } from './offers.service';
 import { OfferValidationPipe } from './pipes/offer-validation.pipe';
 import { CreateOfferDto } from './dto/create-offer.dto';
@@ -42,9 +42,8 @@ export class OffersController {
    */
   @Post()
   @UseGuards(SimpleAuthGuard)
-  @UsePipes(new OfferValidationPipe())
   async createOffer(
-    @Body() createOfferDto: CreateOfferDto,
+    @Body(new OfferValidationPipe()) createOfferDto: any,
     @Query('employerId') employerId: string
   ) {
     if (!employerId) {

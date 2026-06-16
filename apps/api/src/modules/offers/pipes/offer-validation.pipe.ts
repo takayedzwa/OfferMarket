@@ -22,6 +22,11 @@ interface ValidationError {
 @Injectable()
 export class OfferValidationPipe implements PipeTransform {
   transform(value: any): any {
+    // Only validate objects, not primitives (query params, etc.)
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      return value;
+    }
+
     const result = this.validate(value);
 
     if (!result.valid) {
@@ -39,10 +44,12 @@ export class OfferValidationPipe implements PipeTransform {
     // COMPENSATION VALIDATION (ALL REQUIRED)
     // ========================================================================
 
-    // Salary range max spread: €5,000
-    if (offer.compensation) {
-      const { salaryMin, salaryMax } = offer.compensation;
+    // Check if compensation has salary object or direct properties
+    const comp = offer?.compensation;
+    const salaryMin = comp?.salary?.min ?? comp?.salaryMin;
+    const salaryMax = comp?.salary?.max ?? comp?.salaryMax;
 
+    if (comp && typeof comp === 'object') {
       if (salaryMin === undefined || salaryMin === null) {
         errors.push({
           code: 'OFFER_VALIDATION_SALARY_MIN_REQUIRED',
@@ -78,30 +85,6 @@ export class OfferValidationPipe implements PipeTransform {
           field: 'compensation.salaryMax'
         });
       }
-
-      // Sign-on bonus (required, can be 0)
-      if (offer.compensation.signOnBonus === undefined) {
-        errors.push({
-          code: 'OFFER_VALIDATION_SIGN_ON_BONUS_REQUIRED',
-          message: 'Sign-on bonus is required (use 0 if not offered)',
-          field: 'compensation.signOnBonus'
-        });
-      }
-
-      // Performance bonus percentage (required, can be 0)
-      if (offer.compensation.performanceBonusPct === undefined) {
-        errors.push({
-          code: 'OFFER_VALIDATION_PERFORMANCE_BONUS_REQUIRED',
-          message: 'Performance bonus percentage is required (use 0 if not offered)',
-          field: 'compensation.performanceBonusPct'
-        });
-      } else if (offer.compensation.performanceBonusPct > 50) {
-        errors.push({
-          code: 'OFFER_VALIDATION_PERFORMANCE_BONUS_EXCESSIVE',
-          message: 'Performance bonus cannot exceed 50% of base salary',
-          field: 'compensation.performanceBonusPct'
-        });
-      }
     } else {
       errors.push({
         code: 'OFFER_VALIDATION_COMPENSATION_REQUIRED',
@@ -130,18 +113,21 @@ export class OfferValidationPipe implements PipeTransform {
       }
 
       // Probation months: 0-6
-      if (offer.contract.probationMonths === undefined) {
+      if (offer.contract.probationMonths === undefined && offer.contract.probationPeriodMonths === undefined) {
         errors.push({
           code: 'OFFER_VALIDATION_PROBATION_REQUIRED',
           message: 'Probation period is required (use 0 if none)',
           field: 'contract.probationMonths'
         });
-      } else if (offer.contract.probationMonths > 6) {
-        errors.push({
-          code: 'OFFER_VALIDATION_PROBATION_MAX',
-          message: 'Probation period cannot exceed 6 months',
-          field: 'contract.probationMonths'
-        });
+      } else {
+        const probationMonths = offer.contract.probationMonths ?? offer.contract.probationPeriodMonths ?? 0;
+        if (probationMonths > 6) {
+          errors.push({
+            code: 'OFFER_VALIDATION_PROBATION_MAX',
+            message: 'Probation period cannot exceed 6 months',
+            field: 'contract.probationMonths'
+          });
+        }
       }
 
       // Contract type required
@@ -186,7 +172,7 @@ export class OfferValidationPipe implements PipeTransform {
       }
 
       // Holiday allowance percentage
-      if (offer.benefits.holidayAllowancePct === undefined) {
+      if (offer.benefits.holidayAllowancePct === undefined && offer.benefits.holidayAllowance === undefined) {
         errors.push({
           code: 'OFFER_VALIDATION_HOLIDAY_ALLOWANCE_REQUIRED',
           message: 'Holiday allowance percentage is required',
@@ -195,22 +181,25 @@ export class OfferValidationPipe implements PipeTransform {
       }
 
       // Pension contribution percentage
-      if (offer.benefits.pensionContributionPct === undefined) {
+      if (offer.benefits.pensionContributionPct === undefined && offer.benefits.pensionContribution === undefined) {
         errors.push({
           code: 'OFFER_VALIDATION_PENSION_REQUIRED',
           message: 'Pension contribution percentage is required',
           field: 'benefits.pensionContributionPct'
         });
-      } else if (offer.benefits.pensionContributionPct > 15) {
-        errors.push({
-          code: 'OFFER_VALIDATION_PENSION_EXCESSIVE',
-          message: 'Pension contribution cannot exceed 15%',
-          field: 'benefits.pensionContributionPct'
-        });
+      } else {
+        const pensionPct = offer.benefits.pensionContributionPct ?? offer.benefits.pensionContribution ?? 0;
+        if (pensionPct > 15) {
+          errors.push({
+            code: 'OFFER_VALIDATION_PENSION_EXCESSIVE',
+            message: 'Pension contribution cannot exceed 15%',
+            field: 'benefits.pensionContributionPct'
+          });
+        }
       }
 
       // Training budget (required, can be 0)
-      if (offer.benefits.trainingBudget === undefined) {
+      if (offer.benefits.trainingBudget === undefined && offer.benefits.educationBudget === undefined) {
         errors.push({
           code: 'OFFER_VALIDATION_TRAINING_BUDGET_REQUIRED',
           message: 'Training budget is required (use 0 if not offered)',
@@ -310,7 +299,8 @@ export class OfferValidationPipe implements PipeTransform {
 
     if (offer.requirements) {
       // Required certifications (at least one)
-      if (!offer.requirements.requiredCertifications || offer.requirements.requiredCertifications.length === 0) {
+      const requiredCerts = offer.requirements.requiredCertifications || offer.requirements.certifications;
+      if (!requiredCerts || requiredCerts.length === 0) {
         errors.push({
           code: 'OFFER_VALIDATION_CERTIFICATIONS_REQUIRED',
           message: 'At least one required certification must be specified',
@@ -319,13 +309,13 @@ export class OfferValidationPipe implements PipeTransform {
       }
 
       // Required experience years
-      if (offer.requirements.requiredExperienceYears === undefined) {
+      if (offer.requirements.requiredExperienceYears === undefined && offer.requirements.minExperienceYears === undefined) {
         errors.push({
           code: 'OFFER_VALIDATION_EXPERIENCE_REQUIRED',
           message: 'Required experience years is required (use 0 if entry level)',
           field: 'requirements.requiredExperienceYears'
         });
-      } else if (offer.requirements.requiredExperienceYears < 0) {
+      } else if ((offer.requirements.requiredExperienceYears ?? offer.requirements.minExperienceYears ?? 0) < 0) {
         errors.push({
           code: 'OFFER_VALIDATION_EXPERIENCE_NEGATIVE',
           message: 'Required experience years cannot be negative',
@@ -351,7 +341,9 @@ export class OfferValidationPipe implements PipeTransform {
       });
     }
 
-    if (!offer.jobDescription || offer.jobDescription.trim().length < 50) {
+    // Check both jobDescription and description
+    const description = offer.jobDescription ?? offer.description;
+    if (!description || description.trim().length < 50) {
       errors.push({
         code: 'OFFER_VALIDATION_JOB_DESCRIPTION_REQUIRED',
         message: 'Job description must be at least 50 characters',
