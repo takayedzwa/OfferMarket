@@ -50,6 +50,111 @@ export class AuthService {
   }
 
   // ============================================================================
+  // REGISTER ADMIN (Internal use only - seed initial admin)
+  // ============================================================================
+
+  async registerAdmin(
+    email: string,
+    password: string,
+    adminCode: string // Secret code to prevent unauthorized admin creation
+  ) {
+    // Verify admin code (should be set via environment variable)
+    const validAdminCode = process.env.ADMIN_REGISTRATION_CODE;
+    if (!validAdminCode || adminCode !== validAdminCode) {
+      throw new BadRequestException('Invalid admin registration code');
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      // Check if user already exists
+      const existing = await tx.user.findUnique({ where: { email } });
+      if (existing) {
+        throw new BadRequestException('Email already registered');
+      }
+
+      // Hash password
+      const passwordHash = await bcrypt.hash(password, 10);
+
+      // Create admin user
+      const user = await tx.user.create({
+        data: {
+          email,
+          passwordHash,
+          role: 'ADMIN',
+          emailVerified: true, // Auto-verify admin emails
+          phoneVerified: true
+        }
+      });
+
+      // Generate JWT
+      const tokens = this.generateTokens(user.id, user.role);
+
+      return {
+        user: {
+          id: user.id,
+          email: user.email,
+          role: user.role,
+          emailVerified: user.emailVerified
+        },
+        tokens
+      };
+    });
+  }
+
+  // ============================================================================
+  // REGISTER SUPPORT (Admin only)
+  // ============================================================================
+
+  async registerSupport(
+    email: string,
+    password: string,
+    adminUserId: string // ID of admin creating the support user
+  ) {
+    return this.prisma.$transaction(async (tx) => {
+      // Verify admin is creating this user
+      const admin = await tx.user.findUnique({
+        where: { id: adminUserId }
+      });
+
+      if (!admin || admin.role !== 'ADMIN') {
+        throw new BadRequestException('Only admins can create support users');
+      }
+
+      // Check if user already exists
+      const existing = await tx.user.findUnique({ where: { email } });
+      if (existing) {
+        throw new BadRequestException('Email already registered');
+      }
+
+      // Hash password
+      const passwordHash = await bcrypt.hash(password, 10);
+
+      // Create support user
+      const user = await tx.user.create({
+        data: {
+          email,
+          passwordHash,
+          role: 'SUPPORT',
+          emailVerified: true, // Auto-verify support emails
+          phoneVerified: true
+        }
+      });
+
+      // Generate JWT
+      const tokens = this.generateTokens(user.id, user.role);
+
+      return {
+        user: {
+          id: user.id,
+          email: user.email,
+          role: user.role,
+          emailVerified: user.emailVerified
+        },
+        tokens
+      };
+    });
+  }
+
+  // ============================================================================
   // REGISTER EMPLOYER
   // ============================================================================
 

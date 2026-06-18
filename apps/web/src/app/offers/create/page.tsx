@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "../../../contexts/AuthContext";
 import { offersApi, employersApi } from "../../../lib/api";
@@ -30,9 +30,9 @@ const steps = [
   { id: 6, title: "Requirements", icon: CheckCircle2 },
 ];
 
-export default function CreateOfferPage() {
+function CreateOfferContent() {
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const searchParams = useSearchParams()!;
   const { user, logout } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [saving, setSaving] = useState(false);
@@ -745,5 +745,13 @@ export default function CreateOfferPage() {
         </div>
       </main>
     </div>
+  );
+}
+
+export default function CreateOfferPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-gray-50 flex items-center justify-center">Loading...</div>}>
+      <CreateOfferContent />
+    </Suspense>
   );
 }

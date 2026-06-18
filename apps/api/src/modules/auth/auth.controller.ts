@@ -36,6 +36,40 @@ export class AuthController {
   }
 
   // ============================================================================
+  // REGISTER ADMIN (Internal - requires admin code)
+  // ============================================================================
+
+  @Post('register/admin')
+  async registerAdmin(
+    @Body('email') email: string,
+    @Body('password') password: string,
+    @Body('adminCode') adminCode: string
+  ) {
+    if (!email || !password || !adminCode) {
+      throw new BadRequestException('Email, password, and admin code are required');
+    }
+
+    return this.authService.registerAdmin(email, password, adminCode);
+  }
+
+  // ============================================================================
+  // REGISTER SUPPORT (Admin only)
+  // ============================================================================
+
+  @Post('register/support')
+  async registerSupport(
+    @Body('email') email: string,
+    @Body('password') password: string,
+    @Body('adminUserId') adminUserId: string
+  ) {
+    if (!email || !password || !adminUserId) {
+      throw new BadRequestException('Email, password, and admin user ID are required');
+    }
+
+    return this.authService.registerSupport(email, password, adminUserId);
+  }
+
+  // ============================================================================
   // REGISTER EMPLOYER
   // ============================================================================
 

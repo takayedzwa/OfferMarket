@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useAuth } from "../../contexts/AuthContext";
+import Navbar from "../../components/Navbar";
 import { workersApi } from "../../lib/api";
 import { Search, Filter, User, MapPin, Briefcase, Star, ArrowRight, ChevronLeft, ChevronRight, X, Plus } from "lucide-react";
 
@@ -32,7 +32,6 @@ interface Pagination {
 
 export default function WorkersSearch() {
   const router = useRouter();
-  const { user, logout } = useAuth();
   const [loading, setLoading] = useState(true);
   const [workers, setWorkers] = useState<Worker[]>([]);
   const [pagination, setPagination] = useState<Pagination>({ page: 1, limit: 20, total: 0, totalPages: 0 });
@@ -128,43 +127,7 @@ export default function WorkersSearch() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <Link href="/dashboard/employer" className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-lg">O</span>
-              </div>
-              <span className="text-xl font-bold text-gray-900">OfferMarket</span>
-            </Link>
-
-            <nav className="hidden md:flex items-center gap-6">
-              <Link href="/dashboard/employer" className="text-gray-600 hover:text-gray-900">
-                Dashboard
-              </Link>
-              <Link href="/workers" className="text-blue-600 font-medium">
-                Find Workers
-              </Link>
-              <Link href="/offers/create" className="text-gray-600 hover:text-gray-900">
-                Create Offer
-              </Link>
-              <Link href="/offers" className="text-gray-600 hover:text-gray-900">
-                My Offers
-              </Link>
-            </nav>
-
-            <div className="flex items-center gap-4">
-              <button
-                onClick={logout}
-                className="text-sm text-gray-600 hover:text-gray-900"
-              >
-                Sign out
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
+      <Navbar />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Page Header */}

@@ -4,6 +4,7 @@ import { useEffect, useState, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useAuth } from "../../contexts/AuthContext";
+import Navbar from "../../components/Navbar";
 import { offersApi } from "../../lib/api";
 import { Offer } from "../../lib/types";
 import { Briefcase, Euro, MapPin, Calendar, Filter, Search } from "lucide-react";
@@ -64,48 +65,7 @@ function OffersContent() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <Link
-              href={userRole === "WORKER" ? "/dashboard/worker" : "/dashboard/employer"}
-              className="flex items-center gap-2"
-            >
-              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-lg">O</span>
-              </div>
-              <span className="text-xl font-bold text-gray-900">OfferMarket</span>
-            </Link>
-
-            <nav className="hidden md:flex items-center gap-6">
-              <Link
-                href={userRole === "WORKER" ? "/dashboard/worker" : "/dashboard/employer"}
-                className="text-gray-600 hover:text-gray-900"
-              >
-                Dashboard
-              </Link>
-              <Link href="/offers" className="text-blue-600 font-medium">
-                Offers
-              </Link>
-              <Link href="/conversations" className="text-gray-600 hover:text-gray-900">
-                Messages
-              </Link>
-            </nav>
-
-            <div className="flex items-center gap-4">
-              {userRole === "EMPLOYER" && (
-                <Link
-                  href="/offers/create"
-                  className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700"
-                >
-                  Create Offer
-                </Link>
-              )}
-            </div>
-          </div>
-        </div>
-      </header>
+      <Navbar />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Filters */}

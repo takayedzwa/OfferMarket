@@ -261,7 +261,9 @@ export default function WorkerProfilePage() {
                         {skill.level}
                       </span>
                       {skill.isCertified && (
-                        <CheckCircle className="w-4 h-4 text-green-600" title="Certified" />
+                        <span title="Certified">
+                          <CheckCircle className="w-4 h-4 text-green-600" />
+                        </span>
                       )}
                     </div>
                   </div>
