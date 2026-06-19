@@ -30,11 +30,11 @@ export class OffersService {
    * - Worker cannot be blocked
    * - Employer must have credits/subscription
    */
-  async createOffer(employerId: string, createOfferDto: CreateOfferDto) {
+  async createOffer(userId: string, createOfferDto: CreateOfferDto) {
     return this.prisma.$transaction(async (tx) => {
       // 1. Verify employer exists and is verified
       const employer = await tx.employer.findUnique({
-        where: { id: employerId },
+        where: { userId },
         include: { user: true }
       });
 
@@ -48,7 +48,7 @@ export class OffersService {
 
       // 2. Verify worker exists and is active
       const worker = await tx.worker.findUnique({
-        where: { id: createOfferDto.workerId }
+        where: { publicId: createOfferDto.workerId }
       });
 
       if (!worker || worker.deletedAt) {
@@ -58,8 +58,8 @@ export class OffersService {
       // 3. CRITICAL: Check if worker has blocked this employer
       const isBlocked = await tx.blockedCompany.findFirst({
         where: {
-          workerId: createOfferDto.workerId,
-          employerId
+          workerId: worker.id,
+          employerId: employer.id
         }
       });
 
@@ -90,8 +90,8 @@ export class OffersService {
       const offer = await tx.offer.create({
         data: {
           publicId,
-          workerId: createOfferDto.workerId,
-          employerId,
+          workerId: worker.id,
+          employerId: employer.id,
           jobTitle: createOfferDto.jobTitle,
           department: createOfferDto.department,
           jobDescription: createOfferDto.jobDescription,
@@ -151,7 +151,7 @@ export class OffersService {
 
       // 8. Update employer's offer count
       await tx.employer.update({
-        where: { id: employerId },
+        where: { id: employer.id },
         data: {
           totalOffersSent: { increment: 1 }
         }

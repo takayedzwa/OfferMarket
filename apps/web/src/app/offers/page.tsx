@@ -2,7 +2,7 @@
 
 import { useEffect, useState, Suspense } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "../../contexts/AuthContext";
 import Navbar from "../../components/Navbar";
 import { offersApi } from "../../lib/api";
@@ -16,11 +16,20 @@ function OffersContent() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const router = useRouter();
 
   useEffect(() => {
     async function loadOffers() {
+      const role = localStorage.getItem("userRole");
+      const accessToken = localStorage.getItem("accessToken");
+      const userId = localStorage.getItem("userId");
+
+      if (!accessToken || !userId) {
+        router.push("/login");
+        return;
+      }
+
       try {
-        const role = localStorage.getItem("userRole");
         let response;
 
         if (role === "WORKER") {

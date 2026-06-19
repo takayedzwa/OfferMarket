@@ -27,20 +27,26 @@ export default function AdminDashboard() {
   useEffect(() => {
     // Check if user is admin - only redirect if we have a confirmed non-admin user
     const userRole = localStorage.getItem('userRole');
-    if (user && userRole && userRole !== 'ADMIN') {
-      router.push('/');
+    const accessToken = localStorage.getItem('accessToken');
+
+    if (!accessToken || !userRole || userRole !== 'ADMIN') {
+      router.push('/login');
       return;
     }
 
     // Fetch dashboard stats
     fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1'}/admin/dashboard-stats`, {
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
+        'Authorization': `Bearer ${accessToken}`,
         'X-User-ID': localStorage.getItem('userId') || '',
-        'X-User-Role': localStorage.getItem('userRole') || '',
+        'X-User-Role': userRole,
       },
     })
       .then((res) => {
+        if (res.status === 401) {
+          router.push('/login');
+          throw new Error('Unauthorized');
+        }
         if (!res.ok) throw new Error('Failed to fetch stats');
         return res.json();
       })
@@ -49,7 +55,9 @@ export default function AdminDashboard() {
         setLoading(false);
       })
       .catch((err) => {
-        setError(err.message);
+        if (err.message !== 'Unauthorized') {
+          setError(err.message);
+        }
         setLoading(false);
       });
   }, [user, router]);

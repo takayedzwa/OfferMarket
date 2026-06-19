@@ -482,4 +482,25 @@ export class AdminService {
       },
     };
   }
+
+  async getOfferById(id: string) {
+    const offer = await this.prisma.offer.findUnique({
+      where: { id },
+      include: {
+        employer: {
+          include: {
+            user: true,
+          },
+        },
+        worker: { include: { user: true } },
+        currentVersion: true,
+      },
+    });
+
+    if (!offer) {
+      throw new NotFoundException('Offer not found');
+    }
+
+    return offer;
+  }
 }

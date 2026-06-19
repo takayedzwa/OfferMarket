@@ -27,6 +27,15 @@ export default function AdminUsersPage() {
 
   const fetchUsers = () => {
     setLoading(true);
+    const accessToken = localStorage.getItem('accessToken');
+    const userId = localStorage.getItem('userId');
+    const userRole = localStorage.getItem('userRole');
+
+    if (!accessToken || !userId || userRole !== 'ADMIN') {
+      router.push('/login');
+      return;
+    }
+
     const params = new URLSearchParams({
       page: page.toString(),
       limit: "20",
@@ -37,18 +46,29 @@ export default function AdminUsersPage() {
 
     fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1'}/admin/users?${params}`, {
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
-        'X-User-ID': localStorage.getItem('userId') || '',
-        'X-User-Role': 'ADMIN',
+        'Authorization': `Bearer ${accessToken}`,
+        'X-User-ID': userId,
+        'X-User-Role': userRole,
       },
     })
-      .then((res) => res.json())
+      .then((res) => {
+        if (res.status === 401) {
+          router.push('/login');
+          throw new Error('Unauthorized');
+        }
+        return res.json();
+      })
       .then((data) => {
         setUsers(data.users || []);
         setTotal(data.pagination?.total || 0);
         setLoading(false);
       })
-      .catch(() => setLoading(false));
+      .catch((err) => {
+        if (err.message !== 'Unauthorized') {
+          console.error(err);
+        }
+        setLoading(false);
+      });
   };
 
   useEffect(() => {
@@ -62,27 +82,41 @@ export default function AdminUsersPage() {
 
   const handleAction = (user: User, action: string) => {
     const adminUserId = localStorage.getItem('userId');
-    if (!adminUserId) return;
+    const accessToken = localStorage.getItem('accessToken');
+    const userRole = localStorage.getItem('userRole');
+
+    if (!adminUserId || !accessToken || userRole !== 'ADMIN') {
+      router.push('/login');
+      return;
+    }
 
     const endpoint = action === 'suspend' ? 'suspend' : action === 'ban' ? 'ban' : 'restore';
     fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1'}/admin/users/${user.id}/${action}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
+        'Authorization': `Bearer ${accessToken}`,
         'X-User-ID': adminUserId,
-        'X-User-Role': 'ADMIN',
+        'X-User-Role': userRole,
       },
       body: JSON.stringify({ reason: action === 'restore' ? undefined : 'Admin action' }),
     })
       .then((res) => {
+        if (res.status === 401) {
+          router.push('/login');
+          return;
+        }
         if (res.ok) {
           fetchUsers();
         } else {
           alert('Failed to perform action');
         }
       })
-      .catch(() => alert('Failed to perform action'));
+      .catch((err) => {
+        if (err.message !== 'Unauthorized') {
+          alert('Failed to perform action');
+        }
+      });
   };
 
   const getStatusColor = (status: string) => {

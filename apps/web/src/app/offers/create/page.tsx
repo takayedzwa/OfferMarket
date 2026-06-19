@@ -46,7 +46,17 @@ function CreateOfferContent() {
     const checkVerification = async () => {
       try {
         const res = await employersApi.getVerificationStatus();
-        setVerificationStatus(res.data.status || "UNVERIFIED");
+        const status = res.data.status || res.data.verificationStatus || "UNVERIFIED";
+        // Map backend statuses to frontend values
+        if (status === "BASIC_VERIFIED" || status === "FULL_VERIFIED" || status === "PREMIUM_VERIFIED") {
+          setVerificationStatus("VERIFIED");
+        } else if (status === "PENDING") {
+          setVerificationStatus("PENDING");
+        } else if (status === "REJECTED") {
+          setVerificationStatus("EXPIRED");
+        } else {
+          setVerificationStatus("UNVERIFIED");
+        }
       } catch (err) {
         setVerificationStatus("UNVERIFIED");
       } finally {
@@ -60,7 +70,8 @@ function CreateOfferContent() {
   useEffect(() => {
     const workerIdFromQuery = searchParams.get("workerId");
     if (workerIdFromQuery) {
-      setFormData(prev => ({ ...prev, workerId: workerIdFromQuery }));
+      // Decode the workerId since it may be URL-encoded (e.g., "Profile #2" becomes "Profile%20%232")
+      setFormData(prev => ({ ...prev, workerId: decodeURIComponent(workerIdFromQuery) }));
     }
   }, [searchParams]);
 
@@ -152,7 +163,7 @@ function CreateOfferContent() {
     try {
       const offerData = buildOfferData();
       await offersApi.createOffer({ ...offerData, status: "SUBMITTED" });
-      router.push("/offers");
+      router.push("/dashboard/employer");
     } catch (err: any) {
       setError(err.response?.data?.message || "Failed to submit offer");
     } finally {

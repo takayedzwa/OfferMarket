@@ -40,7 +40,7 @@ export default function WorkersSearch() {
   const handleCreateOffer = (e: React.MouseEvent, workerPublicId: string) => {
     e.preventDefault();
     e.stopPropagation();
-    router.push(`/offers/create?workerId=${workerPublicId}`);
+    router.push(`/offers/create?workerId=${encodeURIComponent(workerPublicId)}`);
   };
 
   // Filters
@@ -346,7 +346,7 @@ export default function WorkersSearch() {
                   {/* Actions */}
                   <div className="flex gap-2 mt-4 pt-4 border-t">
                     <Link
-                      href={`/workers/${worker.publicId}`}
+                      href={`/workers/${encodeURIComponent(worker.publicId)}`}
                       className="flex-1 flex items-center justify-center gap-2 px-4 py-2 text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 text-sm font-medium"
                     >
                       View Profile

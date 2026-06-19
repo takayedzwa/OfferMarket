@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, CheckCircle, XCircle, Building2, Clock, FileText } from "lucide-react";
+import { ArrowLeft, CheckCircle, XCircle, Building2, Clock, FileText, Eye } from "lucide-react";
 
 interface PendingVerification {
   id: string;
@@ -31,19 +31,39 @@ export default function AdminVerificationsPage() {
 
   const fetchPendingVerifications = () => {
     setLoading(true);
+    const accessToken = localStorage.getItem('accessToken');
+    const userId = localStorage.getItem('userId');
+    const userRole = localStorage.getItem('userRole');
+
+    if (!accessToken || !userId || userRole !== 'ADMIN') {
+      router.push('/login');
+      return;
+    }
+
     fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1'}/admin/verification-queue`, {
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
-        'X-User-ID': localStorage.getItem('userId') || '',
-        'X-User-Role': 'ADMIN',
+        'Authorization': `Bearer ${accessToken}`,
+        'X-User-ID': userId,
+        'X-User-Role': userRole,
       },
     })
-      .then((res) => res.json())
+      .then((res) => {
+        if (res.status === 401) {
+          router.push('/login');
+          throw new Error('Unauthorized');
+        }
+        return res.json();
+      })
       .then((data) => {
         setPendingVerifications(data.employers || []);
         setLoading(false);
       })
-      .catch(() => setLoading(false));
+      .catch((err) => {
+        if (err.message !== 'Unauthorized') {
+          console.error(err);
+        }
+        setLoading(false);
+      });
   };
 
   useEffect(() => {
@@ -53,14 +73,19 @@ export default function AdminVerificationsPage() {
   const handleAction = () => {
     if (!selectedVerification) return;
     const adminUserId = localStorage.getItem('userId');
-    if (!adminUserId) return;
+    const accessToken = localStorage.getItem('accessToken');
+
+    if (!adminUserId || !accessToken) {
+      router.push('/login');
+      return;
+    }
 
     const endpoint = actionType === "verify" ? "verify" : "reject";
     fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1'}/admin/employers/${selectedVerification.id}/${endpoint}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
+        'Authorization': `Bearer ${accessToken}`,
         'X-User-ID': adminUserId,
         'X-User-Role': 'ADMIN',
       },
@@ -70,6 +95,10 @@ export default function AdminVerificationsPage() {
       }),
     })
       .then((res) => {
+        if (res.status === 401) {
+          router.push('/login');
+          return;
+        }
         if (res.ok) {
           setShowModal(false);
           fetchPendingVerifications();
@@ -77,7 +106,11 @@ export default function AdminVerificationsPage() {
           alert(`Failed to ${actionType} employer`);
         }
       })
-      .catch(() => alert(`Failed to ${actionType} employer`));
+      .catch((err) => {
+        if (err.message !== 'Unauthorized') {
+          alert(`Failed to ${actionType} employer`);
+        }
+      });
   };
 
   const openModal = (verification: PendingVerification, type: "verify" | "reject") => {
@@ -140,7 +173,7 @@ export default function AdminVerificationsPage() {
                 <div className="space-y-3 mb-4">
                   {verification.website && (
                     <div className="flex items-center gap-2 text-sm">
-                      <Globe className="w-4 h-4 text-gray-400" />
+                      <svg className="w-4 h-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" x2="22" y1="12" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
                       <span className="text-gray-600">Website:</span>
                       <a href={verification.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
                         {verification.website}
@@ -149,7 +182,7 @@ export default function AdminVerificationsPage() {
                   )}
                   {verification.industry && (
                     <div className="flex items-center gap-2 text-sm">
-                      <Briefcase className="w-4 h-4 text-gray-400" />
+                      <svg className="w-4 h-4 text-gray-400" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="14" x="2" y="7" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
                       <span className="text-gray-600">Industry:</span>
                       <span className="text-gray-900">{verification.industry}</span>
                     </div>
@@ -186,6 +219,14 @@ export default function AdminVerificationsPage() {
                     Registered {new Date(verification.user.createdAt).toLocaleDateString()}
                   </span>
                   <div className="flex gap-2">
+                    <button
+                      onClick={() => router.push(`/admin/employers/${verification.id}`)}
+                      className="px-4 py-2 bg-gray-50 text-gray-700 rounded-lg hover:bg-gray-100 text-sm font-medium flex items-center gap-1"
+                      title="View full company details"
+                    >
+                      <Eye className="w-4 h-4" />
+                      View Details
+                    </button>
                     <button
                       onClick={() => openModal(verification, "reject")}
                       className="px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 text-sm font-medium"
@@ -247,21 +288,5 @@ export default function AdminVerificationsPage() {
         </div>
       )}
     </div>
-  );
-}
-
-function Globe(props: any) {
-  return (
-    <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="10"/><line x1="2" x2="22" y1="12" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
-    </svg>
-  );
-}
-
-function Briefcase(props: any) {
-  return (
-    <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect width="20" height="14" x="2" y="7" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
-    </svg>
   );
 }

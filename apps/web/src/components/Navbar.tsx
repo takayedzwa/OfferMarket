@@ -16,7 +16,11 @@ export default function Navbar({ variant = "default" }: NavbarProps) {
   const pathname = usePathname();
   const { user, logout } = useAuth();
   const userRole = typeof window !== "undefined" ? localStorage.getItem("userRole") : null;
+  const accessToken = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
+  const userId = typeof window !== "undefined" ? localStorage.getItem("userId") : null;
 
+  // Use localStorage auth state as fallback when AuthContext is still loading
+  const isAuthenticated = user || (accessToken && userId && userRole);
   const isAdmin = userRole === "ADMIN";
   const isSupport = userRole === "SUPPORT" || isAdmin;
 
@@ -51,7 +55,7 @@ export default function Navbar({ variant = "default" }: NavbarProps) {
               Home
             </Link>
 
-            {user && (
+            {isAuthenticated && (
               <>
                 {userRole === "WORKER" && (
                   <>
@@ -84,13 +88,13 @@ export default function Navbar({ variant = "default" }: NavbarProps) {
                       <FileText className="w-4 h-4 inline mr-1" />
                       Offers
                     </Link>
+                    <Link href="/workers" className={navLinkClass("/workers")}>
+                      <Users className="w-4 h-4 inline mr-1" />
+                      Search Workers
+                    </Link>
                     <Link href="/conversations" className={navLinkClass("/conversations")}>
                       <MessageSquare className="w-4 h-4 inline mr-1" />
                       Messages
-                    </Link>
-                    <Link href="/profile" className={navLinkClass("/profile")}>
-                      <User className="w-4 h-4 inline mr-1" />
-                      Profile
                     </Link>
                   </>
                 )}
@@ -146,11 +150,11 @@ export default function Navbar({ variant = "default" }: NavbarProps) {
 
           {/* User Menu */}
           <div className="flex items-center gap-4">
-            {user ? (
+            {isAuthenticated ? (
               <>
                 <div className="text-sm text-gray-600 hidden sm:block">
                   <span className="text-gray-500">Welcome, </span>
-                  <span className="font-medium">{user?.email?.split("@")[0]}</span>
+                  <span className="font-medium">{user?.email?.split("@")[0] || "User"}</span>
                   {userRole && (
                     <span className={`ml-2 px-2 py-0.5 text-xs font-medium rounded-full ${
                       userRole === "ADMIN" ? "bg-purple-100 text-purple-800" :

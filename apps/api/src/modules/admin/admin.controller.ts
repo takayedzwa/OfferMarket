@@ -223,4 +223,9 @@ export class AdminController {
       { status, workerId, employerId },
     );
   }
+
+  @Get('offers/:id')
+  async getOfferById(@Param('id') id: string) {
+    return this.adminService.getOfferById(id);
+  }
 }
