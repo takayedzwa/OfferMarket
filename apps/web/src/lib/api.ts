@@ -189,8 +189,12 @@ export const offersApi = {
     return api.post('/offers', data, { params: { employerId: userId } });
   },
 
-  // Get offer details
+  // Get offer details (worker)
   getOffer: (id: string) => api.get(`/offers/${id}`),
+
+  // Get offer details (employer)
+  getEmployerOfferDetail: (id: string, employerId: string) =>
+    api.get(`/offers/${id}/detail`, { params: { employerId } }),
 
   // Accept offer
   acceptOffer: (id: string) => api.post(`/offers/${id}/accept`),

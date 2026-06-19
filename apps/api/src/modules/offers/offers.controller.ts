@@ -212,4 +212,22 @@ export class OffersController {
 
     throw new BadRequestException('workerId or employerId is required');
   }
+
+  /**
+   * GET /offers/:id/detail
+   *
+   * View offer details (employer perspective)
+   */
+  @Get(':id/detail')
+  @UseGuards(SimpleAuthGuard)
+  async getOfferDetail(
+    @Param('id') id: string,
+    @Query('employerId') employerId: string
+  ) {
+    if (!employerId) {
+      throw new BadRequestException('employerId is required');
+    }
+
+    return this.offersService.getOfferForEmployer(id, employerId);
+  }
 }

@@ -149,7 +149,18 @@ export class OffersService {
         }
       });
 
-      // 8. Update employer's offer count
+      // 8. Set currentVersionId to the newly created version
+      const updatedOffer = await tx.offer.update({
+        where: { id: offer.id },
+        data: { currentVersionId: offer.versions[0].id },
+        include: {
+          currentVersion: true,
+          versions: true,
+          employer: true
+        }
+      });
+
+      // 9. Update employer's offer count
       await tx.employer.update({
         where: { id: employer.id },
         data: {
@@ -157,7 +168,7 @@ export class OffersService {
         }
       });
 
-      // 9. Create notification for worker
+      // 10. Create notification for worker
       await tx.notification.create({
         data: {
           userId: worker.userId,
@@ -171,7 +182,7 @@ export class OffersService {
         }
       });
 
-      return offer;
+      return updatedOffer;
     });
   }
 
@@ -215,6 +226,39 @@ export class OffersService {
         where: { id: offerId },
         data: { viewedAt: new Date() }
       });
+    }
+
+    return offer;
+  }
+
+  async getOfferForEmployer(offerId: string, userId: string) {
+    // First, find the Employer record by userId
+    const employer = await this.prisma.employer.findUnique({
+      where: { userId }
+    });
+
+    if (!employer) {
+      throw new NotFoundException('Employer not found');
+    }
+
+    const offer = await this.prisma.offer.findUnique({
+      where: { id: offerId },
+      include: {
+        worker: true,
+        currentVersion: true,
+        versions: {
+          orderBy: { version: 'desc' }
+        }
+      }
+    });
+
+    if (!offer) {
+      throw new NotFoundException('Offer not found');
+    }
+
+    // Verify this offer belongs to the employer
+    if (offer.employerId !== employer.id) {
+      throw new ForbiddenException('Not authorized to view this offer');
     }
 
     return offer;
@@ -628,8 +672,17 @@ export class OffersService {
     });
   }
 
-  async listOffersForEmployer(employerId: string, status?: string[]) {
-    const where: any = { employerId };
+  async listOffersForEmployer(userId: string, status?: string[]) {
+    // First, find the Employer record by userId
+    const employer = await this.prisma.employer.findUnique({
+      where: { userId }
+    });
+
+    if (!employer) {
+      throw new NotFoundException('Employer not found');
+    }
+
+    const where: any = { employerId: employer.id };
 
     if (status && status.length > 0) {
       where.status = { in: status };
