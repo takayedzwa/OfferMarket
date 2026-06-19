@@ -20,6 +20,7 @@ import {
   User,
   Clock,
   TrendingUp,
+  Edit2,
 } from "lucide-react";
 
 export default function OfferDetailPage() {
@@ -190,6 +191,15 @@ export default function OfferDetailPage() {
             </button>
 
             <div className="flex items-center gap-2">
+              {userRole === "EMPLOYER" && offer.status !== "ACCEPTED" && offer.status !== "REJECTED" && offer.status !== "WITHDRAWN" && (
+                <button
+                  onClick={() => router.push(`/offers/${offer.id}/edit`)}
+                  className="flex items-center gap-1 px-3 py-1 text-sm text-blue-600 hover:text-blue-800"
+                >
+                  <Edit2 className="w-4 h-4" />
+                  Edit
+                </button>
+              )}
               <span
                 className={`px-3 py-1 rounded-full text-sm font-medium ${
                   offer.status === "DRAFT"

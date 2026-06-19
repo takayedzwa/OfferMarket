@@ -230,4 +230,23 @@ export class OffersController {
 
     return this.offersService.getOfferForEmployer(id, employerId);
   }
+
+  /**
+   * PATCH /offers/:id
+   *
+   * Update an offer (employer only - creates new version)
+   */
+  @Patch(':id')
+  @UseGuards(SimpleAuthGuard)
+  async updateOffer(
+    @Param('id') id: string,
+    @Query('employerId') employerId: string,
+    @Body() updateOfferDto: any
+  ) {
+    if (!employerId) {
+      throw new BadRequestException('employerId is required');
+    }
+
+    return this.offersService.updateOffer(id, employerId, updateOfferDto);
+  }
 }

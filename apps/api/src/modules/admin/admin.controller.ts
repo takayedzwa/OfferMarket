@@ -1,4 +1,5 @@
 import { Controller, Get, Post, Patch, Body, Param, Query, UseGuards, Headers, BadRequestException } from '@nestjs/common';
+import { AdminGuard } from '../../guards/admin.guard';
 import { AdminService } from './admin.service';
 import { UpdateSettingsDto } from './dto/update-settings.dto';
 

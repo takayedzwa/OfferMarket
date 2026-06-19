@@ -265,6 +265,129 @@ export class OffersService {
   }
 
   // ============================================================================
+  // UPDATE OFFER (Employer)
+  // ============================================================================
+
+  /**
+   * Update an offer - creates a new version
+   *
+   * Only allowed for offers in DRAFT or SUBMITTED status
+   */
+  async updateOffer(offerId: string, userId: string, updateOfferDto: any) {
+    return this.prisma.$transaction(async (tx) => {
+      // 1. Find employer by userId
+      const employer = await tx.employer.findUnique({
+        where: { userId }
+      });
+
+      if (!employer) {
+        throw new NotFoundException('Employer not found');
+      }
+
+      // 2. Get the offer
+      const offer = await tx.offer.findUnique({
+        where: { id: offerId },
+        include: { currentVersion: true }
+      });
+
+      if (!offer) {
+        throw new NotFoundException('Offer not found');
+      }
+
+      // 3. Verify ownership
+      if (offer.employerId !== employer.id) {
+        throw new ForbiddenException('Not authorized to update this offer');
+      }
+
+      // 4. Check if offer can be updated
+      if (offer.status === 'ACCEPTED' || offer.status === 'REJECTED' || offer.status === 'WITHDRAWN') {
+        throw new BadRequestException(`Cannot update offer in ${offer.status} status`);
+      }
+
+      // 5. Get next version number
+      const versions = await tx.offerVersion.findMany({
+        where: { offerId },
+        select: { version: true },
+        orderBy: { version: 'desc' },
+        take: 1
+      });
+      const nextVersion = (versions[0]?.version || 0) + 1;
+
+      // 6. Update offer basic fields if provided
+      await tx.offer.update({
+        where: { id: offerId },
+        data: {
+          jobTitle: updateOfferDto.jobTitle ?? offer.jobTitle,
+          jobDescription: updateOfferDto.jobDescription ?? offer.jobDescription,
+          department: updateOfferDto.department ?? offer.department,
+        }
+      });
+
+      // 7. Create new version with updated data
+      const newVersion = await tx.offerVersion.create({
+        data: {
+          offerId,
+          version: nextVersion,
+          // COMPENSATION
+          salaryMin: updateOfferDto.compensation?.salaryMin ?? offer.currentVersion?.salaryMin,
+          salaryMax: updateOfferDto.compensation?.salaryMax ?? offer.currentVersion?.salaryMax,
+          salaryPeriod: updateOfferDto.compensation?.salaryPeriod ?? offer.currentVersion?.salaryPeriod,
+          hourlyRate: updateOfferDto.compensation?.hourlyRate ?? offer.currentVersion?.hourlyRate,
+          signOnBonus: updateOfferDto.compensation?.signOnBonus ?? offer.currentVersion?.signOnBonus,
+          performanceBonusPct: updateOfferDto.compensation?.performanceBonusPct ?? offer.currentVersion?.performanceBonusPct,
+          overtimeRate: updateOfferDto.compensation?.overtimeRate ?? offer.currentVersion?.overtimeRate,
+          weekendRate: updateOfferDto.compensation?.weekendRate ?? offer.currentVersion?.weekendRate,
+          // CONTRACT
+          contractType: updateOfferDto.contract?.type ?? offer.currentVersion?.contractType,
+          contractDurationMonths: updateOfferDto.contract?.durationMonths ?? offer.currentVersion?.contractDurationMonths,
+          hoursPerWeek: updateOfferDto.contract?.hoursPerWeek ?? offer.currentVersion?.hoursPerWeek,
+          startDateType: updateOfferDto.contract?.startDateType ?? offer.currentVersion?.startDateType,
+          startDate: updateOfferDto.contract?.startDate ?? offer.currentVersion?.startDate,
+          probationMonths: updateOfferDto.contract?.probationMonths ?? offer.currentVersion?.probationMonths,
+          // BENEFITS
+          vacationDays: updateOfferDto.benefits?.vacationDays ?? offer.currentVersion?.vacationDays,
+          holidayAllowancePct: updateOfferDto.benefits?.holidayAllowancePct ?? offer.currentVersion?.holidayAllowancePct,
+          pensionContributionPct: updateOfferDto.benefits?.pensionContributionPct ?? offer.currentVersion?.pensionContributionPct,
+          trainingBudget: updateOfferDto.benefits?.trainingBudget ?? offer.currentVersion?.trainingBudget,
+          companyVehicle: updateOfferDto.benefits?.companyVehicle ?? offer.currentVersion?.companyVehicle,
+          vehicleType: updateOfferDto.benefits?.vehicleType ?? offer.currentVersion?.vehicleType,
+          vehicleValueEst: updateOfferDto.benefits?.vehicleValueEst ?? offer.currentVersion?.vehicleValueEst,
+          travelAllowanceType: updateOfferDto.benefits?.travelAllowanceType ?? offer.currentVersion?.travelAllowanceType,
+          travelAllowanceValue: updateOfferDto.benefits?.travelAllowanceValue ?? offer.currentVersion?.travelAllowanceValue,
+          phoneProvided: updateOfferDto.benefits?.phoneProvided ?? offer.currentVersion?.phoneProvided,
+          toolsProvided: updateOfferDto.benefits?.toolsProvided ?? offer.currentVersion?.toolsProvided,
+          // WORK ARRANGEMENT
+          scheduleType: updateOfferDto.workArrangement?.scheduleType ?? offer.currentVersion?.scheduleType,
+          onCallDetails: updateOfferDto.workArrangement?.onCallDetails ?? offer.currentVersion?.onCallDetails,
+          remoteWorkPct: updateOfferDto.workArrangement?.remoteWorkPct ?? offer.currentVersion?.remoteWorkPct,
+          travelRequiredPct: updateOfferDto.workArrangement?.travelRequiredPct ?? offer.currentVersion?.travelRequiredPct,
+          travelRegion: updateOfferDto.workArrangement?.travelRegion ?? offer.currentVersion?.travelRegion,
+          physicalRequirements: updateOfferDto.workArrangement?.physicalRequirements ?? offer.currentVersion?.physicalRequirements,
+          // REQUIREMENTS
+          requiredCertifications: updateOfferDto.requirements?.requiredCertifications ?? offer.currentVersion?.requiredCertifications,
+          requiredExperienceYears: updateOfferDto.requirements?.requiredExperienceYears ?? offer.currentVersion?.requiredExperienceYears,
+        }
+      });
+
+      // 8. Update currentVersionId
+      await tx.offer.update({
+        where: { id: offerId },
+        data: { currentVersionId: newVersion.id }
+      });
+
+      // 9. Return updated offer
+      return tx.offer.findUnique({
+        where: { id: offerId },
+        include: {
+          currentVersion: true,
+          versions: { orderBy: { version: 'desc' } },
+          worker: true
+        }
+      });
+    });
+  }
+
+  // ============================================================================
   // ACCEPT OFFER - THE MOMENT OF TRUTH
   // ============================================================================
 

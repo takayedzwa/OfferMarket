@@ -196,6 +196,10 @@ export const offersApi = {
   getEmployerOfferDetail: (id: string, employerId: string) =>
     api.get(`/offers/${id}/detail`, { params: { employerId } }),
 
+  // Update offer (employer)
+  updateOffer: (id: string, employerId: string, data: any) =>
+    api.patch(`/offers/${id}?employerId=${employerId}`, data),
+
   // Accept offer
   acceptOffer: (id: string) => api.post(`/offers/${id}/accept`),
 
