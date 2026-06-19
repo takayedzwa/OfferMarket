@@ -42,7 +42,7 @@ export default function WorkerDashboard() {
     }
 
     loadData();
-  }, [user]);
+  }, [user, router]);
 
   const pendingOffers = offers.filter((o) => o.status === "SUBMITTED" || o.status === "VIEWED");
   const shortlistedOffers = offers.filter((o) => o.status === "SHORTLISTED");

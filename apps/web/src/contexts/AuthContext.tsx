@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, useCallback } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { authApi, api } from "../lib/api";
 import { User } from "../lib/types";
@@ -20,7 +20,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
 
-  const refreshUser = useCallback(async () => {
+  const refreshUser = async () => {
     const token = localStorage.getItem("accessToken");
     const userId = localStorage.getItem("userId");
     const userRole = localStorage.getItem("userRole");
@@ -35,7 +35,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const response = await api.get('/auth/me', {
         params: { userId, userRole }
       });
-      setUser(response.data);
+
+      if (response.data.error) {
+        setUser(null);
+      } else {
+        setUser(response.data);
+      }
     } catch (error) {
       console.error("Failed to fetch user profile:", error);
       localStorage.removeItem("accessToken");
@@ -45,19 +50,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, []);
+  };
 
-  const logout = useCallback(() => {
+  const logout = () => {
     localStorage.removeItem("accessToken");
     localStorage.removeItem("userId");
     localStorage.removeItem("userRole");
     setUser(null);
     router.push("/login");
-  }, [router]);
+  };
 
   useEffect(() => {
     refreshUser();
-  }, [refreshUser]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Redirect to appropriate dashboard after auth loads
   useEffect(() => {

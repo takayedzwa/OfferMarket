@@ -11,10 +11,17 @@ export class AuthController {
 
   @Get('me')
   async getMe(@Query('userId') userId: string, @Query('userRole') userRole: string) {
+    const user = await this.authService.getUserById(userId);
+    if (!user) {
+      return { error: 'User not found' };
+    }
     return {
-      id: userId,
-      role: userRole,
-      email: 'user@example.com'
+      id: user.id,
+      role: user.role,
+      email: user.email,
+      emailVerified: user.emailVerified,
+      phoneVerified: user.phoneVerified,
+      phone: user.phone
     };
   }
 
