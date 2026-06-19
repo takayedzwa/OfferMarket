@@ -214,6 +214,21 @@ export class OffersController {
   }
 
   /**
+   * GET /offers/worker/me
+   *
+   * List offers for the authenticated worker
+   */
+  @Get('worker/me')
+  @UseGuards(SimpleAuthGuard)
+  async listOffersForWorkerMe(
+    @Query('workerId') workerId: string,
+    @Query('status') status?: string
+  ) {
+    const statusArray = status ? status.split(',') : undefined;
+    return this.offersService.listOffersForWorker(workerId, statusArray);
+  }
+
+  /**
    * GET /offers/:id/detail
    *
    * View offer details (employer perspective)

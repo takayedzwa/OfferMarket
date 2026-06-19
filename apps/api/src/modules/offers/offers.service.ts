@@ -195,7 +195,16 @@ export class OffersService {
    *
    * CRITICAL: Employer identity is visible, but worker's identity remains hidden
    */
-  async getOfferForWorker(offerId: string, workerId: string) {
+  async getOfferForWorker(offerId: string, userId: string) {
+    // First, find the Worker record by userId
+    const worker = await this.prisma.worker.findUnique({
+      where: { userId }
+    });
+
+    if (!worker) {
+      throw new NotFoundException('Worker profile not found');
+    }
+
     const offer = await this.prisma.offer.findUnique({
       where: { id: offerId },
       include: {
@@ -216,7 +225,7 @@ export class OffersService {
     }
 
     // Verify this offer belongs to the worker
-    if (offer.workerId !== workerId) {
+    if (offer.workerId !== worker.id) {
       throw new ForbiddenException('Not authorized to view this offer');
     }
 
@@ -774,8 +783,18 @@ export class OffersService {
   // LIST OFFERS
   // ============================================================================
 
-  async listOffersForWorker(workerId: string, status?: string[]) {
-    const where: any = { workerId };
+  async listOffersForWorker(userId: string, status?: string[]) {
+    // First, find the Worker record by userId
+    const worker = await this.prisma.worker.findUnique({
+      where: { userId }
+    });
+
+    if (!worker) {
+      // Return empty array if worker not found (user may not have completed worker profile)
+      return [];
+    }
+
+    const where: any = { workerId: worker.id };
 
     if (status && status.length > 0) {
       where.status = { in: status };

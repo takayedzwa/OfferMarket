@@ -190,7 +190,10 @@ export const offersApi = {
   },
 
   // Get offer details (worker)
-  getOffer: (id: string) => api.get(`/offers/${id}`),
+  getOffer: (id: string) => {
+    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
+    return api.get(`/offers/${id}`, { params: { workerId: userId } });
+  },
 
   // Get offer details (employer)
   getEmployerOfferDetail: (id: string, employerId: string) =>
@@ -227,7 +230,10 @@ export const offersApi = {
   }) => api.get('/offers', { params }),
 
   // Get offers for worker
-  getWorkerOffers: () => api.get('/offers/worker/me'),
+  getWorkerOffers: () => {
+    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
+    return api.get('/offers/worker/me', { params: { workerId: userId } });
+  },
 
   // Get offers for employer
   getEmployerOffers: () => {
