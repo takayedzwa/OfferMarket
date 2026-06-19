@@ -523,11 +523,15 @@ export class WorkersService {
 
     let sequence = 1;
     if (lastWorker && lastWorker.publicId) {
-      const lastNum = parseInt(lastWorker.publicId.replace('Profile #', ''));
-      sequence = lastNum + 1;
+      // Extract number from existing publicId format (e.g., "W-000001" or "Profile #1")
+      const match = lastWorker.publicId.match(/(\d+)$/);
+      if (match) {
+        sequence = parseInt(match[1]) + 1;
+      }
     }
 
-    return `Profile #${sequence}`;
+    // Format: W-000001, W-000002, etc. (URL-safe)
+    return `W-${String(sequence).padStart(6, '0')}`;
   }
 
   private calculateCompleteness(data: any): number {

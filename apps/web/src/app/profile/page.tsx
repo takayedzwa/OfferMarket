@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../contexts/AuthContext";
+import Navbar from "../../components/Navbar";
 import { workersApi, employersApi, api } from "../../lib/api";
 import { PublicWorkerProfile, Employer } from "../../lib/types";
 import {
@@ -70,44 +71,7 @@ export default function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b sticky top-0 z-10">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <Link
-              href={userRole === "WORKER" ? "/dashboard/worker" : "/dashboard/employer"}
-              className="flex items-center gap-2"
-            >
-              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-lg">O</span>
-              </div>
-              <span className="text-xl font-bold text-gray-900">OfferMarket</span>
-            </Link>
-
-            <nav className="hidden md:flex items-center gap-6">
-              <Link
-                href={userRole === "WORKER" ? "/dashboard/worker" : "/dashboard/employer"}
-                className="text-gray-600 hover:text-gray-900"
-              >
-                Dashboard
-              </Link>
-              <Link href="/offers" className="text-gray-600 hover:text-gray-900">
-                Offers
-              </Link>
-              <Link href="/conversations" className="text-gray-600 hover:text-gray-900">
-                Messages
-              </Link>
-            </nav>
-
-            <button
-              onClick={logout}
-              className="text-sm text-gray-600 hover:text-gray-900"
-            >
-              Sign out
-            </button>
-          </div>
-        </div>
-      </header>
+      <Navbar />
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {userRole === "WORKER" && profile && (

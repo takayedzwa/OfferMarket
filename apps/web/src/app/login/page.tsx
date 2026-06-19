@@ -27,7 +27,11 @@ export default function LoginPage() {
       localStorage.setItem("userRole", user.role);
 
       // Redirect based on role, checking for profile existence
-      if (user.role === "WORKER") {
+      if (user.role === "ADMIN") {
+        router.push("/admin");
+      } else if (user.role === "SUPPORT") {
+        router.push("/support");
+      } else if (user.role === "WORKER") {
         try {
           await workersApi.getMyProfile();
           router.push("/dashboard/worker");
@@ -52,7 +56,7 @@ export default function LoginPage() {
           }
         }
       } else {
-        router.push("/dashboard");
+        router.push("/");
       }
     } catch (err: any) {
       setError(err.response?.data?.message || "Failed to login. Please try again.");

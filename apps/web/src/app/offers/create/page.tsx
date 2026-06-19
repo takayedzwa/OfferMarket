@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "../../../contexts/AuthContext";
 import { offersApi, employersApi } from "../../../lib/api";
@@ -30,9 +30,9 @@ const steps = [
   { id: 6, title: "Requirements", icon: CheckCircle2 },
 ];
 
-export default function CreateOfferPage() {
+function CreateOfferContent() {
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const searchParams = useSearchParams()!;
   const { user, logout } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [saving, setSaving] = useState(false);
@@ -46,7 +46,17 @@ export default function CreateOfferPage() {
     const checkVerification = async () => {
       try {
         const res = await employersApi.getVerificationStatus();
-        setVerificationStatus(res.data.status || "UNVERIFIED");
+        const status = res.data.status || res.data.verificationStatus || "UNVERIFIED";
+        // Map backend statuses to frontend values
+        if (status === "BASIC_VERIFIED" || status === "FULL_VERIFIED" || status === "PREMIUM_VERIFIED") {
+          setVerificationStatus("VERIFIED");
+        } else if (status === "PENDING") {
+          setVerificationStatus("PENDING");
+        } else if (status === "REJECTED") {
+          setVerificationStatus("EXPIRED");
+        } else {
+          setVerificationStatus("UNVERIFIED");
+        }
       } catch (err) {
         setVerificationStatus("UNVERIFIED");
       } finally {
@@ -60,7 +70,8 @@ export default function CreateOfferPage() {
   useEffect(() => {
     const workerIdFromQuery = searchParams.get("workerId");
     if (workerIdFromQuery) {
-      setFormData(prev => ({ ...prev, workerId: workerIdFromQuery }));
+      // Decode the workerId since it may be URL-encoded (e.g., "Profile #2" becomes "Profile%20%232")
+      setFormData(prev => ({ ...prev, workerId: decodeURIComponent(workerIdFromQuery) }));
     }
   }, [searchParams]);
 
@@ -152,7 +163,7 @@ export default function CreateOfferPage() {
     try {
       const offerData = buildOfferData();
       await offersApi.createOffer({ ...offerData, status: "SUBMITTED" });
-      router.push("/offers");
+      router.push("/dashboard/employer");
     } catch (err: any) {
       setError(err.response?.data?.message || "Failed to submit offer");
     } finally {
@@ -745,5 +756,13 @@ export default function CreateOfferPage() {
         </div>
       </main>
     </div>
+  );
+}
+
+export default function CreateOfferPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-gray-50 flex items-center justify-center">Loading...</div>}>
+      <CreateOfferContent />
+    </Suspense>
   );
 }

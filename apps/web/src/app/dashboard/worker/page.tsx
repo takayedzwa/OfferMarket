@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../../contexts/AuthContext";
+import Navbar from "../../../components/Navbar";
 import { workersApi, offersApi } from "../../../lib/api";
 import { PublicWorkerProfile, Offer } from "../../../lib/types";
 import { User, MapPin, Briefcase, Euro, Calendar, Eye, MessageSquare } from "lucide-react";
@@ -57,47 +58,7 @@ export default function WorkerDashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <Link href="/dashboard/worker" className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-lg">O</span>
-              </div>
-              <span className="text-xl font-bold text-gray-900">OfferMarket</span>
-            </Link>
-
-            <nav className="hidden md:flex items-center gap-6">
-              <Link href="/dashboard/worker" className="text-gray-600 hover:text-gray-900">
-                Dashboard
-              </Link>
-              <Link href="/offers" className="text-gray-600 hover:text-gray-900">
-                Offers
-              </Link>
-              <Link href="/conversations" className="text-gray-600 hover:text-gray-900">
-                Messages
-              </Link>
-              <Link href="/profile" className="text-gray-600 hover:text-gray-900">
-                Profile
-              </Link>
-            </nav>
-
-            <div className="flex items-center gap-4">
-              <div className="text-sm text-gray-600">
-                <span className="hidden sm:inline">Welcome, </span>
-                <span className="font-medium">{user?.email?.split("@")[0]}</span>
-              </div>
-              <button
-                onClick={logout}
-                className="text-sm text-gray-600 hover:text-gray-900"
-              >
-                Sign out
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
+      <Navbar />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Stats Overview */}

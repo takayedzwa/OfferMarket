@@ -184,7 +184,10 @@ export const employersApi = {
 
 export const offersApi = {
   // Create offer
-  createOffer: (data: any) => api.post('/offers', data),
+  createOffer: (data: any) => {
+    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
+    return api.post('/offers', data, { params: { employerId: userId } });
+  },
 
   // Get offer details
   getOffer: (id: string) => api.get(`/offers/${id}`),

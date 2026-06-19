@@ -4,9 +4,10 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "../../../contexts/AuthContext";
+import Navbar from "../../../components/Navbar";
 import { employersApi, offersApi } from "../../../lib/api";
 import { Offer, Employer } from "../../../lib/types";
-import { Building2, Send, Eye, UserCheck, Euro } from "lucide-react";
+import { Building2, Send, Eye, UserCheck, Euro, Users } from "lucide-react";
 
 export default function EmployerDashboard() {
   const router = useRouter();
@@ -17,25 +18,45 @@ export default function EmployerDashboard() {
 
   useEffect(() => {
     async function loadData() {
-      if (!user) return;
+      // Check localStorage directly instead of waiting for AuthContext
+      const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
+      const userRole = typeof window !== 'undefined' ? localStorage.getItem('userRole') : null;
+      const accessToken = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+
+      if (!userId || !accessToken || userRole !== 'EMPLOYER') {
+        router.push('/login');
+        return;
+      }
 
       // Check if user is coming from save-for-later
       const skipCheck = typeof window !== 'undefined' && sessionStorage.getItem('skipEmployerProfileCheck') === 'true';
 
       try {
-        const [employerRes, offersRes] = await Promise.all([
-          employersApi.getMyCompany().catch((err) => {
-            if (err.response?.status === 404 && !skipCheck) {
-              // No employer profile exists, redirect to setup
-              router.push("/profile/setup-employer");
-            }
-            return null;
-          }),
-          offersApi.getEmployerOffers().catch(() => ({ data: [] })),
-        ]);
+        // Fetch employer profile
+        let employerData = null;
+        try {
+          const employerRes = await employersApi.getMyCompany();
+          employerData = employerRes.data;
+        } catch (err: any) {
+          if (err.response?.status === 404 && !skipCheck) {
+            // No employer profile exists, redirect to setup
+            router.push("/profile/setup-employer");
+            return;
+          }
+          console.error("Failed to fetch employer profile:", err);
+        }
 
-        if (employerRes) setEmployer(employerRes.data);
-        setOffers(offersRes.data);
+        // Fetch offers
+        let offersData = [];
+        try {
+          const offersRes = await offersApi.getEmployerOffers();
+          offersData = offersRes.data || [];
+        } catch (err: any) {
+          console.error("Failed to fetch offers:", err);
+        }
+
+        if (employerData) setEmployer(employerData);
+        setOffers(offersData);
       } catch (error) {
         console.error("Failed to load dashboard data:", error);
       } finally {
@@ -44,7 +65,7 @@ export default function EmployerDashboard() {
     }
 
     loadData();
-  }, [user]);
+  }, [router]);
 
   const draftOffers = offers.filter((o) => o.status === "DRAFT");
   const submittedOffers = offers.filter((o) => o.status === "SUBMITTED" || o.status === "VIEWED");
@@ -61,49 +82,7 @@ export default function EmployerDashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <Link href="/dashboard/employer" className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-lg">O</span>
-              </div>
-              <span className="text-xl font-bold text-gray-900">OfferMarket</span>
-            </Link>
-
-            <nav className="hidden md:flex items-center gap-6">
-              <Link href="/dashboard/employer" className="text-gray-600 hover:text-gray-900">
-                Dashboard
-              </Link>
-              <Link href="/workers" className="text-gray-600 hover:text-gray-900">
-                Find Workers
-              </Link>
-              <Link href="/offers/create" className="text-gray-600 hover:text-gray-900">
-                Create Offer
-              </Link>
-              <Link href="/offers" className="text-gray-600 hover:text-gray-900">
-                My Offers
-              </Link>
-              <Link href="/conversations" className="text-gray-600 hover:text-gray-900">
-                Messages
-              </Link>
-            </nav>
-
-            <div className="flex items-center gap-4">
-              <div className="text-sm text-gray-600">
-                <span className="hidden sm:inline">{employer?.companyName || "Company"}</span>
-              </div>
-              <button
-                onClick={logout}
-                className="text-sm text-gray-600 hover:text-gray-900"
-              >
-                Sign out
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
+      <Navbar />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Draft Profile Banner - shown when user has saved for later */}
@@ -218,6 +197,17 @@ export default function EmployerDashboard() {
                   <div>
                     <div className="font-medium">Create New Offer</div>
                     <div className="text-sm text-blue-100">Send an offer to a worker</div>
+                  </div>
+                </Link>
+
+                <Link
+                  href="/workers"
+                  className="flex items-center gap-3 p-4 border rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  <Users className="w-5 h-5 text-gray-600" />
+                  <div>
+                    <div className="font-medium text-gray-900">Search Workers</div>
+                    <div className="text-sm text-gray-500">Find potential candidates</div>
                   </div>
                 </Link>
 

@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../contexts/AuthContext";
+import Navbar from "../../components/Navbar";
 import { conversationsApi, api } from "../../lib/api";
 import { Conversation, Message } from "../../lib/types";
 import {
@@ -122,37 +122,7 @@ export default function ConversationsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <Link
-              href={userRole === "WORKER" ? "/dashboard/worker" : "/dashboard/employer"}
-              className="flex items-center gap-2"
-            >
-              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-lg">O</span>
-              </div>
-              <span className="text-xl font-bold text-gray-900">OfferMarket</span>
-            </Link>
-
-            <nav className="hidden md:flex items-center gap-6">
-              <Link
-                href={userRole === "WORKER" ? "/dashboard/worker" : "/dashboard/employer"}
-                className="text-gray-600 hover:text-gray-900"
-              >
-                Dashboard
-              </Link>
-              <Link href="/offers" className="text-gray-600 hover:text-gray-900">
-                Offers
-              </Link>
-              <Link href="/conversations" className="text-blue-600 font-medium">
-                Messages
-              </Link>
-            </nav>
-          </div>
-        </div>
-      </header>
+      <Navbar />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-140px)]">
