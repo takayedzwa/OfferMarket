@@ -839,10 +839,13 @@ export class OffersService {
       return [];
     }
 
-    const where: any = { workerId: worker.id };
+    const where: any = {
+      workerId: worker.id,
+      status: { not: 'DRAFT' } // Workers cannot see DRAFT offers
+    };
 
     if (status && status.length > 0) {
-      where.status = { in: status };
+      where.status = { in: status, not: 'DRAFT' };
     }
 
     return this.prisma.offer.findMany({
