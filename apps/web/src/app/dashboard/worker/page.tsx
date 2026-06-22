@@ -234,20 +234,34 @@ export default function WorkerDashboard() {
                         </div>
                         <span
                           className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            offer.status === "SUBMITTED"
+                            offer.status === "SUBMITTED" || offer.status === "VIEWED"
                               ? "bg-blue-100 text-blue-700"
-                              : offer.status === "VIEWED"
-                              ? "bg-gray-100 text-gray-700"
                               : offer.status === "SHORTLISTED"
                               ? "bg-yellow-100 text-yellow-700"
                               : offer.status === "ACCEPTED"
                               ? "bg-green-100 text-green-700"
                               : offer.status === "REJECTED"
                               ? "bg-red-100 text-red-700"
+                              : offer.status === "COUNTERED"
+                              ? "bg-purple-100 text-purple-700"
                               : "bg-gray-100 text-gray-700"
                           }`}
                         >
-                          {offer.status}
+                          {offer.status === "SUBMITTED" || offer.status === "VIEWED"
+                            ? "New Offer"
+                            : offer.status === "SHORTLISTED"
+                            ? "Shortlisted"
+                            : offer.status === "ACCEPTED"
+                            ? "Accepted"
+                            : offer.status === "REJECTED"
+                            ? "Declined"
+                            : offer.status === "COUNTERED"
+                            ? "Counter Offer Sent"
+                            : offer.status === "WITHDRAWN"
+                            ? "Withdrawn"
+                            : offer.status === "EXPIRED"
+                            ? "Expired"
+                            : offer.status}
                         </span>
                       </div>
                     </Link>

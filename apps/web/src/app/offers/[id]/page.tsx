@@ -35,6 +35,31 @@ export default function OfferDetailPage() {
 
   const userRole = typeof window !== "undefined" ? localStorage.getItem("userRole") : null;
 
+  // Helper to get worker-friendly status labels
+  const getStatusLabel = (status: string) => {
+    if (userRole === "WORKER") {
+      if (status === "SUBMITTED" || status === "VIEWED") return "New Offer";
+      if (status === "SHORTLISTED") return "Shortlisted";
+      if (status === "ACCEPTED") return "Accepted";
+      if (status === "REJECTED") return "Declined";
+      if (status === "COUNTERED") return "Counter Offer Sent";
+      if (status === "WITHDRAWN") return "Withdrawn";
+      if (status === "EXPIRED") return "Expired";
+    }
+    return status;
+  };
+
+  const getStatusColor = (status: string) => {
+    if (status === "SUBMITTED" || status === "VIEWED") return "bg-blue-100 text-blue-700";
+    if (status === "DRAFT") return "bg-gray-100 text-gray-700";
+    if (status === "SHORTLISTED") return "bg-yellow-100 text-yellow-700";
+    if (status === "ACCEPTED") return "bg-green-100 text-green-700";
+    if (status === "REJECTED") return "bg-red-100 text-red-700";
+    if (status === "COUNTERED") return "bg-purple-100 text-purple-700";
+    if (status === "WITHDRAWN" || status === "EXPIRED") return "bg-gray-100 text-gray-700";
+    return "bg-gray-100 text-gray-700";
+  };
+
   useEffect(() => {
     async function loadOffer() {
       try {
@@ -64,9 +89,11 @@ export default function OfferDetailPage() {
     setActionLoading("accept");
     try {
       await offersApi.acceptOffer(params.id as string);
-      router.push("/dashboard/worker");
+      router.refresh();
     } catch (err: any) {
       setError(err.response?.data?.message || "Failed to accept offer");
+      // Refresh to get current status
+      setTimeout(() => router.refresh(), 2000);
     } finally {
       setActionLoading("");
     }
@@ -78,9 +105,11 @@ export default function OfferDetailPage() {
     setActionLoading("reject");
     try {
       await offersApi.rejectOffer(params.id as string);
-      router.push("/dashboard/worker");
+      router.refresh();
     } catch (err: any) {
       setError(err.response?.data?.message || "Failed to reject offer");
+      // Refresh to get current status
+      setTimeout(() => router.refresh(), 2000);
     } finally {
       setActionLoading("");
     }
@@ -191,7 +220,7 @@ export default function OfferDetailPage() {
             </button>
 
             <div className="flex items-center gap-2">
-              {userRole === "EMPLOYER" && offer.status !== "ACCEPTED" && offer.status !== "REJECTED" && offer.status !== "WITHDRAWN" && (
+              {userRole === "EMPLOYER" && offer.status !== "ACCEPTED" && offer.status !== "REJECTED" && offer.status !== "WITHDRAWN" && offer.status !== "EXPIRED" && (
                 <button
                   onClick={() => router.push(`/offers/${offer.id}/edit`)}
                   className="flex items-center gap-1 px-3 py-1 text-sm text-blue-600 hover:text-blue-800"
@@ -201,23 +230,9 @@ export default function OfferDetailPage() {
                 </button>
               )}
               <span
-                className={`px-3 py-1 rounded-full text-sm font-medium ${
-                  offer.status === "DRAFT"
-                    ? "bg-gray-100 text-gray-700"
-                    : offer.status === "SUBMITTED"
-                    ? "bg-blue-100 text-blue-700"
-                    : offer.status === "VIEWED"
-                    ? "bg-blue-100 text-blue-700"
-                    : offer.status === "SHORTLISTED"
-                    ? "bg-yellow-100 text-yellow-700"
-                    : offer.status === "ACCEPTED"
-                    ? "bg-green-100 text-green-700"
-                    : offer.status === "REJECTED"
-                    ? "bg-red-100 text-red-700"
-                    : "bg-gray-100 text-gray-700"
-                }`}
+                className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusLabel(offer.status) === offer.status ? getStatusColor(offer.status) : getStatusColor(offer.status)}`}
               >
-                {offer.status}
+                {getStatusLabel(offer.status)}
               </span>
             </div>
           </div>
@@ -447,7 +462,7 @@ export default function OfferDetailPage() {
         )}
 
         {/* Action Buttons for Worker */}
-        {userRole === "WORKER" && offer.status === "SUBMITTED" && (
+        {userRole === "WORKER" && (offer.status === "SUBMITTED" || offer.status === "VIEWED") && (
           <div className="bg-white rounded-xl border shadow-sm p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Your Response</h3>
             <div className="flex flex-wrap gap-3">

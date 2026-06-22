@@ -409,9 +409,18 @@ export class OffersService {
    * - Invoice is generated
    * - This is a terminal state
    */
-  async acceptOffer(offerId: string, workerId: string) {
+  async acceptOffer(offerId: string, userId: string) {
     return this.prisma.$transaction(async (tx) => {
-      // 1. Get offer with all relations
+      // 1. Look up Worker by userId
+      const worker = await tx.worker.findUnique({
+        where: { userId }
+      });
+
+      if (!worker) {
+        throw new NotFoundException('Worker not found');
+      }
+
+      // 2. Get offer with all relations
       const offer = await tx.offer.findUnique({
         where: { id: offerId },
         include: {
@@ -433,8 +442,8 @@ export class OffersService {
         throw new NotFoundException('Offer not found');
       }
 
-      // 2. Verify worker ownership
-      if (offer.workerId !== workerId) {
+      // 3. Verify worker ownership
+      if (offer.workerId !== worker.id) {
         throw new UnauthorizedException('Not authorized to accept this offer');
       }
 
@@ -537,7 +546,16 @@ export class OffersService {
   // REJECT OFFER
   // ============================================================================
 
-  async rejectOffer(offerId: string, workerId: string, reason?: string, feedback?: string) {
+  async rejectOffer(offerId: string, userId: string, reason?: string, feedback?: string) {
+    // Look up Worker by userId
+    const worker = await this.prisma.worker.findUnique({
+      where: { userId }
+    });
+
+    if (!worker) {
+      throw new NotFoundException('Worker not found');
+    }
+
     const offer = await this.prisma.offer.findUnique({
       where: { id: offerId }
     });
@@ -546,7 +564,7 @@ export class OffersService {
       throw new NotFoundException('Offer not found');
     }
 
-    if (offer.workerId !== workerId) {
+    if (offer.workerId !== worker.id) {
       throw new UnauthorizedException('Not authorized');
     }
 
@@ -590,7 +608,16 @@ export class OffersService {
   // SHORTLIST OFFER
   // ============================================================================
 
-  async shortlistOffer(offerId: string, workerId: string) {
+  async shortlistOffer(offerId: string, userId: string) {
+    // Look up Worker by userId
+    const worker = await this.prisma.worker.findUnique({
+      where: { userId }
+    });
+
+    if (!worker) {
+      throw new NotFoundException('Worker not found');
+    }
+
     const offer = await this.prisma.offer.findUnique({
       where: { id: offerId }
     });
@@ -599,7 +626,7 @@ export class OffersService {
       throw new NotFoundException('Offer not found');
     }
 
-    if (offer.workerId !== workerId) {
+    if (offer.workerId !== worker.id) {
       throw new UnauthorizedException('Not authorized');
     }
 
@@ -618,8 +645,17 @@ export class OffersService {
   // COUNTER OFFER
   // ============================================================================
 
-  async counterOffer(offerId: string, workerId: string, counterOfferDto: CounterOfferDto) {
+  async counterOffer(offerId: string, userId: string, counterOfferDto: CounterOfferDto) {
     return this.prisma.$transaction(async (tx) => {
+      // Look up Worker by userId
+      const worker = await tx.worker.findUnique({
+        where: { userId }
+      });
+
+      if (!worker) {
+        throw new NotFoundException('Worker not found');
+      }
+
       const offer = await tx.offer.findUnique({
         where: { id: offerId },
         include: { currentVersion: true }
@@ -629,7 +665,7 @@ export class OffersService {
         throw new NotFoundException('Offer not found');
       }
 
-      if (offer.workerId !== workerId) {
+      if (offer.workerId !== worker.id) {
         throw new UnauthorizedException('Not authorized');
       }
 
@@ -647,57 +683,66 @@ export class OffersService {
       });
 
       // Create new draft offer for employer to review
+      const publicId = await this.generateOfferPublicId(tx);
       const counterOffer = await tx.offer.create({
         data: {
-          publicId: await this.generateOfferPublicId(tx),
-          workerId,
+          publicId,
+          workerId: worker.id,
           employerId: offer.employerId,
           jobTitle: offer.jobTitle,
           department: offer.department,
           jobDescription: offer.jobDescription,
           status: 'DRAFT',
-          expiresAt: offer.expiresAt,
-          versions: {
-            create: {
-              version: offer.currentVersion.version + 1,
-              // Apply counter values
-              salaryMin: counterOfferDto.salaryMin || offer.currentVersion.salaryMin,
-              salaryMax: counterOfferDto.salaryMax || offer.currentVersion.salaryMax,
-              signOnBonus: counterOfferDto.signOnBonus ?? offer.currentVersion.signOnBonus,
-              vacationDays: counterOfferDto.vacationDays || offer.currentVersion.vacationDays,
-              // Copy unchanged fields
-              salaryPeriod: offer.currentVersion.salaryPeriod,
-              hourlyRate: offer.currentVersion.hourlyRate,
-              performanceBonusPct: offer.currentVersion.performanceBonusPct,
-              overtimeRate: offer.currentVersion.overtimeRate,
-              weekendRate: offer.currentVersion.weekendRate,
-              contractType: offer.currentVersion.contractType,
-              contractDurationMonths: offer.currentVersion.contractDurationMonths,
-              hoursPerWeek: offer.currentVersion.hoursPerWeek,
-              startDateType: offer.currentVersion.startDateType,
-              startDate: offer.currentVersion.startDate,
-              probationMonths: offer.currentVersion.probationMonths,
-              holidayAllowancePct: offer.currentVersion.holidayAllowancePct,
-              pensionContributionPct: offer.currentVersion.pensionContributionPct,
-              trainingBudget: offer.currentVersion.trainingBudget,
-              companyVehicle: offer.currentVersion.companyVehicle,
-              vehicleType: offer.currentVersion.vehicleType,
-              vehicleValueEst: offer.currentVersion.vehicleValueEst,
-              travelAllowanceType: offer.currentVersion.travelAllowanceType,
-              travelAllowanceValue: offer.currentVersion.travelAllowanceValue,
-              phoneProvided: offer.currentVersion.phoneProvided,
-              toolsProvided: offer.currentVersion.toolsProvided,
-              scheduleType: offer.currentVersion.scheduleType,
-              onCallDetails: offer.currentVersion.onCallDetails,
-              remoteWorkPct: offer.currentVersion.remoteWorkPct,
-              travelRequiredPct: offer.currentVersion.travelRequiredPct,
-              travelRegion: offer.currentVersion.travelRegion,
-              physicalRequirements: offer.currentVersion.physicalRequirements,
-              requiredCertifications: offer.currentVersion.requiredCertifications,
-              requiredExperienceYears: offer.currentVersion.requiredExperienceYears,
-            }
-          }
+          expiresAt: offer.expiresAt
         }
+      });
+
+      const newVersion = await tx.offerVersion.create({
+        data: {
+          offerId: counterOffer.id,
+          version: offer.currentVersion.version + 1,
+          // Apply counter values
+          salaryMin: counterOfferDto.salaryMin || offer.currentVersion.salaryMin,
+          salaryMax: counterOfferDto.salaryMax || offer.currentVersion.salaryMax,
+          signOnBonus: counterOfferDto.signOnBonus ?? offer.currentVersion.signOnBonus,
+          vacationDays: counterOfferDto.vacationDays || offer.currentVersion.vacationDays,
+          // Copy unchanged fields
+          salaryPeriod: offer.currentVersion.salaryPeriod,
+          hourlyRate: offer.currentVersion.hourlyRate,
+          performanceBonusPct: offer.currentVersion.performanceBonusPct,
+          overtimeRate: offer.currentVersion.overtimeRate,
+          weekendRate: offer.currentVersion.weekendRate,
+          contractType: offer.currentVersion.contractType,
+          contractDurationMonths: offer.currentVersion.contractDurationMonths,
+          hoursPerWeek: offer.currentVersion.hoursPerWeek,
+          startDateType: offer.currentVersion.startDateType,
+          startDate: offer.currentVersion.startDate,
+          probationMonths: offer.currentVersion.probationMonths,
+          holidayAllowancePct: offer.currentVersion.holidayAllowancePct,
+          pensionContributionPct: offer.currentVersion.pensionContributionPct,
+          trainingBudget: offer.currentVersion.trainingBudget,
+          companyVehicle: offer.currentVersion.companyVehicle,
+          vehicleType: offer.currentVersion.vehicleType,
+          vehicleValueEst: offer.currentVersion.vehicleValueEst,
+          travelAllowanceType: offer.currentVersion.travelAllowanceType,
+          travelAllowanceValue: offer.currentVersion.travelAllowanceValue,
+          phoneProvided: offer.currentVersion.phoneProvided,
+          toolsProvided: offer.currentVersion.toolsProvided,
+          scheduleType: offer.currentVersion.scheduleType,
+          onCallDetails: offer.currentVersion.onCallDetails,
+          remoteWorkPct: offer.currentVersion.remoteWorkPct,
+          travelRequiredPct: offer.currentVersion.travelRequiredPct,
+          travelRegion: offer.currentVersion.travelRegion,
+          physicalRequirements: offer.currentVersion.physicalRequirements,
+          requiredCertifications: offer.currentVersion.requiredCertifications,
+          requiredExperienceYears: offer.currentVersion.requiredExperienceYears,
+        }
+      });
+
+      // Update offer with currentVersionId
+      await tx.offer.update({
+        where: { id: counterOffer.id },
+        data: { currentVersionId: newVersion.id }
       });
 
       // Notify employer

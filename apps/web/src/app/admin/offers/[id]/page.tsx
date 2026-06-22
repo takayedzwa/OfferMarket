@@ -199,7 +199,7 @@ export default function AdminOfferDetailPage() {
                 <ArrowLeft className="w-5 h-5 text-gray-600" />
               </button>
               <div>
-                <h1 className="text-lg font-semibold text-gray-900">{offer.title}</h1>
+                <h1 className="text-lg font-semibold text-gray-900">{offer.jobTitle}</h1>
                 <p className="text-sm text-gray-500">{offer.employer?.companyName || 'Unknown Employer'}</p>
               </div>
             </div>
@@ -351,12 +351,14 @@ export default function AdminOfferDetailPage() {
                       <p className="text-sm text-gray-500">{offer.worker.primaryTrade}</p>
                     )}
                   </div>
-                  <button
-                    onClick={() => router.push(`/admin/workers/${offer.worker.id}`)}
-                    className="w-full mt-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 text-sm font-medium"
-                  >
-                    View Worker Details
-                  </button>
+                  {offer.worker && (
+                    <button
+                      onClick={() => router.push(`/admin/workers/${offer.worker!.id}`)}
+                      className="w-full mt-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 text-sm font-medium"
+                    >
+                      View Worker Details
+                    </button>
+                  )}
                 </div>
               </div>
             )}

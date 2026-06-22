@@ -91,7 +91,8 @@ function EditOfferContent() {
         const offerData = response.data;
         setOffer(offerData);
 
-        const cv = offerData.currentVersion;
+        // Use currentVersion if available, otherwise fall back to first version in versions array
+        const cv = offerData.currentVersion || (offerData.versions && offerData.versions[0]);
         if (cv) {
           setFormData({
             jobTitle: offerData.jobTitle,
@@ -211,7 +212,7 @@ function EditOfferContent() {
   }
 
   const offerStatus = offer?.status;
-  const cannotEdit = offerStatus === "ACCEPTED" || offerStatus === "REJECTED" || offerStatus === "WITHDRAWN";
+  const cannotEdit = offerStatus === "ACCEPTED" || offerStatus === "REJECTED" || offerStatus === "WITHDRAWN" || offerStatus === "EXPIRED";
 
   return (
     <div className="min-h-screen bg-gray-50">

@@ -66,13 +66,13 @@ export class OffersController {
   @UseGuards(SimpleAuthGuard)
   async getOffer(
     @Param('id') id: string,
-    @Query('workerId') workerId: string
+    @Query('workerId') userId: string
   ) {
-    if (!workerId) {
+    if (!userId) {
       throw new BadRequestException('workerId is required');
     }
 
-    return this.offersService.getOfferForWorker(id, workerId);
+    return this.offersService.getOfferForWorker(id, userId);
   }
 
   // ===========================================================================
@@ -91,13 +91,13 @@ export class OffersController {
   @UseGuards(SimpleAuthGuard)
   async acceptOffer(
     @Param('id') id: string,
-    @Query('workerId') workerId: string
+    @Query('workerId') userId: string
   ) {
-    if (!workerId) {
+    if (!userId) {
       throw new BadRequestException('workerId is required');
     }
 
-    return this.offersService.acceptOffer(id, workerId);
+    return this.offersService.acceptOffer(id, userId);
   }
 
   // ===========================================================================
@@ -111,15 +111,15 @@ export class OffersController {
   @UseGuards(SimpleAuthGuard)
   async rejectOffer(
     @Param('id') id: string,
-    @Query('workerId') workerId: string,
+    @Query('workerId') userId: string,
     @Body('reason') reason?: string,
     @Body('feedback') feedback?: string
   ) {
-    if (!workerId) {
+    if (!userId) {
       throw new BadRequestException('workerId is required');
     }
 
-    return this.offersService.rejectOffer(id, workerId, reason, feedback);
+    return this.offersService.rejectOffer(id, userId, reason, feedback);
   }
 
   // ===========================================================================
@@ -133,13 +133,13 @@ export class OffersController {
   @UseGuards(SimpleAuthGuard)
   async shortlistOffer(
     @Param('id') id: string,
-    @Query('workerId') workerId: string
+    @Query('workerId') userId: string
   ) {
-    if (!workerId) {
+    if (!userId) {
       throw new BadRequestException('workerId is required');
     }
 
-    return this.offersService.shortlistOffer(id, workerId);
+    return this.offersService.shortlistOffer(id, userId);
   }
 
   // ===========================================================================
@@ -153,14 +153,14 @@ export class OffersController {
   @UseGuards(SimpleAuthGuard)
   async counterOffer(
     @Param('id') id: string,
-    @Query('workerId') workerId: string,
+    @Query('workerId') userId: string,
     @Body() counterOfferDto: CounterOfferDto
   ) {
-    if (!workerId) {
+    if (!userId) {
       throw new BadRequestException('workerId is required');
     }
 
-    return this.offersService.counterOffer(id, workerId, counterOfferDto);
+    return this.offersService.counterOffer(id, userId, counterOfferDto);
   }
 
   // ===========================================================================
