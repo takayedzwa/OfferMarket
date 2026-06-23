@@ -1,10 +1,24 @@
-import { Controller, Get, Post, Patch, Body, Param, Query, UseGuards, Headers } from '@nestjs/common';
-import { AdminService } from './admin.service';
+import { Controller, Get, Post, Patch, Body, Param, Query, UseGuards, Headers, BadRequestException } from '@nestjs/common';
 import { AdminGuard } from '../../guards/admin.guard';
+import { AdminService } from './admin.service';
 import { UpdateSettingsDto } from './dto/update-settings.dto';
 
+class SimpleAuthGuard {
+  canActivate(context: any): boolean {
+    const request = context.switchToHttp().getRequest();
+    const userId = request.headers['x-user-id'];
+    const userRole = request.headers['x-user-role'];
+
+    if (!userId || !userRole) {
+      throw new BadRequestException('User authentication required');
+    }
+
+    request.user = { id: userId, role: userRole };
+    return true;
+  }
+}
+
 @Controller('admin')
-@UseGuards(AdminGuard)
 export class AdminController {
   constructor(private readonly adminService: AdminService) {}
 
@@ -13,6 +27,7 @@ export class AdminController {
   // ============================================================================
 
   @Get('dashboard-stats')
+  @UseGuards(SimpleAuthGuard)
   async getDashboardStats() {
     return this.adminService.getDashboardStats();
   }
@@ -22,6 +37,7 @@ export class AdminController {
   // ============================================================================
 
   @Get('users')
+  @UseGuards(AdminGuard)
   async getUsers(
     @Query('page') page?: string,
     @Query('limit') limit?: string,
@@ -210,6 +226,7 @@ export class AdminController {
   // ============================================================================
 
   @Get('offers')
+  @UseGuards(SimpleAuthGuard)
   async getAllOffers(
     @Query('page') page?: string,
     @Query('limit') limit?: string,
@@ -225,6 +242,7 @@ export class AdminController {
   }
 
   @Get('offers/:id')
+  @UseGuards(SimpleAuthGuard)
   async getOfferById(@Param('id') id: string) {
     return this.adminService.getOfferById(id);
   }

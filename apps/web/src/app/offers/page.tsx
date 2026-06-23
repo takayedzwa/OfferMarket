@@ -18,9 +18,13 @@ function OffersContent() {
   const [searchQuery, setSearchQuery] = useState("");
   const router = useRouter();
 
+  const [userRole, setUserRole] = useState<string | null>(null);
+
   useEffect(() => {
+    const role = localStorage.getItem("userRole");
+    setUserRole(role);
+
     async function loadOffers() {
-      const role = localStorage.getItem("userRole");
       const accessToken = localStorage.getItem("accessToken");
       const userId = localStorage.getItem("userId");
 
@@ -50,9 +54,24 @@ function OffersContent() {
   }, []);
 
   const filteredOffers = offers.filter((offer) => {
-    const matchesFilter =
-      filter === "all" ||
-      offer.status.toLowerCase() === filter.toLowerCase();
+    let matchesFilter = filter === "all";
+
+    if (!matchesFilter && userRole) {
+      if (userRole === "WORKER") {
+        // Worker-friendly filter mapping
+        if (filter === "submitted") {
+          matchesFilter = offer.status === "SUBMITTED" || offer.status === "VIEWED";
+        } else if (filter === "rejected") {
+          matchesFilter = offer.status === "REJECTED";
+        } else if (filter === "countered") {
+          matchesFilter = offer.status === "COUNTERED";
+        } else {
+          matchesFilter = offer.status === filter.toUpperCase();
+        }
+      } else {
+        matchesFilter = offer.status.toLowerCase() === filter.toLowerCase();
+      }
+    }
 
     const matchesSearch =
       searchQuery === "" ||
@@ -62,7 +81,30 @@ function OffersContent() {
     return matchesFilter && matchesSearch;
   });
 
-  const userRole = localStorage.getItem("userRole");
+  // Helper to get worker-friendly status labels
+  const getStatusLabel = (status: string) => {
+    if (userRole === "WORKER") {
+      if (status === "SUBMITTED" || status === "VIEWED") return "New Offer";
+      if (status === "SHORTLISTED") return "Shortlisted";
+      if (status === "ACCEPTED") return "Accepted";
+      if (status === "REJECTED") return "Declined";
+      if (status === "COUNTERED") return "Counter Offer Sent";
+      if (status === "WITHDRAWN") return "Withdrawn";
+      if (status === "EXPIRED") return "Expired";
+    }
+    return status;
+  };
+
+  const getStatusColor = (status: string) => {
+    if (status === "SUBMITTED" || status === "VIEWED") return "bg-blue-100 text-blue-700";
+    if (status === "DRAFT") return "bg-gray-100 text-gray-700";
+    if (status === "SHORTLISTED") return "bg-yellow-100 text-yellow-700";
+    if (status === "ACCEPTED") return "bg-green-100 text-green-700";
+    if (status === "REJECTED") return "bg-red-100 text-red-700";
+    if (status === "COUNTERED") return "bg-purple-100 text-purple-700";
+    if (status === "WITHDRAWN" || status === "EXPIRED") return "bg-gray-100 text-gray-700";
+    return "bg-gray-100 text-gray-700";
+  };
 
   if (loading) {
     return (
@@ -98,12 +140,28 @@ function OffersContent() {
                 className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
               >
                 <option value="all">All Offers</option>
-                <option value="draft">Draft</option>
-                <option value="submitted">Submitted</option>
-                <option value="viewed">Viewed</option>
-                <option value="shortlisted">Shortlisted</option>
-                <option value="accepted">Accepted</option>
-                <option value="rejected">Rejected</option>
+                {userRole ? (
+                  userRole === "WORKER" ? (
+                    <>
+                      <option value="submitted">New Offer</option>
+                      <option value="viewed">Viewed</option>
+                      <option value="shortlisted">Shortlisted</option>
+                      <option value="accepted">Accepted</option>
+                      <option value="rejected">Declined</option>
+                      <option value="countered">Counter Offer Sent</option>
+                    </>
+                  ) : (
+                    <>
+                      <option value="draft">Draft</option>
+                      <option value="submitted">Submitted</option>
+                      <option value="viewed">Viewed</option>
+                      <option value="shortlisted">Shortlisted</option>
+                      <option value="accepted">Accepted</option>
+                      <option value="rejected">Rejected</option>
+                      <option value="countered">Countered</option>
+                    </>
+                  )
+                ) : null}
               </select>
             </div>
           </div>
@@ -126,23 +184,9 @@ function OffersContent() {
                           {offer.jobTitle}
                         </h3>
                         <span
-                          className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            offer.status === "DRAFT"
-                              ? "bg-gray-100 text-gray-700"
-                              : offer.status === "SUBMITTED"
-                              ? "bg-blue-100 text-blue-700"
-                              : offer.status === "VIEWED"
-                              ? "bg-blue-100 text-blue-700"
-                              : offer.status === "SHORTLISTED"
-                              ? "bg-yellow-100 text-yellow-700"
-                              : offer.status === "ACCEPTED"
-                              ? "bg-green-100 text-green-700"
-                              : offer.status === "REJECTED"
-                              ? "bg-red-100 text-red-700"
-                              : "bg-gray-100 text-gray-700"
-                          }`}
+                          className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusLabel(offer.status) === offer.status ? getStatusColor(offer.status) : getStatusColor(offer.status)}`}
                         >
-                          {offer.status}
+                          {getStatusLabel(offer.status)}
                         </span>
                       </div>
 

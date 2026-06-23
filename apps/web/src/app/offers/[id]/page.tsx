@@ -20,6 +20,7 @@ import {
   User,
   Clock,
   TrendingUp,
+  Edit2,
 } from "lucide-react";
 
 export default function OfferDetailPage() {
@@ -34,10 +35,43 @@ export default function OfferDetailPage() {
 
   const userRole = typeof window !== "undefined" ? localStorage.getItem("userRole") : null;
 
+  // Helper to get worker-friendly status labels
+  const getStatusLabel = (status: string) => {
+    if (userRole === "WORKER") {
+      if (status === "SUBMITTED" || status === "VIEWED") return "New Offer";
+      if (status === "SHORTLISTED") return "Shortlisted";
+      if (status === "ACCEPTED") return "Accepted";
+      if (status === "REJECTED") return "Declined";
+      if (status === "COUNTERED") return "Counter Offer Sent";
+      if (status === "WITHDRAWN") return "Withdrawn";
+      if (status === "EXPIRED") return "Expired";
+    }
+    return status;
+  };
+
+  const getStatusColor = (status: string) => {
+    if (status === "SUBMITTED" || status === "VIEWED") return "bg-blue-100 text-blue-700";
+    if (status === "DRAFT") return "bg-gray-100 text-gray-700";
+    if (status === "SHORTLISTED") return "bg-yellow-100 text-yellow-700";
+    if (status === "ACCEPTED") return "bg-green-100 text-green-700";
+    if (status === "REJECTED") return "bg-red-100 text-red-700";
+    if (status === "COUNTERED") return "bg-purple-100 text-purple-700";
+    if (status === "WITHDRAWN" || status === "EXPIRED") return "bg-gray-100 text-gray-700";
+    return "bg-gray-100 text-gray-700";
+  };
+
   useEffect(() => {
     async function loadOffer() {
       try {
-        const response = await offersApi.getOffer(params.id as string);
+        const userId = localStorage.getItem("userId");
+        let response;
+
+        if (userRole === "EMPLOYER") {
+          response = await offersApi.getEmployerOfferDetail(params.id as string, userId!);
+        } else {
+          response = await offersApi.getOffer(params.id as string);
+        }
+
         setOffer(response.data);
       } catch (err: any) {
         setError(err.response?.data?.message || "Failed to load offer");
@@ -47,7 +81,7 @@ export default function OfferDetailPage() {
     }
 
     loadOffer();
-  }, [params.id]);
+  }, [params.id, userRole]);
 
   const handleAccept = async () => {
     if (!confirm("Are you sure you want to accept this offer?")) return;
@@ -55,9 +89,11 @@ export default function OfferDetailPage() {
     setActionLoading("accept");
     try {
       await offersApi.acceptOffer(params.id as string);
-      router.push("/dashboard/worker");
+      router.refresh();
     } catch (err: any) {
       setError(err.response?.data?.message || "Failed to accept offer");
+      // Refresh to get current status
+      setTimeout(() => router.refresh(), 2000);
     } finally {
       setActionLoading("");
     }
@@ -69,9 +105,11 @@ export default function OfferDetailPage() {
     setActionLoading("reject");
     try {
       await offersApi.rejectOffer(params.id as string);
-      router.push("/dashboard/worker");
+      router.refresh();
     } catch (err: any) {
       setError(err.response?.data?.message || "Failed to reject offer");
+      // Refresh to get current status
+      setTimeout(() => router.refresh(), 2000);
     } finally {
       setActionLoading("");
     }
@@ -122,7 +160,50 @@ export default function OfferDetailPage() {
     );
   }
 
-  const latestVersion = offer.versions?.[offer.versions.length - 1] || offer;
+  // Use currentVersion if available, otherwise fall back to versions array
+  const currentVersion = offer.currentVersion || offer.versions?.[0];
+
+  // Build a normalized view of the offer data from currentVersion
+  const offerData = {
+    ...offer,
+    compensation: currentVersion ? {
+      salary: {
+        min: currentVersion.salaryMin,
+        max: currentVersion.salaryMax,
+        currency: "EUR",
+        period: currentVersion.salaryPeriod
+      },
+      signOnBonus: currentVersion.signOnBonus,
+      performanceBonusPct: currentVersion.performanceBonusPct,
+    } : null,
+    contract: currentVersion ? {
+      type: currentVersion.contractType,
+      durationMonths: currentVersion.contractDurationMonths,
+      hoursPerWeek: currentVersion.hoursPerWeek,
+      probationMonths: currentVersion.probationMonths,
+    } : null,
+    benefits: currentVersion ? {
+      vacationDays: currentVersion.vacationDays,
+      holidayAllowancePct: currentVersion.holidayAllowancePct,
+      pensionContribution: currentVersion.pensionContributionPct,
+      trainingBudget: currentVersion.trainingBudget,
+      companyVehicle: currentVersion.companyVehicle,
+      travelAllowanceType: currentVersion.travelAllowanceType,
+      phoneProvided: currentVersion.phoneProvided,
+      laptopProvided: currentVersion.toolsProvided,
+    } : null,
+    workArrangement: currentVersion ? {
+      type: "HYBRID", // derived from remoteWorkPct
+      scheduleType: currentVersion.scheduleType,
+      remoteWorkPct: currentVersion.remoteWorkPct,
+      travelRequiredPct: currentVersion.travelRequiredPct,
+      physicalRequirements: currentVersion.physicalRequirements,
+    } : null,
+    requirements: currentVersion ? {
+      requiredCertifications: currentVersion.requiredCertifications,
+      minExperienceYears: currentVersion.requiredExperienceYears,
+    } : null,
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -139,24 +220,19 @@ export default function OfferDetailPage() {
             </button>
 
             <div className="flex items-center gap-2">
+              {userRole === "EMPLOYER" && offer.status !== "ACCEPTED" && offer.status !== "REJECTED" && offer.status !== "WITHDRAWN" && offer.status !== "EXPIRED" && (
+                <button
+                  onClick={() => router.push(`/offers/${offer.id}/edit`)}
+                  className="flex items-center gap-1 px-3 py-1 text-sm text-blue-600 hover:text-blue-800"
+                >
+                  <Edit2 className="w-4 h-4" />
+                  Edit
+                </button>
+              )}
               <span
-                className={`px-3 py-1 rounded-full text-sm font-medium ${
-                  offer.status === "DRAFT"
-                    ? "bg-gray-100 text-gray-700"
-                    : offer.status === "SUBMITTED"
-                    ? "bg-blue-100 text-blue-700"
-                    : offer.status === "VIEWED"
-                    ? "bg-blue-100 text-blue-700"
-                    : offer.status === "SHORTLISTED"
-                    ? "bg-yellow-100 text-yellow-700"
-                    : offer.status === "ACCEPTED"
-                    ? "bg-green-100 text-green-700"
-                    : offer.status === "REJECTED"
-                    ? "bg-red-100 text-red-700"
-                    : "bg-gray-100 text-gray-700"
-                }`}
+                className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusLabel(offer.status) === offer.status ? getStatusColor(offer.status) : getStatusColor(offer.status)}`}
               >
-                {offer.status}
+                {getStatusLabel(offer.status)}
               </span>
             </div>
           </div>
@@ -177,22 +253,20 @@ export default function OfferDetailPage() {
           <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600 mb-6">
             <span className="flex items-center gap-1">
               <Euro className="w-4 h-4" />
-              €{offer.compensation?.salary?.min?.toLocaleString()} - €
-              {offer.compensation?.salary?.max?.toLocaleString()}
-              {offer.compensation?.salary?.currency &&
-                ` ${offer.compensation.salary.currency}`}
+              €{offerData.compensation?.salary?.min?.toLocaleString()} - €
+              {offerData.compensation?.salary?.max?.toLocaleString()}
             </span>
             <span className="flex items-center gap-1">
               <MapPin className="w-4 h-4" />
-              {offer.workArrangement?.type === "ONSITE"
-                ? "On-site"
-                : offer.workArrangement?.type === "REMOTE"
+              {offerData.workArrangement?.remoteWorkPct === 100
                 ? "Remote"
+                : offerData.workArrangement?.remoteWorkPct === 0
+                ? "On-site"
                 : "Hybrid"}
             </span>
             <span className="flex items-center gap-1">
               <Briefcase className="w-4 h-4" />
-              {offer.contract?.type?.toLowerCase() || "permanent"}
+              {offerData.contract?.type?.toLowerCase() || "permanent"}
             </span>
             <span className="flex items-center gap-1">
               <Calendar className="w-4 h-4" />
@@ -237,24 +311,20 @@ export default function OfferDetailPage() {
               <div className="flex justify-between">
                 <span className="text-gray-600">Salary Range</span>
                 <span className="font-medium">
-                  €{offer.compensation?.salary?.min?.toLocaleString()} - €
-                  {offer.compensation?.salary?.max?.toLocaleString()}
+                  €{offerData.compensation?.salary?.min?.toLocaleString()} - €
+                  {offerData.compensation?.salary?.max?.toLocaleString()}
                 </span>
               </div>
-              {offer.compensation?.equity && (
+              {offerData.compensation?.signOnBonus && offerData.compensation.signOnBonus > 0 && (
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Equity</span>
-                  <span className="font-medium">{offer.compensation.equity}%</span>
+                  <span className="text-gray-600">Sign-on Bonus</span>
+                  <span className="font-medium">€{offerData.compensation.signOnBonus.toLocaleString()}</span>
                 </div>
               )}
-              {offer.compensation?.bonus && (
+              {offerData.compensation?.performanceBonusPct && offerData.compensation.performanceBonusPct > 0 && (
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Bonus</span>
-                  <span className="font-medium">
-                    €{offer.compensation.bonus.amount?.toLocaleString()}{" "}
-                    {offer.compensation.bonus.type &&
-                      `(${offer.compensation.bonus.type})`}
-                  </span>
+                  <span className="text-gray-600">Performance Bonus</span>
+                  <span className="font-medium">{offerData.compensation.performanceBonusPct}% of salary</span>
                 </div>
               )}
             </div>
@@ -266,40 +336,52 @@ export default function OfferDetailPage() {
               Benefits
             </h3>
             <div className="space-y-2">
-              {offer.benefits?.vacationDays && (
+              {offerData.benefits?.vacationDays && (
                 <div className="flex items-center gap-2 text-gray-700">
                   <CheckCircle className="w-4 h-4 text-green-500" />
-                  {offer.benefits.vacationDays} vacation days
+                  {offerData.benefits.vacationDays} vacation days
                 </div>
               )}
-              {offer.benefits?.pensionContribution && (
+              {offerData.benefits?.holidayAllowancePct && (
                 <div className="flex items-center gap-2 text-gray-700">
                   <CheckCircle className="w-4 h-4 text-green-500" />
-                  {offer.benefits.pensionContribution}% pension contribution
+                  {offerData.benefits.holidayAllowancePct}% holiday allowance
                 </div>
               )}
-              {offer.benefits?.healthInsurance && (
+              {offerData.benefits?.pensionContribution && (
                 <div className="flex items-center gap-2 text-gray-700">
                   <CheckCircle className="w-4 h-4 text-green-500" />
-                  Health insurance contribution
+                  {offerData.benefits.pensionContribution}% pension contribution
                 </div>
               )}
-              {offer.benefits?.travelAllowance && (
+              {offerData.benefits?.trainingBudget && offerData.benefits.trainingBudget > 0 && (
                 <div className="flex items-center gap-2 text-gray-700">
                   <CheckCircle className="w-4 h-4 text-green-500" />
-                  Travel allowance
+                  €{offerData.benefits.trainingBudget.toLocaleString()} training budget
                 </div>
               )}
-              {offer.benefits?.laptopProvided && (
+              {offerData.benefits?.companyVehicle && offerData.benefits.companyVehicle !== "not_provided" && (
+                <div className="flex items-center gap-2 text-gray-700">
+                  <CheckCircle className="w-4 h-4 text-green-500" />
+                  Company vehicle: {offerData.benefits.companyVehicle.replace("_", " ")}
+                </div>
+              )}
+              {offerData.benefits?.travelAllowanceType && offerData.benefits.travelAllowanceType !== "not_provided" && (
+                <div className="flex items-center gap-2 text-gray-700">
+                  <CheckCircle className="w-4 h-4 text-green-500" />
+                  Travel allowance: {offerData.benefits.travelAllowanceType.replace("_", " ")}
+                </div>
+              )}
+              {offerData.benefits?.phoneProvided && (
+                <div className="flex items-center gap-2 text-gray-700">
+                  <CheckCircle className="w-4 h-4 text-green-500" />
+                  Phone provided
+                </div>
+              )}
+              {offerData.benefits?.laptopProvided && (
                 <div className="flex items-center gap-2 text-gray-700">
                   <CheckCircle className="w-4 h-4 text-green-500" />
                   Laptop provided
-                </div>
-              )}
-              {offer.benefits?.educationBudget && (
-                <div className="flex items-center gap-2 text-gray-700">
-                  <CheckCircle className="w-4 h-4 text-green-500" />
-                  €{offer.benefits.educationBudget} education budget
                 </div>
               )}
             </div>
@@ -316,73 +398,60 @@ export default function OfferDetailPage() {
             <div>
               <span className="text-sm text-gray-500">Type</span>
               <p className="font-medium capitalize">
-                {offer.workArrangement?.type?.toLowerCase() || "Not specified"}
+                {offerData.workArrangement?.remoteWorkPct === 100
+                  ? "Remote"
+                  : offerData.workArrangement?.remoteWorkPct === 0
+                  ? "On-site"
+                  : "Hybrid"}
               </p>
             </div>
-            {offer.workArrangement?.officeLocation && (
+            <div>
+              <span className="text-sm text-gray-500">Remote Work</span>
+              <p className="font-medium">{offerData.workArrangement?.remoteWorkPct || 0}% ({offerData.workArrangement?.remoteWorkPct ? Math.round(offerData.workArrangement.remoteWorkPct / 20) : 0} days/week)</p>
+            </div>
+            <div>
+              <span className="text-sm text-gray-500">Schedule</span>
+              <p className="font-medium">{offerData.workArrangement?.scheduleType?.join(", ") || "Daytime"}</p>
+            </div>
+            <div>
+              <span className="text-sm text-gray-500">Travel Required</span>
+              <p className="font-medium">{offerData.workArrangement?.travelRequiredPct ? `${offerData.workArrangement.travelRequiredPct}%` : "Not specified"}</p>
+            </div>
+            {offerData.workArrangement?.physicalRequirements && offerData.workArrangement.physicalRequirements !== "None" && (
               <div>
-                <span className="text-sm text-gray-500">Office Location</span>
-                <p className="font-medium">{offer.workArrangement.officeLocation}</p>
-              </div>
-            )}
-            {offer.workArrangement?.remoteDaysPerWeek !== undefined && (
-              <div>
-                <span className="text-sm text-gray-500">Remote Days</span>
-                <p className="font-medium">{offer.workArrangement.remoteDaysPerWeek} days/week</p>
-              </div>
-            )}
-            {offer.workArrangement?.relocationAssistance && (
-              <div>
-                <span className="text-sm text-gray-500">Relocation</span>
-                <p className="font-medium text-green-600">Assistance provided</p>
+                <span className="text-sm text-gray-500">Physical Requirements</span>
+                <p className="font-medium">{offerData.workArrangement.physicalRequirements}</p>
               </div>
             )}
           </div>
         </div>
 
         {/* Requirements */}
-        {offer.requirements && (offer.requirements.skills?.length || offer.requirements.minExperienceYears) && (
+        {offerData.requirements && (offerData.requirements.requiredCertifications?.length || offerData.requirements.minExperienceYears) && (
           <div className="bg-white rounded-xl border shadow-sm p-6 mb-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
               <CheckCircle className="w-5 h-5" />
               Requirements
             </h3>
             <div className="space-y-4">
-              {offer.requirements.minExperienceYears && (
+              {offerData.requirements.minExperienceYears && offerData.requirements.minExperienceYears > 0 && (
                 <div>
                   <span className="text-sm text-gray-500">Minimum Experience</span>
                   <p className="font-medium">
-                    {offer.requirements.minExperienceYears}+ years
+                    {offerData.requirements.minExperienceYears}+ years
                   </p>
                 </div>
               )}
-              {offer.requirements.skills?.some((s) => s.required) && (
+              {offerData.requirements.requiredCertifications && offerData.requirements.requiredCertifications.length > 0 && (
                 <div>
-                  <span className="text-sm text-gray-500">Required Skills</span>
+                  <span className="text-sm text-gray-500">Required Certifications</span>
                   <div className="flex flex-wrap gap-2 mt-2">
-                    {offer.requirements.skills
-                      .filter((s) => s.required)
-                      .map((skill, i) => (
-                        <span
-                          key={i}
-                          className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm"
-                        >
-                          {skill.skill}
-                        </span>
-                      ))}
-                  </div>
-                </div>
-              )}
-              {offer.requirements.preferredSkills && (
-                <div>
-                  <span className="text-sm text-gray-500">Preferred Skills</span>
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {offer.requirements.preferredSkills.map((skill, i) => (
+                    {offerData.requirements.requiredCertifications.map((cert: string, i: number) => (
                       <span
                         key={i}
-                        className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm"
+                        className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm"
                       >
-                        {skill.skill}
+                        {cert}
                       </span>
                     ))}
                   </div>
@@ -393,7 +462,7 @@ export default function OfferDetailPage() {
         )}
 
         {/* Action Buttons for Worker */}
-        {userRole === "WORKER" && offer.status === "SUBMITTED" && (
+        {userRole === "WORKER" && (offer.status === "SUBMITTED" || offer.status === "VIEWED") && (
           <div className="bg-white rounded-xl border shadow-sm p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Your Response</h3>
             <div className="flex flex-wrap gap-3">
@@ -484,8 +553,9 @@ function CounterOfferModal({
   onCancel: () => void;
   loading: boolean;
 }) {
-  const [salaryMin, setSalaryMin] = useState(offer.compensation?.salary?.min || 60000);
-  const [salaryMax, setSalaryMax] = useState(offer.compensation?.salary?.max || 80000);
+  const currentVersion = offer.currentVersion || offer.versions?.[0];
+  const [salaryMin, setSalaryMin] = useState(currentVersion?.salaryMin || 60000);
+  const [salaryMax, setSalaryMax] = useState(currentVersion?.salaryMax || 80000);
   const [message, setMessage] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -495,7 +565,7 @@ function CounterOfferModal({
         salary: {
           min: salaryMin,
           max: salaryMax,
-          currency: offer.compensation?.salary?.currency || "EUR",
+          currency: "EUR",
         },
       },
       message: message || undefined,
@@ -513,8 +583,8 @@ function CounterOfferModal({
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
             Current offer: €
-            {offer.compensation?.salary?.min?.toLocaleString()} - €
-            {offer.compensation?.salary?.max?.toLocaleString()}
+            {currentVersion?.salaryMin?.toLocaleString()} - €
+            {currentVersion?.salaryMax?.toLocaleString()}
           </div>
 
           <div className="grid grid-cols-2 gap-4">

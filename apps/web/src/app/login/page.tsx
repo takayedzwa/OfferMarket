@@ -26,37 +26,18 @@ export default function LoginPage() {
       localStorage.setItem("userId", user.id);
       localStorage.setItem("userRole", user.role);
 
-      // Redirect based on role, checking for profile existence
+      // Redirect based on role - profile check happens on the dashboard
+      // Use window.location.href for a full page reload to ensure AuthContext re-initializes
       if (user.role === "ADMIN") {
-        router.push("/admin");
+        window.location.href = "/admin";
       } else if (user.role === "SUPPORT") {
-        router.push("/support");
+        window.location.href = "/support";
       } else if (user.role === "WORKER") {
-        try {
-          await workersApi.getMyProfile();
-          router.push("/dashboard/worker");
-        } catch (profileErr: any) {
-          if (profileErr.response?.status === 404) {
-            // No profile exists, redirect to setup
-            router.push("/profile/setup");
-          } else {
-            router.push("/dashboard/worker");
-          }
-        }
+        window.location.href = "/dashboard/worker";
       } else if (user.role === "EMPLOYER") {
-        try {
-          await employersApi.getMyProfile();
-          router.push("/dashboard/employer");
-        } catch (profileErr: any) {
-          if (profileErr.response?.status === 404) {
-            // No employer profile exists, redirect to setup
-            router.push("/profile/setup-employer");
-          } else {
-            router.push("/dashboard/employer");
-          }
-        }
+        window.location.href = "/dashboard/employer";
       } else {
-        router.push("/");
+        window.location.href = "/";
       }
     } catch (err: any) {
       setError(err.response?.data?.message || "Failed to login. Please try again.");

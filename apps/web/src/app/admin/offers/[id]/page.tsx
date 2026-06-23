@@ -4,39 +4,56 @@ import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, Briefcase, Building2, MapPin, DollarSign, Clock, Calendar, CheckCircle, XCircle, Globe, Users, Mail, Phone } from "lucide-react";
 
+interface OfferVersion {
+  id: string;
+  salaryMin: number;
+  salaryMax: number;
+  salaryPeriod: string;
+  contractType: string;
+  contractDurationMonths?: number;
+  hoursPerWeek: number;
+  probationMonths: number;
+  vacationDays: number;
+  holidayAllowancePct: number;
+  pensionContributionPct: number;
+  trainingBudget: number;
+  companyVehicle: string;
+  travelAllowanceType: string;
+  phoneProvided: boolean;
+  toolsProvided: boolean;
+  scheduleType: string[];
+  remoteWorkPct: number;
+  travelRequiredPct: number;
+  physicalRequirements: string;
+  requiredCertifications: string[];
+  requiredExperienceYears: number;
+}
+
 interface Offer {
   id: string;
-  title: string;
-  description?: string;
-  requirements?: string[];
-  benefits?: string[];
+  publicId: string;
+  jobTitle: string;
+  jobDescription: string;
   status: string;
-  location?: string;
-  minSalary?: number;
-  maxSalary?: number;
-  employmentTypes?: string[];
-  workSchedules?: string[];
-  industries?: string[];
-  experienceLevel?: string;
-  educationLevel?: string;
-  remoteOption?: string;
-  travelRequirement?: string;
   createdAt: string;
-  expiresAt?: string;
+  expiresAt: string;
+  currentVersion: OfferVersion | null;
   employer: {
     id: string;
     companyName: string;
     companyTradeName?: string;
     kvkNumber?: string;
     website?: string;
-    phone?: string;
-    billingEmail?: string;
     user: {
       email: string;
       phoneNumber?: string;
     };
   };
-  applications?: any[];
+  worker?: {
+    id: string;
+    publicId: string;
+    primaryTrade?: string;
+  };
 }
 
 export default function AdminOfferDetailPage() {
@@ -88,21 +105,40 @@ export default function AdminOfferDetailPage() {
 
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
-      ACTIVE: 'bg-green-100 text-green-800',
+      SUBMITTED: 'bg-blue-100 text-blue-800',
       DRAFT: 'bg-gray-100 text-gray-800',
       EXPIRED: 'bg-red-100 text-red-800',
-      PAUSED: 'bg-yellow-100 text-yellow-800',
-      FILLED: 'bg-blue-100 text-blue-800',
-      DELETED: 'bg-gray-100 text-gray-400',
+      VIEWED: 'bg-blue-100 text-blue-800',
+      SHORTLISTED: 'bg-yellow-100 text-yellow-800',
+      ACCEPTED: 'bg-green-100 text-green-800',
+      REJECTED: 'bg-red-100 text-red-800',
+      COUNTERED: 'bg-purple-100 text-purple-800',
     };
     return colors[status] || 'bg-gray-100 text-gray-800';
   };
 
-  const formatSalary = (min?: number, max?: number) => {
+  const formatSalary = (min?: number, max?: number, period?: string) => {
     if (!min && !max) return 'Not specified';
-    if (min && max) return `€${min.toLocaleString()} - €${max.toLocaleString()}`;
-    if (min) return `From €${min.toLocaleString()}`;
-    return `Up to €${max?.toLocaleString()}`;
+    const salary = min && max ? `€${min.toLocaleString()} - €${max.toLocaleString()}` : min ? `From €${min.toLocaleString()}` : `Up to €${max?.toLocaleString()}`;
+    return `${salary}${period ? `/${period}` : ''}`;
+  };
+
+  const getWorkArrangementType = (remoteWorkPct?: number) => {
+    if (remoteWorkPct === undefined || remoteWorkPct === null) return 'Not specified';
+    if (remoteWorkPct === 100) return 'Remote';
+    if (remoteWorkPct === 0) return 'On-site';
+    return `Hybrid (${remoteWorkPct}% remote)`;
+  };
+
+  const getContractTypeName = (type: string) => {
+    const names: Record<string, string> = {
+      permanent: 'Permanent',
+      fixed_term: 'Fixed Term',
+      freelance: 'Freelance',
+      contract: 'Contract',
+      part_time: 'Part-time',
+    };
+    return names[type] || type;
   };
 
   if (loading) {
@@ -163,7 +199,7 @@ export default function AdminOfferDetailPage() {
                 <ArrowLeft className="w-5 h-5 text-gray-600" />
               </button>
               <div>
-                <h1 className="text-lg font-semibold text-gray-900">{offer.title}</h1>
+                <h1 className="text-lg font-semibold text-gray-900">{offer.jobTitle}</h1>
                 <p className="text-sm text-gray-500">{offer.employer?.companyName || 'Unknown Employer'}</p>
               </div>
             </div>
@@ -185,46 +221,46 @@ export default function AdminOfferDetailPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="text-sm text-gray-500">Employment Type</label>
-                    <p className="font-medium text-gray-900">{offer.employmentTypes?.join(', ') || 'Not specified'}</p>
+                    <p className="font-medium text-gray-900">{getContractTypeName(offer.currentVersion?.contractType || 'Not specified')}</p>
                   </div>
                   <div>
                     <label className="text-sm text-gray-500">Work Schedule</label>
-                    <p className="font-medium text-gray-900">{offer.workSchedules?.join(', ') || 'Not specified'}</p>
+                    <p className="font-medium text-gray-900">{offer.currentVersion?.scheduleType?.join(', ') || 'Not specified'}</p>
                   </div>
                   <div>
-                    <label className="text-sm text-gray-500">Experience Level</label>
-                    <p className="font-medium text-gray-900">{offer.experienceLevel || 'Not specified'}</p>
+                    <label className="text-sm text-gray-500">Experience Required</label>
+                    <p className="font-medium text-gray-900">{offer.currentVersion?.requiredExperienceYears ? `${offer.currentVersion.requiredExperienceYears}+ years` : 'Not specified'}</p>
                   </div>
                   <div>
-                    <label className="text-sm text-gray-500">Education Level</label>
-                    <p className="font-medium text-gray-900">{offer.educationLevel || 'Not specified'}</p>
+                    <label className="text-sm text-gray-500">Hours/Week</label>
+                    <p className="font-medium text-gray-900">{offer.currentVersion?.hoursPerWeek || 'Not specified'}</p>
                   </div>
                   <div>
-                    <label className="text-sm text-gray-500">Remote Option</label>
-                    <p className="font-medium text-gray-900">{offer.remoteOption || 'Not specified'}</p>
+                    <label className="text-sm text-gray-500">Remote Work</label>
+                    <p className="font-medium text-gray-900">{getWorkArrangementType(offer.currentVersion?.remoteWorkPct)}</p>
                   </div>
                   <div>
                     <label className="text-sm text-gray-500">Travel Required</label>
-                    <p className="font-medium text-gray-900">{offer.travelRequirement || 'Not specified'}</p>
+                    <p className="font-medium text-gray-900">{offer.currentVersion?.travelRequiredPct ? `${offer.currentVersion.travelRequiredPct}%` : 'Not specified'}</p>
                   </div>
                 </div>
               </div>
             </div>
 
             {/* Description */}
-            {offer.description && (
+            {offer.jobDescription && (
               <div className="bg-white rounded-xl border shadow-sm p-6">
                 <h2 className="text-lg font-semibold text-gray-900 mb-4">Description</h2>
-                <p className="text-gray-700 whitespace-pre-wrap">{offer.description}</p>
+                <p className="text-gray-700 whitespace-pre-wrap">{offer.jobDescription}</p>
               </div>
             )}
 
             {/* Requirements */}
-            {offer.requirements && offer.requirements.length > 0 && (
+            {offer.currentVersion?.requiredCertifications && offer.currentVersion.requiredCertifications.length > 0 && (
               <div className="bg-white rounded-xl border shadow-sm p-6">
                 <h2 className="text-lg font-semibold text-gray-900 mb-4">Requirements</h2>
                 <ul className="list-disc list-inside space-y-2 text-gray-700">
-                  {offer.requirements.map((req, i) => (
+                  {offer.currentVersion.requiredCertifications.map((req, i) => (
                     <li key={i}>{req}</li>
                   ))}
                 </ul>
@@ -232,13 +268,34 @@ export default function AdminOfferDetailPage() {
             )}
 
             {/* Benefits */}
-            {offer.benefits && offer.benefits.length > 0 && (
+            {offer.currentVersion && (
               <div className="bg-white rounded-xl border shadow-sm p-6">
                 <h2 className="text-lg font-semibold text-gray-900 mb-4">Benefits</h2>
                 <ul className="list-disc list-inside space-y-2 text-gray-700">
-                  {offer.benefits.map((benefit, i) => (
-                    <li key={i}>{benefit}</li>
-                  ))}
+                  {offer.currentVersion.vacationDays && (
+                    <li>{offer.currentVersion.vacationDays} vacation days</li>
+                  )}
+                  {offer.currentVersion.holidayAllowancePct && (
+                    <li>{offer.currentVersion.holidayAllowancePct}% holiday allowance</li>
+                  )}
+                  {offer.currentVersion.pensionContributionPct && (
+                    <li>{offer.currentVersion.pensionContributionPct}% pension contribution</li>
+                  )}
+                  {offer.currentVersion.trainingBudget && offer.currentVersion.trainingBudget > 0 && (
+                    <li>€{offer.currentVersion.trainingBudget.toLocaleString()} training budget</li>
+                  )}
+                  {offer.currentVersion.phoneProvided && (
+                    <li>Phone provided</li>
+                  )}
+                  {offer.currentVersion.toolsProvided && (
+                    <li>Laptop/tools provided</li>
+                  )}
+                  {offer.currentVersion.companyVehicle !== 'not_provided' && (
+                    <li>Company vehicle: {offer.currentVersion.companyVehicle.replace('_', ' ')}</li>
+                  )}
+                  {offer.currentVersion.travelAllowanceType !== 'not_provided' && (
+                    <li>Travel allowance: {offer.currentVersion.travelAllowanceType.replace('_', ' ')}</li>
+                  )}
                 </ul>
               </div>
             )}
@@ -248,24 +305,63 @@ export default function AdminOfferDetailPage() {
           <div className="space-y-6">
             {/* Salary & Location */}
             <div className="bg-white rounded-xl border shadow-sm p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Salary & Location</h2>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Salary & Work Arrangement</h2>
               <div className="space-y-4">
                 <div>
                   <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
                     <DollarSign className="w-4 h-4" />
                     Salary Range
                   </div>
-                  <p className="font-medium text-gray-900">{formatSalary(offer.minSalary, offer.maxSalary)}</p>
+                  <p className="font-medium text-gray-900">{formatSalary(offer.currentVersion?.salaryMin, offer.currentVersion?.salaryMax, offer.currentVersion?.salaryPeriod)}</p>
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
+                    <Briefcase className="w-4 h-4" />
+                    Contract Type
+                  </div>
+                  <p className="font-medium text-gray-900">{getContractTypeName(offer.currentVersion?.contractType || 'Not specified')}</p>
                 </div>
                 <div>
                   <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
                     <MapPin className="w-4 h-4" />
-                    Location
+                    Work Arrangement
                   </div>
-                  <p className="font-medium text-gray-900">{offer.location || 'Not specified'}</p>
+                  <p className="font-medium text-gray-900">{getWorkArrangementType(offer.currentVersion?.remoteWorkPct)}</p>
                 </div>
+                {offer.currentVersion?.probationMonths && (
+                  <div>
+                    <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
+                      <Clock className="w-4 h-4" />
+                      Probation Period
+                    </div>
+                    <p className="font-medium text-gray-900">{offer.currentVersion.probationMonths} months</p>
+                  </div>
+                )}
               </div>
             </div>
+
+            {/* Worker Info */}
+            {offer.worker && (
+              <div className="bg-white rounded-xl border shadow-sm p-6">
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">Worker</h2>
+                <div className="space-y-3">
+                  <div>
+                    <p className="font-medium text-gray-900">{offer.worker.publicId}</p>
+                    {offer.worker.primaryTrade && (
+                      <p className="text-sm text-gray-500">{offer.worker.primaryTrade}</p>
+                    )}
+                  </div>
+                  {offer.worker && (
+                    <button
+                      onClick={() => router.push(`/admin/workers/${offer.worker!.id}`)}
+                      className="w-full mt-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 text-sm font-medium"
+                    >
+                      View Worker Details
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Dates */}
             <div className="bg-white rounded-xl border shadow-sm p-6">
@@ -334,21 +430,9 @@ export default function AdminOfferDetailPage() {
             <div className="bg-white rounded-xl border shadow-sm p-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Actions</h2>
               <div className="space-y-2">
-                {offer.status === 'ACTIVE' && (
-                  <button className="w-full px-4 py-2 bg-yellow-50 text-yellow-600 rounded-lg hover:bg-yellow-100 text-sm font-medium flex items-center gap-2">
-                    <Clock className="w-4 h-4" />
-                    Pause Offer
-                  </button>
-                )}
-                {offer.status === 'PAUSED' && (
-                  <button className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4" />
-                    Reactivate Offer
-                  </button>
-                )}
-                <button className="w-full px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 text-sm font-medium flex items-center gap-2">
-                  <XCircle className="w-4 h-4" />
-                  Delete Offer
+                <button className="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 text-sm font-medium flex items-center gap-2">
+                  <Briefcase className="w-4 h-4" />
+                  View Full Details
                 </button>
               </div>
             </div>

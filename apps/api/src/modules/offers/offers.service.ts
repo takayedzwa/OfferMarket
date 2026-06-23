@@ -149,7 +149,18 @@ export class OffersService {
         }
       });
 
-      // 8. Update employer's offer count
+      // 8. Set currentVersionId to the newly created version
+      const updatedOffer = await tx.offer.update({
+        where: { id: offer.id },
+        data: { currentVersionId: offer.versions[0].id },
+        include: {
+          currentVersion: true,
+          versions: true,
+          employer: true
+        }
+      });
+
+      // 9. Update employer's offer count
       await tx.employer.update({
         where: { id: employer.id },
         data: {
@@ -157,7 +168,7 @@ export class OffersService {
         }
       });
 
-      // 9. Create notification for worker
+      // 10. Create notification for worker
       await tx.notification.create({
         data: {
           userId: worker.userId,
@@ -171,7 +182,7 @@ export class OffersService {
         }
       });
 
-      return offer;
+      return updatedOffer;
     });
   }
 
@@ -184,7 +195,16 @@ export class OffersService {
    *
    * CRITICAL: Employer identity is visible, but worker's identity remains hidden
    */
-  async getOfferForWorker(offerId: string, workerId: string) {
+  async getOfferForWorker(offerId: string, userId: string) {
+    // First, find the Worker record by userId
+    const worker = await this.prisma.worker.findUnique({
+      where: { userId }
+    });
+
+    if (!worker) {
+      throw new NotFoundException('Worker profile not found');
+    }
+
     const offer = await this.prisma.offer.findUnique({
       where: { id: offerId },
       include: {
@@ -205,7 +225,7 @@ export class OffersService {
     }
 
     // Verify this offer belongs to the worker
-    if (offer.workerId !== workerId) {
+    if (offer.workerId !== worker.id) {
       throw new ForbiddenException('Not authorized to view this offer');
     }
 
@@ -218,6 +238,244 @@ export class OffersService {
     }
 
     return offer;
+  }
+
+  async getOfferForEmployer(offerId: string, userId: string) {
+    // First, find the Employer record by userId
+    const employer = await this.prisma.employer.findUnique({
+      where: { userId }
+    });
+
+    if (!employer) {
+      throw new NotFoundException('Employer not found');
+    }
+
+    const offer = await this.prisma.offer.findUnique({
+      where: { id: offerId },
+      include: {
+        worker: true,
+        currentVersion: true,
+        versions: {
+          orderBy: { version: 'desc' }
+        }
+      }
+    });
+
+    if (!offer) {
+      throw new NotFoundException('Offer not found');
+    }
+
+    // Verify this offer belongs to the employer
+    if (offer.employerId !== employer.id) {
+      throw new ForbiddenException('Not authorized to view this offer');
+    }
+
+    return offer;
+  }
+
+  // ============================================================================
+  // UPDATE OFFER (Employer)
+  // ============================================================================
+
+  /**
+   * Update an offer - creates a new version
+   *
+   * Only allowed for offers in DRAFT or SUBMITTED status
+   */
+  async updateOffer(offerId: string, userId: string, updateOfferDto: any) {
+    return this.prisma.$transaction(async (tx) => {
+      // 1. Find employer by userId
+      const employer = await tx.employer.findUnique({
+        where: { userId }
+      });
+
+      if (!employer) {
+        throw new NotFoundException('Employer not found');
+      }
+
+      // 2. Get the offer
+      const offer = await tx.offer.findUnique({
+        where: { id: offerId },
+        include: { currentVersion: true }
+      });
+
+      if (!offer) {
+        throw new NotFoundException('Offer not found');
+      }
+
+      // 3. Verify ownership
+      if (offer.employerId !== employer.id) {
+        throw new ForbiddenException('Not authorized to update this offer');
+      }
+
+      // 4. Check if offer can be updated
+      if (offer.status === 'ACCEPTED' || offer.status === 'REJECTED' || offer.status === 'WITHDRAWN') {
+        throw new BadRequestException(`Cannot update offer in ${offer.status} status`);
+      }
+
+      // 5. Get next version number
+      const versions = await tx.offerVersion.findMany({
+        where: { offerId },
+        select: { version: true },
+        orderBy: { version: 'desc' },
+        take: 1
+      });
+      const nextVersion = (versions[0]?.version || 0) + 1;
+
+      // 6. Update offer basic fields if provided
+      await tx.offer.update({
+        where: { id: offerId },
+        data: {
+          jobTitle: updateOfferDto.jobTitle ?? offer.jobTitle,
+          jobDescription: updateOfferDto.jobDescription ?? offer.jobDescription,
+          department: updateOfferDto.department ?? offer.department,
+        }
+      });
+
+      // 7. Create new version with updated data
+      const newVersion = await tx.offerVersion.create({
+        data: {
+          offerId,
+          version: nextVersion,
+          // COMPENSATION
+          salaryMin: updateOfferDto.compensation?.salaryMin ?? offer.currentVersion?.salaryMin,
+          salaryMax: updateOfferDto.compensation?.salaryMax ?? offer.currentVersion?.salaryMax,
+          salaryPeriod: updateOfferDto.compensation?.salaryPeriod ?? offer.currentVersion?.salaryPeriod,
+          hourlyRate: updateOfferDto.compensation?.hourlyRate ?? offer.currentVersion?.hourlyRate,
+          signOnBonus: updateOfferDto.compensation?.signOnBonus ?? offer.currentVersion?.signOnBonus,
+          performanceBonusPct: updateOfferDto.compensation?.performanceBonusPct ?? offer.currentVersion?.performanceBonusPct,
+          overtimeRate: updateOfferDto.compensation?.overtimeRate ?? offer.currentVersion?.overtimeRate,
+          weekendRate: updateOfferDto.compensation?.weekendRate ?? offer.currentVersion?.weekendRate,
+          // CONTRACT
+          contractType: updateOfferDto.contract?.type ?? offer.currentVersion?.contractType,
+          contractDurationMonths: updateOfferDto.contract?.durationMonths ?? offer.currentVersion?.contractDurationMonths,
+          hoursPerWeek: updateOfferDto.contract?.hoursPerWeek ?? offer.currentVersion?.hoursPerWeek,
+          startDateType: updateOfferDto.contract?.startDateType ?? offer.currentVersion?.startDateType,
+          startDate: updateOfferDto.contract?.startDate ?? offer.currentVersion?.startDate,
+          probationMonths: updateOfferDto.contract?.probationMonths ?? offer.currentVersion?.probationMonths,
+          // BENEFITS
+          vacationDays: updateOfferDto.benefits?.vacationDays ?? offer.currentVersion?.vacationDays,
+          holidayAllowancePct: updateOfferDto.benefits?.holidayAllowancePct ?? offer.currentVersion?.holidayAllowancePct,
+          pensionContributionPct: updateOfferDto.benefits?.pensionContributionPct ?? offer.currentVersion?.pensionContributionPct,
+          trainingBudget: updateOfferDto.benefits?.trainingBudget ?? offer.currentVersion?.trainingBudget,
+          companyVehicle: updateOfferDto.benefits?.companyVehicle ?? offer.currentVersion?.companyVehicle,
+          vehicleType: updateOfferDto.benefits?.vehicleType ?? offer.currentVersion?.vehicleType,
+          vehicleValueEst: updateOfferDto.benefits?.vehicleValueEst ?? offer.currentVersion?.vehicleValueEst,
+          travelAllowanceType: updateOfferDto.benefits?.travelAllowanceType ?? offer.currentVersion?.travelAllowanceType,
+          travelAllowanceValue: updateOfferDto.benefits?.travelAllowanceValue ?? offer.currentVersion?.travelAllowanceValue,
+          phoneProvided: updateOfferDto.benefits?.phoneProvided ?? offer.currentVersion?.phoneProvided,
+          toolsProvided: updateOfferDto.benefits?.toolsProvided ?? offer.currentVersion?.toolsProvided,
+          // WORK ARRANGEMENT
+          scheduleType: updateOfferDto.workArrangement?.scheduleType ?? offer.currentVersion?.scheduleType,
+          onCallDetails: updateOfferDto.workArrangement?.onCallDetails ?? offer.currentVersion?.onCallDetails,
+          remoteWorkPct: updateOfferDto.workArrangement?.remoteWorkPct ?? offer.currentVersion?.remoteWorkPct,
+          travelRequiredPct: updateOfferDto.workArrangement?.travelRequiredPct ?? offer.currentVersion?.travelRequiredPct,
+          travelRegion: updateOfferDto.workArrangement?.travelRegion ?? offer.currentVersion?.travelRegion,
+          physicalRequirements: updateOfferDto.workArrangement?.physicalRequirements ?? offer.currentVersion?.physicalRequirements,
+          // REQUIREMENTS
+          requiredCertifications: updateOfferDto.requirements?.requiredCertifications ?? offer.currentVersion?.requiredCertifications,
+          requiredExperienceYears: updateOfferDto.requirements?.requiredExperienceYears ?? offer.currentVersion?.requiredExperienceYears,
+        }
+      });
+
+      // 8. Update currentVersionId
+      await tx.offer.update({
+        where: { id: offerId },
+        data: { currentVersionId: newVersion.id }
+      });
+
+      // 9. Return updated offer
+      return tx.offer.findUnique({
+        where: { id: offerId },
+        include: {
+          currentVersion: true,
+          versions: { orderBy: { version: 'desc' } },
+          worker: true
+        }
+      });
+    });
+  }
+
+  // ============================================================================
+  // SUBMIT OFFER (Employer)
+  // ============================================================================
+
+  /**
+   * Submit a DRAFT offer to the worker
+   */
+  async submitOffer(offerId: string, userId: string) {
+    return this.prisma.$transaction(async (tx) => {
+      // 1. Find employer by userId
+      const employer = await tx.employer.findUnique({
+        where: { userId },
+        include: { user: true }
+      });
+
+      if (!employer) {
+        throw new NotFoundException('Employer not found');
+      }
+
+      // 2. Get the offer
+      const offer = await tx.offer.findUnique({
+        where: { id: offerId },
+        include: {
+          currentVersion: true,
+          worker: { include: { user: true } }
+        }
+      });
+
+      if (!offer) {
+        throw new NotFoundException('Offer not found');
+      }
+
+      // 3. Verify ownership
+      if (offer.employerId !== employer.id) {
+        throw new ForbiddenException('Not authorized to submit this offer');
+      }
+
+      // 4. Check if offer can be submitted (must be DRAFT)
+      if (offer.status !== 'DRAFT') {
+        throw new BadRequestException(`Cannot submit offer in ${offer.status} status`);
+      }
+
+      if (!offer.currentVersion) {
+        throw new BadRequestException('Offer has no version to submit');
+      }
+
+      // 5. Update offer status to SUBMITTED
+      await tx.offer.update({
+        where: { id: offerId },
+        data: {
+          status: 'SUBMITTED',
+          submittedAt: new Date()
+        }
+      });
+
+      // 6. Create notification for worker
+      await tx.notification.create({
+        data: {
+          userId: offer.worker.userId,
+          notificationType: 'offer_received',
+          category: 'offer',
+          title: 'New offer received!',
+          body: `${employer.companyName || employer.companyTradeName || 'An employer'} has sent you an offer for ${offer.jobTitle}`,
+          actionUrl: `/offers/${offer.id}`,
+          channelEmail: true,
+          channelPush: true
+        }
+      });
+
+      // 7. Return updated offer
+      return tx.offer.findUnique({
+        where: { id: offerId },
+        include: {
+          currentVersion: true,
+          versions: { orderBy: { version: 'desc' } },
+          worker: true,
+          employer: true
+        }
+      });
+    });
   }
 
   // ============================================================================
@@ -233,9 +491,18 @@ export class OffersService {
    * - Invoice is generated
    * - This is a terminal state
    */
-  async acceptOffer(offerId: string, workerId: string) {
+  async acceptOffer(offerId: string, userId: string) {
     return this.prisma.$transaction(async (tx) => {
-      // 1. Get offer with all relations
+      // 1. Look up Worker by userId
+      const worker = await tx.worker.findUnique({
+        where: { userId }
+      });
+
+      if (!worker) {
+        throw new NotFoundException('Worker not found');
+      }
+
+      // 2. Get offer with all relations
       const offer = await tx.offer.findUnique({
         where: { id: offerId },
         include: {
@@ -257,8 +524,8 @@ export class OffersService {
         throw new NotFoundException('Offer not found');
       }
 
-      // 2. Verify worker ownership
-      if (offer.workerId !== workerId) {
+      // 3. Verify worker ownership
+      if (offer.workerId !== worker.id) {
         throw new UnauthorizedException('Not authorized to accept this offer');
       }
 
@@ -361,7 +628,16 @@ export class OffersService {
   // REJECT OFFER
   // ============================================================================
 
-  async rejectOffer(offerId: string, workerId: string, reason?: string, feedback?: string) {
+  async rejectOffer(offerId: string, userId: string, reason?: string, feedback?: string) {
+    // Look up Worker by userId
+    const worker = await this.prisma.worker.findUnique({
+      where: { userId }
+    });
+
+    if (!worker) {
+      throw new NotFoundException('Worker not found');
+    }
+
     const offer = await this.prisma.offer.findUnique({
       where: { id: offerId }
     });
@@ -370,7 +646,7 @@ export class OffersService {
       throw new NotFoundException('Offer not found');
     }
 
-    if (offer.workerId !== workerId) {
+    if (offer.workerId !== worker.id) {
       throw new UnauthorizedException('Not authorized');
     }
 
@@ -414,7 +690,16 @@ export class OffersService {
   // SHORTLIST OFFER
   // ============================================================================
 
-  async shortlistOffer(offerId: string, workerId: string) {
+  async shortlistOffer(offerId: string, userId: string) {
+    // Look up Worker by userId
+    const worker = await this.prisma.worker.findUnique({
+      where: { userId }
+    });
+
+    if (!worker) {
+      throw new NotFoundException('Worker not found');
+    }
+
     const offer = await this.prisma.offer.findUnique({
       where: { id: offerId }
     });
@@ -423,7 +708,7 @@ export class OffersService {
       throw new NotFoundException('Offer not found');
     }
 
-    if (offer.workerId !== workerId) {
+    if (offer.workerId !== worker.id) {
       throw new UnauthorizedException('Not authorized');
     }
 
@@ -442,8 +727,17 @@ export class OffersService {
   // COUNTER OFFER
   // ============================================================================
 
-  async counterOffer(offerId: string, workerId: string, counterOfferDto: CounterOfferDto) {
+  async counterOffer(offerId: string, userId: string, counterOfferDto: CounterOfferDto) {
     return this.prisma.$transaction(async (tx) => {
+      // Look up Worker by userId
+      const worker = await tx.worker.findUnique({
+        where: { userId }
+      });
+
+      if (!worker) {
+        throw new NotFoundException('Worker not found');
+      }
+
       const offer = await tx.offer.findUnique({
         where: { id: offerId },
         include: { currentVersion: true }
@@ -453,7 +747,7 @@ export class OffersService {
         throw new NotFoundException('Offer not found');
       }
 
-      if (offer.workerId !== workerId) {
+      if (offer.workerId !== worker.id) {
         throw new UnauthorizedException('Not authorized');
       }
 
@@ -471,57 +765,66 @@ export class OffersService {
       });
 
       // Create new draft offer for employer to review
+      const publicId = await this.generateOfferPublicId(tx);
       const counterOffer = await tx.offer.create({
         data: {
-          publicId: await this.generateOfferPublicId(tx),
-          workerId,
+          publicId,
+          workerId: worker.id,
           employerId: offer.employerId,
           jobTitle: offer.jobTitle,
           department: offer.department,
           jobDescription: offer.jobDescription,
           status: 'DRAFT',
-          expiresAt: offer.expiresAt,
-          versions: {
-            create: {
-              version: offer.currentVersion.version + 1,
-              // Apply counter values
-              salaryMin: counterOfferDto.salaryMin || offer.currentVersion.salaryMin,
-              salaryMax: counterOfferDto.salaryMax || offer.currentVersion.salaryMax,
-              signOnBonus: counterOfferDto.signOnBonus ?? offer.currentVersion.signOnBonus,
-              vacationDays: counterOfferDto.vacationDays || offer.currentVersion.vacationDays,
-              // Copy unchanged fields
-              salaryPeriod: offer.currentVersion.salaryPeriod,
-              hourlyRate: offer.currentVersion.hourlyRate,
-              performanceBonusPct: offer.currentVersion.performanceBonusPct,
-              overtimeRate: offer.currentVersion.overtimeRate,
-              weekendRate: offer.currentVersion.weekendRate,
-              contractType: offer.currentVersion.contractType,
-              contractDurationMonths: offer.currentVersion.contractDurationMonths,
-              hoursPerWeek: offer.currentVersion.hoursPerWeek,
-              startDateType: offer.currentVersion.startDateType,
-              startDate: offer.currentVersion.startDate,
-              probationMonths: offer.currentVersion.probationMonths,
-              holidayAllowancePct: offer.currentVersion.holidayAllowancePct,
-              pensionContributionPct: offer.currentVersion.pensionContributionPct,
-              trainingBudget: offer.currentVersion.trainingBudget,
-              companyVehicle: offer.currentVersion.companyVehicle,
-              vehicleType: offer.currentVersion.vehicleType,
-              vehicleValueEst: offer.currentVersion.vehicleValueEst,
-              travelAllowanceType: offer.currentVersion.travelAllowanceType,
-              travelAllowanceValue: offer.currentVersion.travelAllowanceValue,
-              phoneProvided: offer.currentVersion.phoneProvided,
-              toolsProvided: offer.currentVersion.toolsProvided,
-              scheduleType: offer.currentVersion.scheduleType,
-              onCallDetails: offer.currentVersion.onCallDetails,
-              remoteWorkPct: offer.currentVersion.remoteWorkPct,
-              travelRequiredPct: offer.currentVersion.travelRequiredPct,
-              travelRegion: offer.currentVersion.travelRegion,
-              physicalRequirements: offer.currentVersion.physicalRequirements,
-              requiredCertifications: offer.currentVersion.requiredCertifications,
-              requiredExperienceYears: offer.currentVersion.requiredExperienceYears,
-            }
-          }
+          expiresAt: offer.expiresAt
         }
+      });
+
+      const newVersion = await tx.offerVersion.create({
+        data: {
+          offerId: counterOffer.id,
+          version: offer.currentVersion.version + 1,
+          // Apply counter values
+          salaryMin: counterOfferDto.salaryMin || offer.currentVersion.salaryMin,
+          salaryMax: counterOfferDto.salaryMax || offer.currentVersion.salaryMax,
+          signOnBonus: counterOfferDto.signOnBonus ?? offer.currentVersion.signOnBonus,
+          vacationDays: counterOfferDto.vacationDays || offer.currentVersion.vacationDays,
+          // Copy unchanged fields
+          salaryPeriod: offer.currentVersion.salaryPeriod,
+          hourlyRate: offer.currentVersion.hourlyRate,
+          performanceBonusPct: offer.currentVersion.performanceBonusPct,
+          overtimeRate: offer.currentVersion.overtimeRate,
+          weekendRate: offer.currentVersion.weekendRate,
+          contractType: offer.currentVersion.contractType,
+          contractDurationMonths: offer.currentVersion.contractDurationMonths,
+          hoursPerWeek: offer.currentVersion.hoursPerWeek,
+          startDateType: offer.currentVersion.startDateType,
+          startDate: offer.currentVersion.startDate,
+          probationMonths: offer.currentVersion.probationMonths,
+          holidayAllowancePct: offer.currentVersion.holidayAllowancePct,
+          pensionContributionPct: offer.currentVersion.pensionContributionPct,
+          trainingBudget: offer.currentVersion.trainingBudget,
+          companyVehicle: offer.currentVersion.companyVehicle,
+          vehicleType: offer.currentVersion.vehicleType,
+          vehicleValueEst: offer.currentVersion.vehicleValueEst,
+          travelAllowanceType: offer.currentVersion.travelAllowanceType,
+          travelAllowanceValue: offer.currentVersion.travelAllowanceValue,
+          phoneProvided: offer.currentVersion.phoneProvided,
+          toolsProvided: offer.currentVersion.toolsProvided,
+          scheduleType: offer.currentVersion.scheduleType,
+          onCallDetails: offer.currentVersion.onCallDetails,
+          remoteWorkPct: offer.currentVersion.remoteWorkPct,
+          travelRequiredPct: offer.currentVersion.travelRequiredPct,
+          travelRegion: offer.currentVersion.travelRegion,
+          physicalRequirements: offer.currentVersion.physicalRequirements,
+          requiredCertifications: offer.currentVersion.requiredCertifications,
+          requiredExperienceYears: offer.currentVersion.requiredExperienceYears,
+        }
+      });
+
+      // Update offer with currentVersionId
+      await tx.offer.update({
+        where: { id: counterOffer.id },
+        data: { currentVersionId: newVersion.id }
       });
 
       // Notify employer
@@ -607,11 +910,24 @@ export class OffersService {
   // LIST OFFERS
   // ============================================================================
 
-  async listOffersForWorker(workerId: string, status?: string[]) {
-    const where: any = { workerId };
+  async listOffersForWorker(userId: string, status?: string[]) {
+    // First, find the Worker record by userId
+    const worker = await this.prisma.worker.findUnique({
+      where: { userId }
+    });
+
+    if (!worker) {
+      // Return empty array if worker not found (user may not have completed worker profile)
+      return [];
+    }
+
+    const where: any = {
+      workerId: worker.id,
+      status: { not: 'DRAFT' } // Workers cannot see DRAFT offers
+    };
 
     if (status && status.length > 0) {
-      where.status = { in: status };
+      where.status = { in: status, not: 'DRAFT' };
     }
 
     return this.prisma.offer.findMany({
@@ -628,8 +944,17 @@ export class OffersService {
     });
   }
 
-  async listOffersForEmployer(employerId: string, status?: string[]) {
-    const where: any = { employerId };
+  async listOffersForEmployer(userId: string, status?: string[]) {
+    // First, find the Employer record by userId
+    const employer = await this.prisma.employer.findUnique({
+      where: { userId }
+    });
+
+    if (!employer) {
+      throw new NotFoundException('Employer not found');
+    }
+
+    const where: any = { employerId: employer.id };
 
     if (status && status.length > 0) {
       where.status = { in: status };
