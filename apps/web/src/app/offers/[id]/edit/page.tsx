@@ -182,14 +182,24 @@ function EditOfferContent() {
     },
   });
 
-  const handleSave = async () => {
+  const handleSave = async (submitOffer: boolean = false) => {
     setSaving(true);
     setError("");
 
     try {
       const userId = localStorage.getItem("userId");
-      const offerData = buildOfferData();
-      await offersApi.updateOffer(params.id as string, userId!, offerData);
+
+      if (submitOffer) {
+        // First save changes, then submit
+        const offerData = buildOfferData();
+        await offersApi.updateOffer(params.id as string, userId!, offerData);
+        // Then submit the offer
+        await offersApi.submitOffer(params.id as string, userId!);
+      } else {
+        const offerData = buildOfferData();
+        await offersApi.updateOffer(params.id as string, userId!, offerData);
+      }
+
       router.push(`/offers/${params.id}`);
     } catch (err: any) {
       setError(err.response?.data?.message || "Failed to update offer");
@@ -236,15 +246,26 @@ function EditOfferContent() {
             <div className="flex items-center gap-4">
               <span className="text-sm text-gray-500">
                 Editing: {offer?.jobTitle}
+                {offer?.status && <span className="ml-2 text-gray-400">({offer.status})</span>}
               </span>
               <button
-                onClick={handleSave}
+                onClick={() => handleSave(false)}
                 disabled={isSubmitDisabled || cannotEdit}
                 className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50"
               >
                 <Save className="w-4 h-4" />
                 {saving ? "Saving..." : "Save Changes"}
               </button>
+              {offer?.status === "DRAFT" && (
+                <button
+                  onClick={() => handleSave(true)}
+                  disabled={isSubmitDisabled || cannotEdit}
+                  className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 disabled:opacity-50"
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  {saving ? "Submitting..." : "Submit Offer"}
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -635,14 +656,27 @@ function EditOfferContent() {
               Next
             </button>
           ) : (
-            <button
-              onClick={handleSave}
-              disabled={isSubmitDisabled || cannotEdit}
-              className="flex items-center gap-2 px-6 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 disabled:opacity-50"
-            >
-              <CheckCircle2 className="w-4 h-4" />
-              {saving ? "Saving..." : "Save Changes"}
-            </button>
+            <>
+              {offer?.status === "DRAFT" ? (
+                <button
+                  onClick={() => handleSave(true)}
+                  disabled={isSubmitDisabled || cannotEdit}
+                  className="flex items-center gap-2 px-6 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 disabled:opacity-50"
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  {saving ? "Submitting..." : "Submit Offer"}
+                </button>
+              ) : (
+                <button
+                  onClick={() => handleSave(false)}
+                  disabled={isSubmitDisabled || cannotEdit}
+                  className="flex items-center gap-2 px-6 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 disabled:opacity-50"
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  {saving ? "Saving..." : "Save Changes"}
+                </button>
+              )}
+            </>
           )}
         </div>
       </main>

@@ -203,6 +203,10 @@ export const offersApi = {
   updateOffer: (id: string, employerId: string, data: any) =>
     api.patch(`/offers/${id}?employerId=${employerId}`, data),
 
+  // Submit offer (employer)
+  submitOffer: (id: string, employerId: string) =>
+    api.post(`/offers/${id}/submit`, null, { params: { employerId } }),
+
   // Accept offer
   acceptOffer: (id: string) => {
     const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;

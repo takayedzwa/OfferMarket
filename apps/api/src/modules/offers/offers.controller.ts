@@ -264,4 +264,22 @@ export class OffersController {
 
     return this.offersService.updateOffer(id, employerId, updateOfferDto);
   }
+
+  /**
+   * POST /offers/:id/submit
+   *
+   * Submit a DRAFT offer to the worker (employer only)
+   */
+  @Post(':id/submit')
+  @UseGuards(SimpleAuthGuard)
+  async submitOffer(
+    @Param('id') id: string,
+    @Query('employerId') employerId: string
+  ) {
+    if (!employerId) {
+      throw new BadRequestException('employerId is required');
+    }
+
+    return this.offersService.submitOffer(id, employerId);
+  }
 }

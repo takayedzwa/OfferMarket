@@ -397,6 +397,88 @@ export class OffersService {
   }
 
   // ============================================================================
+  // SUBMIT OFFER (Employer)
+  // ============================================================================
+
+  /**
+   * Submit a DRAFT offer to the worker
+   */
+  async submitOffer(offerId: string, userId: string) {
+    return this.prisma.$transaction(async (tx) => {
+      // 1. Find employer by userId
+      const employer = await tx.employer.findUnique({
+        where: { userId },
+        include: { user: true }
+      });
+
+      if (!employer) {
+        throw new NotFoundException('Employer not found');
+      }
+
+      // 2. Get the offer
+      const offer = await tx.offer.findUnique({
+        where: { id: offerId },
+        include: {
+          currentVersion: true,
+          worker: { include: { user: true } }
+        }
+      });
+
+      if (!offer) {
+        throw new NotFoundException('Offer not found');
+      }
+
+      // 3. Verify ownership
+      if (offer.employerId !== employer.id) {
+        throw new ForbiddenException('Not authorized to submit this offer');
+      }
+
+      // 4. Check if offer can be submitted (must be DRAFT)
+      if (offer.status !== 'DRAFT') {
+        throw new BadRequestException(`Cannot submit offer in ${offer.status} status`);
+      }
+
+      if (!offer.currentVersion) {
+        throw new BadRequestException('Offer has no version to submit');
+      }
+
+      // 5. Update offer status to SUBMITTED
+      await tx.offer.update({
+        where: { id: offerId },
+        data: {
+          status: 'SUBMITTED',
+          submittedAt: new Date()
+        }
+      });
+
+      // 6. Create notification for worker
+      await tx.notification.create({
+        data: {
+          userId: offer.worker.userId,
+          notificationType: 'offer_received',
+          category: 'offer',
+          title: 'New offer received!',
+          body: `${employer.companyName || employer.companyTradeName || 'An employer'} has sent you an offer for ${offer.jobTitle}`,
+          actionUrl: `/offers/${offer.id}`,
+          channelEmail: true,
+          channelPush: true
+        }
+      });
+
+      // 7. Return updated offer
+      return tx.offer.findUnique({
+        where: { id: offerId },
+        include: {
+          currentVersion: true,
+          versions: { orderBy: { version: 'desc' } },
+          worker: true,
+          employer: true
+        }
+      });
+    });
+  }
+
+  // ============================================================================
   // ACCEPT OFFER - THE MOMENT OF TRUTH
   // ============================================================================
 
