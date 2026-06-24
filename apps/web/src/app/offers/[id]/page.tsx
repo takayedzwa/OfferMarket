@@ -141,7 +141,10 @@ export default function OfferDetailPage() {
         fetch(`http://localhost:3001/api/v1/ratings/employer/${employerId}/stats`),
         fetch(`http://localhost:3001/api/v1/ratings/employer/${employerId}?limit=5`),
         fetch(`http://localhost:3001/api/v1/ratings/my`, {
-          headers: { 'x-user-id': localStorage.getItem('userId') || '' }
+          headers: {
+            'x-user-id': localStorage.getItem('userId') || '',
+            'x-user-role': localStorage.getItem('userRole') || ''
+          }
         })
       ]);
 
@@ -177,7 +180,8 @@ export default function OfferDetailPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-id': userId || ''
+          'x-user-id': userId || '',
+          'x-user-role': localStorage.getItem('userRole') || ''
         },
         body: JSON.stringify({
           offerId: params.id,

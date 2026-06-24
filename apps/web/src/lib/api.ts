@@ -23,10 +23,10 @@ api.interceptors.request.use((config) => {
       config.headers.Authorization = `Bearer ${token}`;
     }
     if (userId) {
-      config.headers['X-User-ID'] = userId;
+      config.headers['x-user-id'] = userId;
     }
     if (userRole) {
-      config.headers['X-User-Role'] = userRole;
+      config.headers['x-user-role'] = userRole;
     }
   }
   return config;
@@ -185,14 +185,12 @@ export const employersApi = {
 export const offersApi = {
   // Create offer
   createOffer: (data: any) => {
-    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
-    return api.post('/offers', data, { params: { employerId: userId } });
+    return api.post('/offers', data);
   },
 
   // Get offer details (worker)
   getOffer: (id: string) => {
-    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
-    return api.get(`/offers/${id}`, { params: { workerId: userId } });
+    return api.get(`/offers/${id}`);
   },
 
   // Get offer details (employer)
@@ -209,26 +207,22 @@ export const offersApi = {
 
   // Accept offer
   acceptOffer: (id: string) => {
-    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
-    return api.post(`/offers/${id}/accept`, null, { params: { workerId: userId } });
+    return api.post(`/offers/${id}/accept`);
   },
 
   // Reject offer
   rejectOffer: (id: string, reason?: string, feedback?: string) => {
-    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
-    return api.post(`/offers/${id}/reject`, { reason, feedback }, { params: { workerId: userId } });
+    return api.post(`/offers/${id}/reject`, { reason, feedback });
   },
 
   // Shortlist offer
   shortlistOffer: (id: string) => {
-    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
-    return api.post(`/offers/${id}/shortlist`, null, { params: { workerId: userId } });
+    return api.post(`/offers/${id}/shortlist`);
   },
 
   // Counter offer
   counterOffer: (id: string, data: any) => {
-    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
-    return api.post(`/offers/${id}/counter`, data, { params: { workerId: userId } });
+    return api.post(`/offers/${id}/counter`, data);
   },
 
   // Withdraw offer (employer)
@@ -246,14 +240,12 @@ export const offersApi = {
 
   // Get offers for worker
   getWorkerOffers: () => {
-    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
-    return api.get('/offers/worker/me', { params: { workerId: userId } });
+    return api.get('/offers/worker/me');
   },
 
   // Get offers for employer
   getEmployerOffers: () => {
-    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
-    return api.get('/offers', { params: { employerId: userId } });
+    return api.get('/offers');
   },
 };
 
