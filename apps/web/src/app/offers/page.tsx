@@ -7,7 +7,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import Navbar from "../../components/Navbar";
 import { offersApi } from "../../lib/api";
 import { Offer } from "../../lib/types";
-import { Briefcase, Euro, MapPin, Calendar, Filter, Search } from "lucide-react";
+import { Briefcase, Euro, MapPin, Calendar, Filter, Search, GitCompare, X } from "lucide-react";
 
 function OffersContent() {
   const { user } = useAuth();
@@ -16,6 +16,8 @@ function OffersContent() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedForCompare, setSelectedForCompare] = useState<string[]>([]);
+  const [showCompareBar, setShowCompareBar] = useState(false);
   const router = useRouter();
 
   const [userRole, setUserRole] = useState<string | null>(null);
@@ -23,6 +25,12 @@ function OffersContent() {
   useEffect(() => {
     const role = localStorage.getItem("userRole");
     setUserRole(role);
+
+    // Load previously selected offers for comparison from sessionStorage
+    const saved = sessionStorage.getItem("selectedForCompare");
+    if (saved) {
+      setSelectedForCompare(JSON.parse(saved));
+    }
 
     async function loadOffers() {
       const accessToken = localStorage.getItem("accessToken");
@@ -52,6 +60,36 @@ function OffersContent() {
 
     loadOffers();
   }, []);
+
+  // Persist selected offers to sessionStorage
+  useEffect(() => {
+    sessionStorage.setItem("selectedForCompare", JSON.stringify(selectedForCompare));
+    setShowCompareBar(selectedForCompare.length >= 2);
+  }, [selectedForCompare]);
+
+  const toggleCompareSelection = (offerId: string) => {
+    setSelectedForCompare((prev) => {
+      if (prev.includes(offerId)) {
+        return prev.filter((id) => id !== offerId);
+      }
+      if (prev.length >= 3) {
+        alert("You can compare up to 3 offers at a time");
+        return prev;
+      }
+      return [...prev, offerId];
+    });
+  };
+
+  const clearCompareSelection = () => {
+    setSelectedForCompare([]);
+    sessionStorage.removeItem("selectedForCompare");
+  };
+
+  const goToComparison = () => {
+    if (selectedForCompare.length >= 2) {
+      router.push(`/offers/compare?ids=${selectedForCompare.join(",")}`);
+    }
+  };
 
   const filteredOffers = offers.filter((offer) => {
     let matchesFilter = filter === "all";
@@ -114,11 +152,52 @@ function OffersContent() {
     );
   }
 
+  // Only show comparison features for workers
+  const isWorker = userRole === "WORKER";
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Comparison Bar - shown when 2+ offers selected */}
+      {isWorker && showCompareBar && (
+        <div className="fixed bottom-0 left-0 right-0 bg-blue-600 text-white shadow-lg z-50">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <GitCompare className="w-6 h-6" />
+                <span className="font-medium">
+                  {selectedForCompare.length} offer{selectedForCompare.length > 1 ? "s" : ""} selected for comparison
+                </span>
+                {selectedForCompare.length < 2 && (
+                  <span className="text-blue-200 text-sm">
+                    (Select {2 - selectedForCompare.length} more to compare)
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={clearCompareSelection}
+                  className="flex items-center gap-1 px-3 py-1.5 bg-blue-700 hover:bg-blue-800 rounded-lg text-sm font-medium transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                  Clear
+                </button>
+                <button
+                  onClick={goToComparison}
+                  disabled={selectedForCompare.length < 2}
+                  className="flex items-center gap-2 px-4 py-2 bg-white text-blue-600 rounded-lg font-medium hover:bg-blue-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  <GitCompare className="w-4 h-4" />
+                  Compare Now
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <main className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 ${showCompareBar ? "mb-24" : ""}`}>
         {/* Filters */}
         <div className="bg-white rounded-xl border shadow-sm p-4 mb-6">
           <div className="flex flex-col sm:flex-row gap-4">
@@ -171,10 +250,11 @@ function OffersContent() {
         {filteredOffers.length > 0 ? (
           <div className="space-y-4">
             {filteredOffers.map((offer) => (
-              <Link
+              <div
                 key={offer.id}
-                href={`/offers/${offer.id}`}
-                className="block bg-white rounded-xl border shadow-sm hover:border-blue-300 hover:shadow-md transition-all"
+                className={`bg-white rounded-xl border shadow-sm hover:border-blue-300 hover:shadow-md transition-all ${
+                  isWorker && selectedForCompare.includes(offer.id) ? "ring-2 ring-blue-500" : ""
+                }`}
               >
                 <div className="p-6">
                   <div className="flex items-start justify-between">
@@ -219,18 +299,47 @@ function OffersContent() {
                       </div>
                     </div>
 
-                    {userRole === "EMPLOYER" && offer.worker && (
-                      <div className="ml-4">
+                    <div className="ml-4 flex items-center gap-4">
+                      {/* Compare Checkbox - Workers only */}
+                      {isWorker && (
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            toggleCompareSelection(offer.id);
+                          }}
+                          className={`p-2 rounded-lg border transition-colors ${
+                            selectedForCompare.includes(offer.id)
+                              ? "bg-blue-500 border-blue-500 text-white"
+                              : "bg-white border-gray-300 text-gray-400 hover:border-blue-400 hover:text-blue-500"
+                          }`}
+                          title={
+                            selectedForCompare.includes(offer.id)
+                              ? "Remove from comparison"
+                              : "Add to comparison"
+                          }
+                        >
+                          <GitCompare className="w-5 h-5" />
+                        </button>
+                      )}
+
+                      {userRole === "EMPLOYER" && offer.worker && (
                         <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
                           <span className="text-sm font-medium text-green-700">
                             {offer.worker.publicId?.slice(0, 2).toUpperCase() || "W"}
                           </span>
                         </div>
-                      </div>
-                    )}
+                      )}
+
+                      <Link
+                        href={`/offers/${offer.id}`}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700"
+                      >
+                        View
+                      </Link>
+                    </div>
                   </div>
                 </div>
-              </Link>
+              </div>
             ))}
           </div>
         ) : (
