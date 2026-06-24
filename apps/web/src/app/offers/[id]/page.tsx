@@ -22,6 +22,11 @@ import {
   TrendingUp,
   Edit2,
   GitCompare,
+  Star,
+  ThumbsUp,
+  ThumbsDown,
+  Shield,
+  Info,
 } from "lucide-react";
 
 export default function OfferDetailPage() {
@@ -34,6 +39,9 @@ export default function OfferDetailPage() {
   const [error, setError] = useState("");
   const [showCounterOffer, setShowCounterOffer] = useState(false);
   const [selectedForCompare, setSelectedForCompare] = useState<string[]>([]);
+  const [employerStats, setEmployerStats] = useState<any>(null);
+  const [employerRatings, setEmployerRatings] = useState<any[]>([]);
+  const [loadingRatings, setLoadingRatings] = useState(false);
 
   const userRole = typeof window !== "undefined" ? localStorage.getItem("userRole") : null;
 
@@ -109,6 +117,11 @@ export default function OfferDetailPage() {
         }
 
         setOffer(response.data);
+
+        // Load employer ratings if we have an employer
+        if (response.data?.employer?.id) {
+          loadEmployerRatings(response.data.employer.id);
+        }
       } catch (err: any) {
         setError(err.response?.data?.message || "Failed to load offer");
       } finally {
@@ -118,6 +131,30 @@ export default function OfferDetailPage() {
 
     loadOffer();
   }, [params.id, userRole]);
+
+  const loadEmployerRatings = async (employerId: string) => {
+    setLoadingRatings(true);
+    try {
+      const [statsRes, ratingsRes] = await Promise.all([
+        fetch(`http://localhost:3001/api/v1/ratings/employer/${employerId}/stats`),
+        fetch(`http://localhost:3001/api/v1/ratings/employer/${employerId}?limit=5`)
+      ]);
+
+      if (statsRes.ok) {
+        const stats = await statsRes.json();
+        setEmployerStats(stats);
+      }
+
+      if (ratingsRes.ok) {
+        const ratings = await ratingsRes.json();
+        setEmployerRatings(ratings);
+      }
+    } catch (err) {
+      console.error("Failed to load employer ratings:", err);
+    } finally {
+      setLoadingRatings(false);
+    }
+  };
 
   const handleAccept = async () => {
     if (!confirm("Are you sure you want to accept this offer?")) return;
@@ -355,6 +392,164 @@ export default function OfferDetailPage() {
                   </div>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Employer Reputation / Ratings */}
+          {userRole === "WORKER" && offer.employer && (
+            <div className="border-t pt-6 mt-6">
+              <h3 className="text-sm font-medium text-gray-500 mb-4 flex items-center gap-2">
+                <Shield className="w-4 h-4" />
+                Company Reputation
+              </h3>
+
+              {loadingRatings ? (
+                <div className="text-gray-500 text-sm">Loading reputation data...</div>
+              ) : employerStats ? (
+                <div className="space-y-4">
+                  {/* Trust Score Badge */}
+                  <div className="flex items-center gap-4">
+                    <div className={`w-16 h-16 rounded-xl flex items-center justify-center text-white font-bold text-xl ${
+                      employerStats.trustScore >= 80 ? 'bg-green-500' :
+                      employerStats.trustScore >= 60 ? 'bg-yellow-500' :
+                      employerStats.trustScore >= 40 ? 'bg-orange-500' : 'bg-red-500'
+                    }`}>
+                      {employerStats.trustScoreGrade !== 'N/A' ? employerStats.trustScoreGrade : '-'}
+                    </div>
+                    <div>
+                      <div className="text-2xl font-bold text-gray-900">
+                        {employerStats.trustScore}/100
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        Trust Score ({employerStats.totalRatings} reviews)
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Rating Breakdown */}
+                  <div className="grid grid-cols-2 gap-3">
+                    {employerStats.averageOverall > 0 && (
+                      <div className="p-3 bg-gray-50 rounded-lg">
+                        <div className="flex items-center gap-1 text-yellow-500 mb-1">
+                          <Star className="w-4 h-4 fill-current" />
+                          <span className="text-sm font-medium text-gray-700">Overall</span>
+                        </div>
+                        <div className="text-lg font-semibold">{employerStats.averageOverall}/5</div>
+                      </div>
+                    )}
+                    {employerStats.averageCommunication > 0 && (
+                      <div className="p-3 bg-gray-50 rounded-lg">
+                        <div className="text-xs text-gray-500 mb-1">Communication</div>
+                        <div className="text-lg font-semibold">{employerStats.averageCommunication}/5</div>
+                      </div>
+                    )}
+                    {employerStats.averageTransparency > 0 && (
+                      <div className="p-3 bg-gray-50 rounded-lg">
+                        <div className="text-xs text-gray-500 mb-1">Transparency</div>
+                        <div className="text-lg font-semibold">{employerStats.averageTransparency}/5</div>
+                      </div>
+                    )}
+                    {employerStats.averageInterviewExperience > 0 && (
+                      <div className="p-3 bg-gray-50 rounded-lg">
+                        <div className="text-xs text-gray-500 mb-1">Interview</div>
+                        <div className="text-lg font-semibold">{employerStats.averageInterviewExperience}/5</div>
+                      </div>
+                    )}
+                    {employerStats.averageWorkLifeBalance > 0 && (
+                      <div className="p-3 bg-gray-50 rounded-lg">
+                        <div className="text-xs text-gray-500 mb-1">Work-Life</div>
+                        <div className="text-lg font-semibold">{employerStats.averageWorkLifeBalance}/5</div>
+                      </div>
+                    )}
+                    {employerStats.averageOfferAccuracy > 0 && (
+                      <div className="p-3 bg-gray-50 rounded-lg">
+                        <div className="text-xs text-gray-500 mb-1">Offer Accuracy</div>
+                        <div className="text-lg font-semibold">{employerStats.averageOfferAccuracy}/5</div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Would Work Again */}
+                  {employerStats.wouldWorkAgainPercentage !== null && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <ThumbsUp className={`w-4 h-4 ${
+                        (employerStats.wouldWorkAgainPercentage || 0) >= 70 ? 'text-green-500' : 'text-gray-400'
+                      }`} />
+                      <span className="text-gray-600">
+                        {employerStats.wouldWorkAgainPercentage}% would work here again
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Trust Score Factors */}
+                  {employerStats.factors && (
+                    <div className="space-y-2">
+                      {employerStats.factors.positive?.length > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                          {employerStats.factors.positive.slice(0, 3).map((factor: string, i: number) => (
+                            <span key={i} className="inline-flex items-center gap-1 px-2 py-1 bg-green-50 text-green-700 rounded text-xs">
+                              <CheckCircle className="w-3 h-3" />
+                              {factor}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      {employerStats.factors.negative?.length > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                          {employerStats.factors.negative.slice(0, 2).map((factor: string, i: number) => (
+                            <span key={i} className="inline-flex items-center gap-1 px-2 py-1 bg-gray-50 text-gray-600 rounded text-xs">
+                              <Info className="w-3 h-3" />
+                              {factor}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Recent Reviews */}
+                  {employerRatings.length > 0 && (
+                    <div className="mt-4 pt-4 border-t">
+                      <h4 className="text-xs font-medium text-gray-500 mb-2">Recent Reviews</h4>
+                      <div className="space-y-2">
+                        {employerRatings.slice(0, 3).map((rating: any) => (
+                          <div key={rating.id} className="p-3 bg-gray-50 rounded-lg">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-sm font-medium text-gray-900">{rating.reviewTitle || 'Anonymous Review'}</span>
+                              <div className="flex items-center gap-1">
+                                {[...Array(5)].map((_, i) => (
+                                  <Star
+                                    key={i}
+                                    className={`w-3 h-3 ${
+                                      i < rating.ratingOverall ? 'text-yellow-500 fill-current' : 'text-gray-300'
+                                    }`}
+                                  />
+                                ))}
+                              </div>
+                            </div>
+                            {rating.reviewText && (
+                              <p className="text-sm text-gray-600 line-clamp-2">{rating.reviewText}</p>
+                            )}
+                            <div className="flex items-center gap-2 mt-2 text-xs text-gray-500">
+                              <span>{new Date(rating.createdAt).toLocaleDateString()}</span>
+                              {rating.isVerifiedHire && (
+                                <span className="px-1.5 py-0.5 bg-green-100 text-green-700 rounded">
+                                  Verified Hire
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-sm text-gray-500 flex items-center gap-2">
+                  <Info className="w-4 h-4" />
+                  No reviews yet for this company
+                </div>
+              )}
             </div>
           )}
         </div>
