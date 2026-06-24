@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Body, Query, UseGuards, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Body, Query, Param, UseGuards, BadRequestException, DefaultValuePipe, ParseIntPipe } from '@nestjs/common';
 import { EmployersService } from './employers.service';
 
 class SimpleAuthGuard {
@@ -53,5 +53,31 @@ export class EmployersController {
       throw new BadRequestException('userId is required');
     }
     return this.employersService.getVerificationStatus(userId);
+  }
+
+  // ============================================================================
+  // PUBLIC EMPLOYER REPUTATION ENDPOINTS
+  // ============================================================================
+
+  /**
+   * GET /employers/:id/reputation
+   * Get public reputation data for an employer
+   */
+  @Get(':id/reputation')
+  async getEmployerReputation(@Param('id') employerId: string) {
+    return this.employersService.getEmployerReputation(employerId);
+  }
+
+  /**
+   * GET /employers/:id/ratings
+   * Get all published ratings for an employer
+   */
+  @Get(':id/ratings')
+  async getEmployerRatings(
+    @Param('id') employerId: string,
+    @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit: number,
+    @Query('offset', new DefaultValuePipe(0), ParseIntPipe) offset: number
+  ) {
+    return this.employersService.getEmployerRatings(employerId, limit, offset);
   }
 }
