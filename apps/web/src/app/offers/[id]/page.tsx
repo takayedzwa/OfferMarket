@@ -21,6 +21,7 @@ import {
   Clock,
   TrendingUp,
   Edit2,
+  GitCompare,
 } from "lucide-react";
 
 export default function OfferDetailPage() {
@@ -32,8 +33,43 @@ export default function OfferDetailPage() {
   const [actionLoading, setActionLoading] = useState("");
   const [error, setError] = useState("");
   const [showCounterOffer, setShowCounterOffer] = useState(false);
+  const [selectedForCompare, setSelectedForCompare] = useState<string[]>([]);
 
   const userRole = typeof window !== "undefined" ? localStorage.getItem("userRole") : null;
+
+  // Load selected offers for comparison
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const saved = sessionStorage.getItem("selectedForCompare");
+      if (saved) {
+        setSelectedForCompare(JSON.parse(saved));
+      }
+    }
+  }, []);
+
+  const toggleCompareSelection = () => {
+    if (!offer) return;
+
+    const newSelection = selectedForCompare.includes(offer.id)
+      ? selectedForCompare.filter((id) => id !== offer.id)
+      : [...selectedForCompare, offer.id];
+
+    setSelectedForCompare(newSelection);
+    sessionStorage.setItem("selectedForCompare", JSON.stringify(newSelection));
+  };
+
+  const goToComparison = () => {
+    if (!offer) return;
+
+    if (selectedForCompare.includes(offer.id)) {
+      const others = selectedForCompare.filter((id) => id !== offer.id);
+      if (others.length >= 1) {
+        router.push(`/offers/compare?ids=${[offer.id, ...others].join(",")}`);
+      }
+    } else if (selectedForCompare.length >= 1) {
+      router.push(`/offers/compare?ids=${[offer.id, ...selectedForCompare].join(",")}`);
+    }
+  };
 
   // Helper to get worker-friendly status labels
   const getStatusLabel = (status: string) => {
@@ -227,6 +263,29 @@ export default function OfferDetailPage() {
                 >
                   <Edit2 className="w-4 h-4" />
                   Edit
+                </button>
+              )}
+              {userRole === "WORKER" && (
+                <button
+                  onClick={toggleCompareSelection}
+                  className={`flex items-center gap-1 px-3 py-1 text-sm rounded-lg transition-colors ${
+                    selectedForCompare.includes(offer.id)
+                      ? "bg-blue-500 text-white"
+                      : "text-blue-600 hover:bg-blue-50"
+                  }`}
+                >
+                  <GitCompare className="w-4 h-4" />
+                  {selectedForCompare.includes(offer.id) ? "Selected" : "Compare"}
+                </button>
+              )}
+              {userRole === "WORKER" && selectedForCompare.length >= 1 && (
+                <button
+                  onClick={goToComparison}
+                  disabled={!selectedForCompare.includes(offer.id) && selectedForCompare.length < 1}
+                  className="flex items-center gap-1 px-3 py-1 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  <GitCompare className="w-4 h-4" />
+                  Compare Now
                 </button>
               )}
               <span
