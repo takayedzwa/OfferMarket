@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, Query, BadRequestException, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, Query, BadRequestException, UseGuards, Request } from '@nestjs/common';
 import { OffersService } from './offers.service';
 import { OfferValidationPipe } from './pipes/offer-validation.pipe';
 import { CreateOfferDto } from './dto/create-offer.dto';
@@ -66,12 +66,9 @@ export class OffersController {
   @UseGuards(SimpleAuthGuard)
   async getOffer(
     @Param('id') id: string,
-    @Query('workerId') userId: string
+    @Request() req: any
   ) {
-    if (!userId) {
-      throw new BadRequestException('workerId is required');
-    }
-
+    const userId = req.user.id;
     return this.offersService.getOfferForWorker(id, userId);
   }
 
@@ -91,12 +88,9 @@ export class OffersController {
   @UseGuards(SimpleAuthGuard)
   async acceptOffer(
     @Param('id') id: string,
-    @Query('workerId') userId: string
+    @Request() req: any
   ) {
-    if (!userId) {
-      throw new BadRequestException('workerId is required');
-    }
-
+    const userId = req.user.id;
     return this.offersService.acceptOffer(id, userId);
   }
 
@@ -111,14 +105,11 @@ export class OffersController {
   @UseGuards(SimpleAuthGuard)
   async rejectOffer(
     @Param('id') id: string,
-    @Query('workerId') userId: string,
+    @Request() req: any,
     @Body('reason') reason?: string,
     @Body('feedback') feedback?: string
   ) {
-    if (!userId) {
-      throw new BadRequestException('workerId is required');
-    }
-
+    const userId = req.user.id;
     return this.offersService.rejectOffer(id, userId, reason, feedback);
   }
 
@@ -133,12 +124,9 @@ export class OffersController {
   @UseGuards(SimpleAuthGuard)
   async shortlistOffer(
     @Param('id') id: string,
-    @Query('workerId') userId: string
+    @Request() req: any
   ) {
-    if (!userId) {
-      throw new BadRequestException('workerId is required');
-    }
-
+    const userId = req.user.id;
     return this.offersService.shortlistOffer(id, userId);
   }
 
@@ -153,13 +141,10 @@ export class OffersController {
   @UseGuards(SimpleAuthGuard)
   async counterOffer(
     @Param('id') id: string,
-    @Query('workerId') userId: string,
+    @Request() req: any,
     @Body() counterOfferDto: CounterOfferDto
   ) {
-    if (!userId) {
-      throw new BadRequestException('workerId is required');
-    }
-
+    const userId = req.user.id;
     return this.offersService.counterOffer(id, userId, counterOfferDto);
   }
 
@@ -221,9 +206,10 @@ export class OffersController {
   @Get('worker/me')
   @UseGuards(SimpleAuthGuard)
   async listOffersForWorkerMe(
-    @Query('workerId') workerId: string,
+    @Request() req: any,
     @Query('status') status?: string
   ) {
+    const workerId = req.user.id;
     const statusArray = status ? status.split(',') : undefined;
     return this.offersService.listOffersForWorker(workerId, statusArray);
   }

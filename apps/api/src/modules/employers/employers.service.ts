@@ -1,9 +1,13 @@
 import { Injectable, NotFoundException, BadRequestException, BadRequestException as BadRequestExceptionAlias } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { RatingsService } from '../ratings/ratings.service';
 
 @Injectable()
 export class EmployersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private ratingsService: RatingsService
+  ) {}
 
   async createEmployerProfile(userId: string, createDto: any) {
     return this.prisma.$transaction(async (tx) => {
@@ -74,7 +78,22 @@ export class EmployersService {
       throw new NotFoundException('Employer profile not found');
     }
 
-    return employer;
+    // Get reputation data
+    const ratingStats = await this.ratingsService.getEmployerRatingStats(employer.id);
+    const trustScoreData = await this.ratingsService.calculateTrustScore(employer.id);
+
+    return {
+      ...employer,
+      reputation: {
+        trustScore: ratingStats.trustScore,
+        trustScoreGrade: ratingStats.trustScoreGrade,
+        averageRating: ratingStats.averageOverall,
+        totalRatings: ratingStats.totalRatings,
+        wouldWorkAgainPercentage: ratingStats.wouldWorkAgainPercentage,
+        breakdown: trustScoreData.trustScoreBreakdown,
+        factors: trustScoreData.factors
+      }
+    };
   }
 
   async updateEmployerProfile(userId: string, updateDto: any) {
@@ -112,5 +131,56 @@ export class EmployersService {
       verifiedAt: employer.verifiedAt,
       companyName: employer.companyName
     };
+  }
+
+  // ============================================================================
+  // PUBLIC REPUTATION ENDPOINTS
+  // ============================================================================
+
+  /**
+   * Get public reputation data for an employer by ID
+   */
+  async getEmployerReputation(employerId: string) {
+    const employer = await this.prisma.employer.findUnique({
+      where: { id: employerId },
+      select: {
+        id: true,
+        companyName: true,
+        companyTradeName: true,
+        verificationStatus: true,
+        reputationScore: true,
+        offerAcceptanceRate: true,
+        avgResponseTimeHours: true,
+        totalHires: true
+      }
+    });
+
+    if (!employer) {
+      throw new NotFoundException('Employer not found');
+    }
+
+    const ratingStats = await this.ratingsService.getEmployerRatingStats(employerId);
+    const trustScoreData = await this.ratingsService.calculateTrustScore(employerId);
+
+    return {
+      ...employer,
+      reputation: {
+        trustScore: ratingStats.trustScore,
+        trustScoreGrade: ratingStats.trustScoreGrade,
+        averageRating: ratingStats.averageOverall,
+        totalRatings: ratingStats.totalRatings,
+        wouldWorkAgainPercentage: ratingStats.wouldWorkAgainPercentage,
+        ratingDistribution: ratingStats.ratingDistribution,
+        breakdown: trustScoreData.trustScoreBreakdown,
+        factors: trustScoreData.factors
+      }
+    };
+  }
+
+  /**
+   * Get published ratings for an employer
+   */
+  async getEmployerRatings(employerId: string, limit: number = 20, offset: number = 0) {
+    return this.ratingsService.getEmployerRatings(employerId, limit, offset);
   }
 }

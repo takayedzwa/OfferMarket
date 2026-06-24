@@ -22,6 +22,11 @@ import {
   TrendingUp,
   Edit2,
   GitCompare,
+  Star,
+  ThumbsUp,
+  ThumbsDown,
+  Shield,
+  Info,
 } from "lucide-react";
 
 export default function OfferDetailPage() {
@@ -34,6 +39,11 @@ export default function OfferDetailPage() {
   const [error, setError] = useState("");
   const [showCounterOffer, setShowCounterOffer] = useState(false);
   const [selectedForCompare, setSelectedForCompare] = useState<string[]>([]);
+  const [employerStats, setEmployerStats] = useState<any>(null);
+  const [employerRatings, setEmployerRatings] = useState<any[]>([]);
+  const [loadingRatings, setLoadingRatings] = useState(false);
+  const [showRateModal, setShowRateModal] = useState(false);
+  const [hasRated, setHasRated] = useState(false);
 
   const userRole = typeof window !== "undefined" ? localStorage.getItem("userRole") : null;
 
@@ -109,6 +119,11 @@ export default function OfferDetailPage() {
         }
 
         setOffer(response.data);
+
+        // Load employer ratings if we have an employer
+        if (response.data?.employer?.id) {
+          loadEmployerRatings(response.data.employer.id);
+        }
       } catch (err: any) {
         setError(err.response?.data?.message || "Failed to load offer");
       } finally {
@@ -118,6 +133,80 @@ export default function OfferDetailPage() {
 
     loadOffer();
   }, [params.id, userRole]);
+
+  const loadEmployerRatings = async (employerId: string) => {
+    setLoadingRatings(true);
+    try {
+      const [statsRes, ratingsRes, myRatingsRes] = await Promise.all([
+        fetch(`http://localhost:3001/api/v1/ratings/employer/${employerId}/stats`),
+        fetch(`http://localhost:3001/api/v1/ratings/employer/${employerId}?limit=5`),
+        fetch(`http://localhost:3001/api/v1/ratings/my`, {
+          headers: {
+            'x-user-id': localStorage.getItem('userId') || '',
+            'x-user-role': localStorage.getItem('userRole') || ''
+          }
+        })
+      ]);
+
+      if (statsRes.ok) {
+        const stats = await statsRes.json();
+        setEmployerStats(stats);
+      }
+
+      if (ratingsRes.ok) {
+        const ratings = await ratingsRes.json();
+        setEmployerRatings(ratings);
+      }
+
+      if (myRatingsRes.ok) {
+        const myRatings = await myRatingsRes.json();
+        // Check if user already rated this employer
+        const hasRatedThisEmployer = myRatings.some((r: any) => r.employerId === employerId);
+        setHasRated(hasRatedThisEmployer);
+      }
+    } catch (err) {
+      console.error("Failed to load employer ratings:", err);
+    } finally {
+      setLoadingRatings(false);
+    }
+  };
+
+  const handleSubmitRating = async (ratingData: any) => {
+    try {
+      const userId = localStorage.getItem('userId');
+      console.log('Submitting rating for offer:', params.id, 'userId:', userId);
+
+      const response = await fetch('http://localhost:3001/api/v1/ratings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-id': userId || '',
+          'x-user-role': localStorage.getItem('userRole') || ''
+        },
+        body: JSON.stringify({
+          offerId: params.id,
+          ...ratingData
+        })
+      });
+
+      const responseData = await response.json();
+      console.log('Rating response:', response.status, responseData);
+
+      if (response.ok) {
+        setHasRated(true);
+        setShowRateModal(false);
+        // Reload ratings
+        if (offer?.employer?.id) {
+          loadEmployerRatings(offer.employer.id);
+        }
+      } else {
+        setError(responseData.message || 'Failed to submit rating');
+      }
+    } catch (err: any) {
+      console.error('Rating submission error:', err);
+      setError(err.message || 'Failed to submit rating');
+    }
+  };
 
   const handleAccept = async () => {
     if (!confirm("Are you sure you want to accept this offer?")) return;
@@ -355,6 +444,182 @@ export default function OfferDetailPage() {
                   </div>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Employer Reputation / Ratings */}
+          {userRole === "WORKER" && offer.employer && (
+            <div className="border-t pt-6 mt-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-medium text-gray-500 flex items-center gap-2">
+                  <Shield className="w-4 h-4" />
+                  Company Reputation
+                </h3>
+                {/* Rate Button - Show if offer is in final state and user hasn't rated */}
+                {['ACCEPTED', 'REJECTED', 'WITHDRAWN', 'EXPIRED'].includes(offer.status) && !hasRated && (
+                  <button
+                    onClick={() => setShowRateModal(true)}
+                    className="text-sm px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-1"
+                  >
+                    <Star className="w-3 h-3" />
+                    Rate this Company
+                  </button>
+                )}
+                {hasRated && (
+                  <span className="text-xs text-green-600 flex items-center gap-1">
+                    <CheckCircle className="w-3 h-3" />
+                    You rated this company
+                  </span>
+                )}
+              </div>
+
+              {loadingRatings ? (
+                <div className="text-gray-500 text-sm">Loading reputation data...</div>
+              ) : employerStats ? (
+                <div className="space-y-4">
+                  {/* Trust Score Badge */}
+                  <div className="flex items-center gap-4">
+                    <div className={`w-16 h-16 rounded-xl flex items-center justify-center text-white font-bold text-xl ${
+                      employerStats.trustScore >= 80 ? 'bg-green-500' :
+                      employerStats.trustScore >= 60 ? 'bg-yellow-500' :
+                      employerStats.trustScore >= 40 ? 'bg-orange-500' : 'bg-red-500'
+                    }`}>
+                      {employerStats.trustScoreGrade !== 'N/A' ? employerStats.trustScoreGrade : '-'}
+                    </div>
+                    <div>
+                      <div className="text-2xl font-bold text-gray-900">
+                        {employerStats.trustScore}/100
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        Trust Score ({employerStats.totalRatings} reviews)
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Rating Breakdown */}
+                  <div className="grid grid-cols-2 gap-3">
+                    {employerStats.averageOverall > 0 && (
+                      <div className="p-3 bg-gray-50 rounded-lg">
+                        <div className="flex items-center gap-1 text-yellow-500 mb-1">
+                          <Star className="w-4 h-4 fill-current" />
+                          <span className="text-sm font-medium text-gray-700">Overall</span>
+                        </div>
+                        <div className="text-lg font-semibold">{employerStats.averageOverall}/5</div>
+                      </div>
+                    )}
+                    {employerStats.averageCommunication > 0 && (
+                      <div className="p-3 bg-gray-50 rounded-lg">
+                        <div className="text-xs text-gray-500 mb-1">Communication</div>
+                        <div className="text-lg font-semibold">{employerStats.averageCommunication}/5</div>
+                      </div>
+                    )}
+                    {employerStats.averageTransparency > 0 && (
+                      <div className="p-3 bg-gray-50 rounded-lg">
+                        <div className="text-xs text-gray-500 mb-1">Transparency</div>
+                        <div className="text-lg font-semibold">{employerStats.averageTransparency}/5</div>
+                      </div>
+                    )}
+                    {employerStats.averageInterviewExperience > 0 && (
+                      <div className="p-3 bg-gray-50 rounded-lg">
+                        <div className="text-xs text-gray-500 mb-1">Interview</div>
+                        <div className="text-lg font-semibold">{employerStats.averageInterviewExperience}/5</div>
+                      </div>
+                    )}
+                    {employerStats.averageWorkLifeBalance > 0 && (
+                      <div className="p-3 bg-gray-50 rounded-lg">
+                        <div className="text-xs text-gray-500 mb-1">Work-Life</div>
+                        <div className="text-lg font-semibold">{employerStats.averageWorkLifeBalance}/5</div>
+                      </div>
+                    )}
+                    {employerStats.averageOfferAccuracy > 0 && (
+                      <div className="p-3 bg-gray-50 rounded-lg">
+                        <div className="text-xs text-gray-500 mb-1">Offer Accuracy</div>
+                        <div className="text-lg font-semibold">{employerStats.averageOfferAccuracy}/5</div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Would Work Again */}
+                  {employerStats.wouldWorkAgainPercentage !== null && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <ThumbsUp className={`w-4 h-4 ${
+                        (employerStats.wouldWorkAgainPercentage || 0) >= 70 ? 'text-green-500' : 'text-gray-400'
+                      }`} />
+                      <span className="text-gray-600">
+                        {employerStats.wouldWorkAgainPercentage}% would work here again
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Trust Score Factors */}
+                  {employerStats.factors && (
+                    <div className="space-y-2">
+                      {employerStats.factors.positive?.length > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                          {employerStats.factors.positive.slice(0, 3).map((factor: string, i: number) => (
+                            <span key={i} className="inline-flex items-center gap-1 px-2 py-1 bg-green-50 text-green-700 rounded text-xs">
+                              <CheckCircle className="w-3 h-3" />
+                              {factor}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      {employerStats.factors.negative?.length > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                          {employerStats.factors.negative.slice(0, 2).map((factor: string, i: number) => (
+                            <span key={i} className="inline-flex items-center gap-1 px-2 py-1 bg-gray-50 text-gray-600 rounded text-xs">
+                              <Info className="w-3 h-3" />
+                              {factor}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Recent Reviews */}
+                  {employerRatings.length > 0 && (
+                    <div className="mt-4 pt-4 border-t">
+                      <h4 className="text-xs font-medium text-gray-500 mb-2">Recent Reviews</h4>
+                      <div className="space-y-2">
+                        {employerRatings.slice(0, 3).map((rating: any) => (
+                          <div key={rating.id} className="p-3 bg-gray-50 rounded-lg">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-sm font-medium text-gray-900">{rating.reviewTitle || 'Anonymous Review'}</span>
+                              <div className="flex items-center gap-1">
+                                {[...Array(5)].map((_, i) => (
+                                  <Star
+                                    key={i}
+                                    className={`w-3 h-3 ${
+                                      i < rating.ratingOverall ? 'text-yellow-500 fill-current' : 'text-gray-300'
+                                    }`}
+                                  />
+                                ))}
+                              </div>
+                            </div>
+                            {rating.reviewText && (
+                              <p className="text-sm text-gray-600 line-clamp-2">{rating.reviewText}</p>
+                            )}
+                            <div className="flex items-center gap-2 mt-2 text-xs text-gray-500">
+                              <span>{new Date(rating.createdAt).toLocaleDateString()}</span>
+                              {rating.isVerifiedHire && (
+                                <span className="px-1.5 py-0.5 bg-green-100 text-green-700 rounded">
+                                  Verified Hire
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-sm text-gray-500 flex items-center gap-2">
+                  <Info className="w-4 h-4" />
+                  No reviews yet for this company
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -597,6 +862,15 @@ export default function OfferDetailPage() {
           loading={actionLoading === "counter"}
         />
       )}
+
+      {/* Rate Employer Modal */}
+      {showRateModal && (
+        <RateEmployerModal
+          employerName={offer.employer?.companyName || 'This Company'}
+          onSubmit={handleSubmitRating}
+          onCancel={() => setShowRateModal(false)}
+        />
+      )}
     </div>
   );
 }
@@ -704,6 +978,241 @@ function CounterOfferModal({
               className="px-6 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50"
             >
               {loading ? "Sending..." : "Send Counter Offer"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function RateEmployerModal({
+  employerName,
+  onSubmit,
+  onCancel,
+}: {
+  employerName: string;
+  onSubmit: (data: any) => void;
+  onCancel: () => void;
+}) {
+  const [ratingOverall, setRatingOverall] = useState(0);
+  const [ratingInterviewExperience, setRatingInterviewExperience] = useState(0);
+  const [ratingTransparency, setRatingTransparency] = useState(0);
+  const [ratingCommunication, setRatingCommunication] = useState(0);
+  const [ratingOfferAccuracy, setRatingOfferAccuracy] = useState(0);
+  const [ratingWorkLifeBalance, setRatingWorkLifeBalance] = useState(0);
+  const [wouldWorkAgain, setWouldWorkAgain] = useState(true);
+  const [reviewTitle, setReviewTitle] = useState("");
+  const [reviewText, setReviewText] = useState("");
+  // Individual hover states for each rating category
+  const [hoveredOverall, setHoveredOverall] = useState(0);
+  const [hoveredInterview, setHoveredInterview] = useState(0);
+  const [hoveredTransparency, setHoveredTransparency] = useState(0);
+  const [hoveredCommunication, setHoveredCommunication] = useState(0);
+  const [hoveredOfferAccuracy, setHoveredOfferAccuracy] = useState(0);
+  const [hoveredWorkLifeBalance, setHoveredWorkLifeBalance] = useState(0);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (ratingOverall === 0) {
+      alert("Please select an overall rating");
+      return;
+    }
+    onSubmit({
+      ratingOverall,
+      ratingInterviewExperience: ratingInterviewExperience || undefined,
+      ratingTransparency: ratingTransparency || undefined,
+      ratingCommunication: ratingCommunication || undefined,
+      ratingOfferAccuracy: ratingOfferAccuracy || undefined,
+      ratingWorkLifeBalance: ratingWorkLifeBalance || undefined,
+      wouldWorkAgain,
+      reviewTitle: reviewTitle || undefined,
+      reviewText: reviewText || undefined,
+    });
+  };
+
+  const StarRating = ({
+    value,
+    onChange,
+    label,
+    hovered,
+    setHovered
+  }: {
+    value: number;
+    onChange: (v: number) => void;
+    label: string;
+    hovered: number;
+    setHovered: (v: number) => void;
+  }) => (
+    <div className="mb-4">
+      <label className="block text-sm font-medium text-gray-700 mb-2">{label}</label>
+      <div className="flex gap-1">
+        {[1, 2, 3, 4, 5].map((star) => (
+          <button
+            key={star}
+            type="button"
+            onMouseEnter={() => setHovered(star)}
+            onMouseLeave={() => setHovered(0)}
+            onClick={() => onChange(star)}
+            className="focus:outline-none transition-transform hover:scale-110"
+          >
+            <Star
+              className={`w-8 h-8 ${
+                star <= (hovered || value)
+                  ? 'text-yellow-500 fill-current'
+                  : 'text-gray-300'
+              }`}
+            />
+          </button>
+        ))}
+      </div>
+      <div className="flex justify-between text-xs text-gray-500 mt-1">
+        <span>Poor</span>
+        <span>Excellent</span>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+      <div className="bg-white rounded-xl max-w-2xl w-full p-6 my-8">
+        <h2 className="text-xl font-semibold text-gray-900 mb-2">Rate {employerName}</h2>
+        <p className="text-gray-600 mb-6 text-sm">
+          Share your experience to help other workers make informed decisions.
+        </p>
+
+        <form onSubmit={handleSubmit} className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+          {/* Overall Rating - Required */}
+          <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <StarRating
+              value={ratingOverall}
+              onChange={setRatingOverall}
+              label="Overall Rating *"
+              hovered={hoveredOverall}
+              setHovered={setHoveredOverall}
+            />
+          </div>
+
+          {/* Category Ratings */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <StarRating
+              value={ratingInterviewExperience}
+              onChange={setRatingInterviewExperience}
+              label="Interview Experience"
+              hovered={hoveredInterview}
+              setHovered={setHoveredInterview}
+            />
+            <StarRating
+              value={ratingTransparency}
+              onChange={setRatingTransparency}
+              label="Transparency"
+              hovered={hoveredTransparency}
+              setHovered={setHoveredTransparency}
+            />
+            <StarRating
+              value={ratingCommunication}
+              onChange={setRatingCommunication}
+              label="Communication"
+              hovered={hoveredCommunication}
+              setHovered={setHoveredCommunication}
+            />
+            <StarRating
+              value={ratingOfferAccuracy}
+              onChange={setRatingOfferAccuracy}
+              label="Offer Accuracy"
+              hovered={hoveredOfferAccuracy}
+              setHovered={setHoveredOfferAccuracy}
+            />
+            <StarRating
+              value={ratingWorkLifeBalance}
+              onChange={setRatingWorkLifeBalance}
+              label="Work-Life Balance"
+              hovered={hoveredWorkLifeBalance}
+              setHovered={setHoveredWorkLifeBalance}
+            />
+          </div>
+
+          {/* Would Work Again */}
+          <div className="p-4 bg-gray-50 rounded-lg">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Would you work there again?
+            </label>
+            <div className="flex gap-4">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="wouldWorkAgain"
+                  checked={wouldWorkAgain === true}
+                  onChange={() => setWouldWorkAgain(true)}
+                  className="w-4 h-4 text-green-600"
+                />
+                <span className="flex items-center gap-1 text-gray-700">
+                  <ThumbsUp className="w-4 h-4 text-green-600" />
+                  Yes
+                </span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="wouldWorkAgain"
+                  checked={wouldWorkAgain === false}
+                  onChange={() => setWouldWorkAgain(false)}
+                  className="w-4 h-4 text-red-600"
+                />
+                <span className="flex items-center gap-1 text-gray-700">
+                  <ThumbsDown className="w-4 h-4 text-red-600" />
+                  No
+                </span>
+              </label>
+            </div>
+          </div>
+
+          {/* Review Title */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Review Title (optional)
+            </label>
+            <input
+              type="text"
+              value={reviewTitle}
+              onChange={(e) => setReviewTitle(e.target.value)}
+              maxLength={200}
+              placeholder="e.g., Professional and transparent"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
+            />
+            <span className="text-xs text-gray-500">{reviewTitle.length}/200</span>
+          </div>
+
+          {/* Review Text */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Your Review (optional)
+            </label>
+            <textarea
+              value={reviewText}
+              onChange={(e) => setReviewText(e.target.value)}
+              rows={4}
+              maxLength={2000}
+              placeholder="Share details of your experience with the interview process, company culture, etc."
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none resize-none"
+            />
+            <span className="text-xs text-gray-500">{reviewText.length}/2000</span>
+          </div>
+
+          <div className="flex items-center justify-end gap-3 pt-4 border-t sticky bottom-0 bg-white pt-4">
+            <button
+              type="button"
+              onClick={onCancel}
+              className="px-4 py-2 text-gray-600 hover:text-gray-900"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={ratingOverall === 0}
+              className="px-6 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Submit Rating
             </button>
           </div>
         </form>
