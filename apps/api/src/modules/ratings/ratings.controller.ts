@@ -9,7 +9,8 @@ import {
   UseGuards,
   BadRequestException,
   ParseIntPipe,
-  DefaultValuePipe
+  DefaultValuePipe,
+  Request
 } from '@nestjs/common';
 import { RatingsService } from './ratings.service';
 import { CreateRatingDto } from './dto/create-rating.dto';
@@ -79,11 +80,9 @@ export class RatingsController {
   @UseGuards(SimpleAuthGuard)
   async createRating(
     @Body() createRatingDto: CreateRatingDto,
-    @Query('userId') userId: string
+    @Request() req: any
   ) {
-    if (!userId) {
-      throw new BadRequestException('userId is required');
-    }
+    const userId = req.user.id;
     return this.ratingsService.createRating(userId, createRatingDto);
   }
 
@@ -153,10 +152,8 @@ export class RatingsController {
    */
   @Get('my')
   @UseGuards(SimpleAuthGuard)
-  async getMyRatings(@Query('userId') userId: string) {
-    if (!userId) {
-      throw new BadRequestException('userId is required');
-    }
+  async getMyRatings(@Request() req: any) {
+    const userId = req.user.id;
     return this.ratingsService.getMyRatings(userId);
   }
 
