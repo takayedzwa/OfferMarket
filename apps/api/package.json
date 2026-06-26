@@ -16,6 +16,7 @@
     "test:watch": "jest --watch"
   },
   "prisma": {
+    "schema": "prisma/schema.prisma",
     "seed": "ts-node src/prisma/seed.ts"
   },
   "dependencies": {
