@@ -47,7 +47,7 @@ function OffersContent() {
         if (role === "WORKER") {
           response = await offersApi.getWorkerOffers();
         } else {
-          response = await offersApi.getEmployerOffers();
+          response = await offersApi.getEmployerOffers(userId);
         }
 
         setOffers(response.data);

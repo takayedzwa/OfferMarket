@@ -34,6 +34,8 @@ model User {
   supportTickets   SupportTicket[] @relation("UserSupportTickets")
   assignedTickets  SupportTicket[] @relation("AssignedSupportTickets")
   resolvedTickets  SupportTicket[] @relation("ResolvedSupportTickets")
+  suspiciousActivities SuspiciousActivity[]
+  blacklistEntries BlacklistEntry[] @relation("BlacklistedUser")
 
   @@index([email])
   @@index([role])
@@ -71,6 +73,9 @@ model Worker {
   skills                 ProfileSkill[]
   region                 Region?           @relation(fields: [regionId], references: [id])
   user                   User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  verification           WorkerVerification?
+  fraudIndicators        FraudIndicator[]  @relation("WorkerFraudIndicators")
+  blacklistEntries       BlacklistEntry[]  @relation("BlacklistedWorker")
 
   @@index([userId])
   @@index([regionId])
@@ -181,6 +186,9 @@ model Employer {
   user                 User                       @relation(fields: [userId], references: [id], onDelete: Cascade)
   offersSent           Offer[]
   ratings              Rating[]
+  verification         EmployerVerification?
+  fraudIndicators      FraudIndicator[]           @relation("EmployerFraudIndicators")
+  blacklistEntries     BlacklistEntry[]           @relation("BlacklistedEmployer")
 
   @@index([userId])
   @@index([kvkNumber])
@@ -640,4 +648,420 @@ enum EmploymentType {
   CONTRACT
   TEMPORARY
   INTERNSHIP
+}
+
+// ============================================================================
+// TRUST LAYER MODELS
+// ============================================================================
+
+model EmployerVerification {
+  id                    String              @id @default(uuid())
+  employerId            String              @unique
+  kvkVerified           Boolean             @default(false)
+  kvkVerifiedAt         DateTime?
+  kvkData               Json?
+  vatVerified           Boolean             @default(false)
+  vatVerifiedAt         DateTime?
+  companyVerified       Boolean             @default(false)
+  companyVerifiedAt     DateTime?
+  documentVerified      Boolean             @default(false)
+  documentVerifiedAt    DateTime?
+  verifiedDocuments     String[]            @default([])
+  verificationLevel     VerificationLevel   @default(NONE)
+  riskLevel             RiskLevel           @default(UNKNOWN)
+  riskScore             Int                 @default(50)
+  lastReviewAt          DateTime?
+  lastReviewBy          String?
+  rejectionReason       String?
+  notes                 String?
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+  employer              Employer            @relation(fields: [employerId], references: [id], onDelete: Cascade)
+  verificationDocuments VerificationDocument[] @relation("EmployerVerificationDocs")
+  verificationLogs      VerificationLog[]   @relation("EmployerVerificationLogs")
+
+  @@index([employerId])
+  @@index([verificationLevel])
+  @@index([riskLevel])
+}
+
+model WorkerVerification {
+  id                    String              @id @default(uuid())
+  workerId              String              @unique
+  identityVerified      Boolean             @default(false)
+  identityVerifiedAt    DateTime?
+  identityMethod        IdentityVerificationMethod?
+  documentVerified      Boolean             @default(false)
+  documentVerifiedAt    DateTime?
+  verifiedDocuments     String[]            @default([])
+  backgroundCheckStatus BackgroundCheckStatus @default(NOT_STARTED)
+  backgroundCheckAt     DateTime?
+  referenceCheckStatus  ReferenceCheckStatus  @default(NOT_STARTED)
+  referenceCheckAt      DateTime?
+  certificationVerified Boolean             @default(false)
+  certificationVerifiedAt DateTime?
+  verificationLevel     VerificationLevel   @default(NONE)
+  riskLevel             RiskLevel           @default(UNKNOWN)
+  riskScore             Int                 @default(50)
+  lastReviewAt          DateTime?
+  lastReviewBy          String?
+  rejectionReason       String?
+  notes                 String?
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+  worker                Worker              @relation(fields: [workerId], references: [id], onDelete: Cascade)
+  verificationDocuments VerificationDocument[] @relation("WorkerVerificationDocs")
+  verificationLogs      VerificationLog[]   @relation("WorkerVerificationLogs")
+  identityChecks        IdentityCheck[]     @relation("WorkerIdentityChecks")
+
+  @@index([workerId])
+  @@index([verificationLevel])
+  @@index([riskLevel])
+  @@index([backgroundCheckStatus])
+}
+
+model VerificationDocument {
+  id                  String                @id @default(uuid())
+  entityType          EntityType
+  entityId            String
+  documentType        DocumentType
+  documentSubtype     String?
+  fileUrl             String
+  fileHash            String?
+  fileSize            Int?
+  mimeType            String
+  status              VerificationStatus    @default(PENDING)
+  verificationResult  Json?
+  rejectionReason     String?
+  verifiedAt          DateTime?
+  verifiedBy          String?
+  expiresAt           DateTime?
+  isExpired           Boolean               @default(false)
+  metadata            Json?
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+  employerVerification EmployerVerification? @relation("EmployerVerificationDocs", fields: [entityId], references: [employerId], map: "VerDoc_employer_fk")
+  workerVerification  WorkerVerification?   @relation("WorkerVerificationDocs", fields: [entityId], references: [workerId], map: "VerDoc_worker_fk")
+
+  @@index([entityType, entityId])
+  @@index([documentType])
+  @@index([status])
+}
+
+model VerificationLog {
+  id                  String              @id @default(uuid())
+  entityType          EntityType
+  entityId            String
+  action              VerificationAction
+  previousStatus      VerificationStatus?
+  newStatus           VerificationStatus
+  reason              String?
+  performedBy         String?
+  performedById       String?
+  ipAddress           String?
+  userAgent           String?
+  metadata            Json?
+  createdAt           DateTime            @default(now())
+  employerVerification EmployerVerification? @relation("EmployerVerificationLogs", fields: [entityId], references: [employerId], map: "VerLog_employer_fk")
+  workerVerification  WorkerVerification?   @relation("WorkerVerificationLogs", fields: [entityId], references: [workerId], map: "VerLog_worker_fk")
+
+  @@index([entityType, entityId])
+  @@index([action])
+  @@index([createdAt])
+}
+
+model IdentityCheck {
+  id                  String              @id @default(uuid())
+  workerId            String
+  checkType           IdentityCheckType
+  provider            String?
+  providerReferenceId String?
+  status              VerificationStatus  @default(PENDING)
+  requestPayload      Json?
+  responsePayload     Json?
+  result              IdentityCheckResult?
+  confidenceScore     Int?
+  failureReason       String?
+  checkedAt           DateTime?
+  checkedBy           String?
+  metadata            Json?
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  worker              WorkerVerification  @relation("WorkerIdentityChecks", fields: [workerId], references: [id], onDelete: Cascade)
+
+  @@index([workerId])
+  @@index([checkType])
+  @@index([status])
+}
+
+model SuspiciousActivity {
+  id                  String              @id @default(uuid())
+  entityType          EntityType
+  entityId            String?
+  userId              String?
+  activityType        SuspiciousActivityType
+  severity            SeverityLevel       @default(MEDIUM)
+  riskScore           Int                 @default(50)
+  description         String
+  details             Json?
+  ipAddress           String?
+  userAgent           String?
+  fingerprint         String?
+  status              ActivityStatus      @default(NEW)
+  reviewedAt          DateTime?
+  reviewedBy          String?
+  reviewNotes         String?
+  actionTaken         String?
+  isFalsePositive     Boolean             @default(false)
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  user                User?               @relation(fields: [userId], references: [id], map: "SuspAct_user_fk")
+
+  @@index([entityType, entityId])
+  @@index([userId])
+  @@index([activityType])
+  @@index([severity])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model FraudIndicator {
+  id                  String              @id @default(uuid())
+  entityType          EntityType
+  entityId            String
+  indicatorType       FraudIndicatorType
+  description         String
+  severity            SeverityLevel
+  isConfirmed         Boolean             @default(false)
+  isFalsePositive     Boolean             @default(false)
+  confidenceScore     Int                 @default(50)
+  details             Json?
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  worker              Worker?             @relation("WorkerFraudIndicators", fields: [entityId], references: [id], map: "FraudInd_worker_fk")
+  employer            Employer?           @relation("EmployerFraudIndicators", fields: [entityId], references: [id], map: "FraudInd_employer_fk")
+
+  @@index([entityType, entityId])
+  @@index([indicatorType])
+  @@index([severity])
+}
+
+model DuplicateAccountCheck {
+  id                  String              @id @default(uuid())
+  primaryUserId       String
+  suspectedUserId     String
+  matchType           DuplicateMatchType
+  matchFields         String[]
+  confidenceScore     Int
+  isConfirmed         Boolean             @default(false)
+  isFalsePositive     Boolean             @default(false)
+  reviewedAt          DateTime?
+  reviewedBy          String?
+  actionTaken         String?
+  details             Json?
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+
+  @@unique([primaryUserId, suspectedUserId])
+  @@index([primaryUserId])
+  @@index([suspectedUserId])
+  @@index([matchType])
+}
+
+model TrustScore {
+  id                  String              @id @default(uuid())
+  entityType          EntityType
+  entityId            String              @unique
+  overallScore        Int                 @default(50)
+  scoreGrade          String              @default("C")
+  employerScore       Int?
+  workerScore         Int?
+  verificationScore   Int?
+  behaviorScore       Int?
+  reputationScore     Int?
+  riskAdjustedScore   Int?
+  scoreHistory        Json?
+  factors             Json?
+  lastCalculatedAt    DateTime            @default(now())
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+
+  @@index([entityType, entityId])
+  @@index([overallScore])
+  @@index([scoreGrade])
+}
+
+model BlacklistEntry {
+  id                  String              @id @default(uuid())
+  entityType          EntityType
+  entityId            String
+  userId              String?
+  reason              String
+  severity            SeverityLevel
+  source              String
+  evidence            Json?
+  isActive            Boolean             @default(true)
+  expiresAt           DateTime?
+  reviewedAt          DateTime?
+  reviewedBy          String?
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  user                User?               @relation("BlacklistedUser", fields: [userId], references: [id], map: "Blacklist_user_fk")
+  worker              Worker?             @relation("BlacklistedWorker", fields: [entityId], references: [id], map: "Blacklist_worker_fk")
+  employer            Employer?           @relation("BlacklistedEmployer", fields: [entityId], references: [id], map: "Blacklist_employer_fk")
+
+  @@unique([entityType, entityId])
+  @@index([entityType])
+  @@index([severity])
+  @@index([isActive])
+}
+
+enum VerificationLevel {
+  NONE
+  BASIC
+  STANDARD
+  ENHANCED
+  PREMIUM
+}
+
+enum RiskLevel {
+  UNKNOWN
+  VERY_LOW
+  LOW
+  MEDIUM
+  HIGH
+  VERY_HIGH
+  CRITICAL
+}
+
+enum IdentityVerificationMethod {
+  MANUAL
+  DOCUMENT_SCAN
+  BIOMETRIC
+  VIDEO_CALL
+  THIRD_PARTY
+}
+
+enum BackgroundCheckStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  CLEAR
+  FLAGS_FOUND
+  FAILED
+}
+
+enum ReferenceCheckStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  POSITIVE
+  MIXED
+  NEGATIVE
+  FAILED
+}
+
+enum EntityType {
+  USER
+  WORKER
+  EMPLOYER
+  OFFER
+  CONVERSATION
+}
+
+enum DocumentType {
+  ID_CARD
+  PASSPORT
+  DRIVERS_LICENSE
+  RESIDENCE_PERMIT
+  BUSINESS_REGISTRATION
+  TAX_DOCUMENT
+  BANK_STATEMENT
+  UTILITY_BILL
+  CERTIFICATE
+  DIPLOMA
+  REFERENCE_LETTER
+  OTHER
+}
+
+enum VerificationAction {
+  SUBMITTED
+  APPROVED
+  REJECTED
+  EXPIRED
+  REVOKED
+  FLAGGED
+  REVIEWED
+  UPDATED
+}
+
+enum IdentityCheckType {
+  DOCUMENT_VERIFICATION
+  FACIAL_RECOGNITION
+  LIVENESS_CHECK
+  ADDRESS_VERIFICATION
+  PHONE_VERIFICATION
+  EMAIL_VERIFICATION
+  SSN_VERIFICATION
+  BACKGROUND_CHECK
+}
+
+enum IdentityCheckResult {
+  PASS
+  FAIL
+  UNCERTAIN
+  ERROR
+}
+
+enum SuspiciousActivityType {
+  RAPID_ACCOUNT_CREATION
+  MULTIPLE_FAILED_LOGINS
+  UNUSUAL_LOGIN_LOCATION
+  BULK_DATA_ACCESS
+  RATE_LIMIT_EXCEEDED
+  PAYMENT_ANOMALY
+  PROFILE_MANIPULATION
+  MESSAGE_SPAM
+  FAKE_DOCUMENT_UPLOAD
+  IDENTITY_MISMATCH
+  DUPLICATE_ACCOUNT
+  BOT_BEHAVIOR
+  CIRCUMVENTION_ATTEMPT
+  DATA_SCRAPING
+}
+
+enum FraudIndicatorType {
+  DOCUMENT_FRAUD
+  IDENTITY_FRAUD
+  PAYMENT_FRAUD
+  ACCOUNT_TAKEOVER
+  SYNTHETIC_IDENTITY
+  BUSINESS_FRAUD
+  REVIEW_MANIPULATION
+  OFFER_FRAUD
+}
+
+enum ActivityStatus {
+  NEW
+  UNDER_REVIEW
+  CONFIRMED
+  FALSE_POSITIVE
+  RESOLVED
+  ESCALATED
+}
+
+enum SeverityLevel {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum DuplicateMatchType {
+  EMAIL
+  PHONE
+  IP_ADDRESS
+  DEVICE_FINGERPRINT
+  DOCUMENT_NUMBER
+  ADDRESS
+  NAME_SIMILARITY
+  COMPOSITE
 }

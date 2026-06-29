@@ -1,9 +1,23 @@
-import { Controller, Post, Body, BadRequestException, Get, Query } from '@nestjs/common';
+import { Controller, Post, Body, BadRequestException, Get, Query, Headers, Request } from '@nestjs/common';
 import { AuthService } from './auth.service';
 
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
+
+  /**
+   * Extract IP address from request
+   */
+  private getClientIp(req: any): string | undefined {
+    return req?.ip || req?.headers?.['x-forwarded-for']?.split(',')[0] || req?.headers?.['x-real-ip'];
+  }
+
+  /**
+   * Extract User-Agent from request
+   */
+  private getUserAgent(req: any): string | undefined {
+    return req?.headers?.['user-agent'];
+  }
 
   // ============================================================================
   // GET CURRENT USER
@@ -33,13 +47,15 @@ export class AuthController {
   async registerWorker(
     @Body('email') email: string,
     @Body('password') password: string,
-    @Body('phone') phone?: string
+    @Body('phone') phone?: string,
+    @Request() req?: any,
   ) {
     if (!email || !password) {
       throw new BadRequestException('Email and password are required');
     }
 
-    return this.authService.registerWorker(email, password, phone);
+    const ipAddress = this.getClientIp(req);
+    return this.authService.registerWorker(email, password, phone, ipAddress);
   }
 
   // ============================================================================
@@ -85,13 +101,15 @@ export class AuthController {
     @Body('email') email: string,
     @Body('password') password: string,
     @Body('phone') phone: string,
-    @Body('company') company: { name: string; kvkNumber: string; website?: string }
+    @Body('company') company: { name: string; kvkNumber: string; website?: string },
+    @Request() req?: any,
   ) {
     if (!email || !password || !phone || !company) {
       throw new BadRequestException('All fields are required');
     }
 
-    return this.authService.registerEmployer(email, password, phone, company);
+    const ipAddress = this.getClientIp(req);
+    return this.authService.registerEmployer(email, password, phone, company, ipAddress);
   }
 
   // ============================================================================
@@ -101,13 +119,16 @@ export class AuthController {
   @Post('login')
   async login(
     @Body('email') email: string,
-    @Body('password') password: string
+    @Body('password') password: string,
+    @Request() req?: any,
   ) {
     if (!email || !password) {
       throw new BadRequestException('Email and password are required');
     }
 
-    return this.authService.login(email, password);
+    const ipAddress = this.getClientIp(req);
+    const userAgent = this.getUserAgent(req);
+    return this.authService.login(email, password, ipAddress, userAgent);
   }
 
   // ============================================================================
