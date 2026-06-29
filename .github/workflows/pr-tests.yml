@@ -40,7 +40,7 @@ jobs:
 
       # Generate Prisma client
       - name: Generate Prisma client
-        run: npm run db:generate
+        run: npx prisma generate --schema=./prisma/schema.prisma
         working-directory: ./apps/api
 
       # Run API tests
