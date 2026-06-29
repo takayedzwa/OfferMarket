@@ -10,6 +10,7 @@ import { CommonModule } from './modules/common/common.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { SupportModule } from './modules/support/support.module';
 import { RatingsModule } from './modules/ratings/ratings.module';
+import { TrustModule } from './modules/trust/trust.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { RatingsModule } from './modules/ratings/ratings.module';
     AdminModule,
     SupportModule,
     RatingsModule,
+    TrustModule,
   ],
 })
 export class AppModule {}
