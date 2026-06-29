@@ -1,0 +1,643 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               String          @id @default(uuid())
+  email            String          @unique
+  passwordHash     String
+  role             UserRole
+  emailVerified    Boolean         @default(false)
+  phone            String?
+  phoneVerified    Boolean         @default(false)
+  status           UserStatus      @default(ACTIVE)
+  twoFactorEnabled Boolean         @default(false)
+  twoFactorSecret  String?
+  lastLoginAt      DateTime?
+  lastLoginIp      String?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  deletedAt        DateTime?
+  conversations1   Conversation[]  @relation("ConversationParticipant1")
+  conversations2   Conversation[]  @relation("ConversationParticipant2")
+  employer         Employer?
+  receivedMessages Message[]       @relation("MessageRecipient")
+  sentMessages     Message[]       @relation("MessageSender")
+  notifications    Notification[]
+  ratings          Rating[]
+  worker           Worker?
+  supportTickets   SupportTicket[] @relation("UserSupportTickets")
+  assignedTickets  SupportTicket[] @relation("AssignedSupportTickets")
+  resolvedTickets  SupportTicket[] @relation("ResolvedSupportTickets")
+
+  @@index([email])
+  @@index([role])
+}
+
+model Worker {
+  id                     String            @id @default(uuid())
+  userId                 String            @unique
+  publicId               String            @unique
+  regionId               String?
+  postalCode             String?
+  country                String            @default("NL")
+  yearsOfExperience      Int?              @map("years_of_experience")
+  primaryTrade           String?           @map("primary_trade")
+  availability           Availability      @default(NOT_AVAILABLE)
+  noticePeriodDays       Int?              @map("notice_period_days")
+  desiredSalaryMin       Int?              @map("desired_salary_min")
+  desiredSalaryMax       Int?              @map("desired_salary_max")
+  desiredHourlyRate      Int?              @map("desired_hourly_rate")
+  employmentTypes        EmploymentType[]  @map("employment_types")
+  travelDistanceKm       Int?              @default(30) @map("travel_distance_km")
+  workSchedulePrefs      WorkScheduleType[] @map("work_schedule_prefs")
+  industryPrefs          IndustryType[]    @map("industry_prefs")
+  careerPriorities       CareerPriority[]  @map("career_priorities")
+  profileVisibility      ProfileVisibility @default(ALL_VERIFIED)
+  isProfileComplete      Boolean           @default(false) @map("is_profile_complete")
+  profileCompletenessPct Int               @default(0) @map("profile_completeness_pct")
+  reputationScore        Int               @default(50) @map("reputation_score")
+  createdAt              DateTime          @default(now())
+  updatedAt              DateTime          @updatedAt
+  deletedAt              DateTime?
+  blockedCompanies       BlockedCompany[]
+  certifications         Certification[]
+  offersReceived         Offer[]
+  skills                 ProfileSkill[]
+  region                 Region?           @relation(fields: [regionId], references: [id])
+  user                   User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([regionId])
+  @@index([availability])
+  @@index([profileVisibility])
+  @@index([publicId])
+}
+
+model Skill {
+  id                String          @id @default(uuid())
+  name              String
+  slug              String          @unique
+  category          String
+  subcategory       String?
+  description       String?
+  isCertification   Boolean         @default(false)
+  certificationBody String?
+  parentSkillId     String?
+  isActive          Boolean         @default(true)
+  usageCount        Int             @default(0)
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  certifications    Certification[]
+  profileSkills     ProfileSkill[]
+  parentSkill       Skill?          @relation("SkillHierarchy", fields: [parentSkillId], references: [id])
+  childSkills       Skill[]         @relation("SkillHierarchy")
+
+  @@index([category])
+  @@index([slug])
+}
+
+model ProfileSkill {
+  id                  String     @id @default(uuid())
+  profileId           String
+  skillId             String
+  level               SkillLevel
+  yearsOfExperience   Int?
+  certificationNumber String?
+  certifiedBy         String?
+  validUntil          DateTime?
+  isVerified          Boolean    @default(false)
+  isPrimary           Boolean    @default(false)
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
+  profile             Worker     @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  skill               Skill      @relation(fields: [skillId], references: [id])
+
+  @@unique([profileId, skillId])
+  @@index([profileId])
+  @@index([skillId])
+}
+
+model Certification {
+  id                  String             @id @default(uuid())
+  profileId           String
+  skillId             String?
+  name                String
+  certificationNumber String?
+  issuingBody         String
+  issuedAt            DateTime?
+  validFrom           DateTime?
+  validUntil          DateTime?
+  isLifetime          Boolean            @default(false)
+  verificationStatus  VerificationStatus @default(PENDING)
+  verifiedAt          DateTime?
+  verifiedBy          String?
+  verificationMethod  String?
+  documentUrl         String?
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+  profile             Worker             @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  skill               Skill?             @relation(fields: [skillId], references: [id])
+
+  @@index([profileId])
+  @@index([verificationStatus])
+}
+
+model Employer {
+  id                   String                     @id @default(uuid())
+  userId               String                     @unique
+  companyName          String
+  companyTradeName     String?
+  kvkNumber            String                     @unique
+  vatNumber            String?
+  companySize          String?
+  industry             String?
+  foundedYear          Int?
+  registeredAddress    Json
+  businessAddress      Json?
+  website              String?
+  phone                String?
+  billingEmail         String?
+  verificationStatus   EmployerVerificationStatus @default(PENDING)
+  verifiedAt           DateTime?
+  verifiedBy           String?
+  reputationScore      Int                        @default(50)
+  offerAcceptanceRate  Int                        @default(0)
+  avgResponseTimeHours Int                        @default(0)
+  totalOffersSent      Int                        @default(0)
+  totalHires           Int                        @default(0)
+  billingStatus        String                     @default("active")
+  subscriptionPlan     String                     @default("pay_per_intro")
+  creditBalance        Int                        @default(0)
+  createdAt            DateTime                   @default(now())
+  updatedAt            DateTime                   @updatedAt
+  deletedAt            DateTime?
+  blockedBy            BlockedCompany[]
+  user                 User                       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  offersSent           Offer[]
+  ratings              Rating[]
+
+  @@index([userId])
+  @@index([kvkNumber])
+  @@index([verificationStatus])
+}
+
+model Region {
+  id               String     @id @default(uuid())
+  parentId         String?
+  name             String
+  nameEn           String?
+  type             RegionType
+  province         String?
+  postalCodePrefix String?
+  latitude         Decimal?
+  longitude        Decimal?
+  createdAt        DateTime   @default(now())
+  parent           Region?    @relation("RegionHierarchy", fields: [parentId], references: [id])
+  childRegions     Region[]   @relation("RegionHierarchy")
+  workers          Worker[]
+
+  @@index([parentId])
+  @@index([type])
+}
+
+model Offer {
+  id               String         @id @default(uuid())
+  publicId         String         @unique
+  workerId         String
+  employerId       String
+  jobTitle         String
+  department       String?
+  jobDescription   String
+  status           OfferStatus    @default(DRAFT)
+  submittedAt      DateTime?
+  viewedAt         DateTime?
+  expiresAt        DateTime
+  acceptedAt       DateTime?
+  rejectedAt       DateTime?
+  withdrawnAt      DateTime?
+  shortlistedAt    DateTime?
+  counteredAt      DateTime?
+  currentVersionId String?        @unique
+  source           String?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  conversation     Conversation?
+  currentVersion   OfferVersion?  @relation("CurrentVersion", fields: [currentVersionId], references: [id])
+  employer         Employer       @relation(fields: [employerId], references: [id])
+  worker           Worker         @relation(fields: [workerId], references: [id])
+  versions         OfferVersion[]
+  rating           Rating?
+
+  @@index([workerId])
+  @@index([employerId])
+  @@index([status])
+  @@index([submittedAt])
+  @@index([expiresAt])
+  @@index([workerId, status])
+}
+
+model OfferVersion {
+  id                      String    @id @default(uuid())
+  offerId                 String
+  version                 Int       @default(1)
+  isAcceptedVersion       Boolean   @default(false)
+  salaryMin               Int       @map("salary_min")
+  salaryMax               Int       @map("salary_max")
+  salaryPeriod            String    @default("year") @map("salary_period")
+  hourlyRate              Int?      @map("hourly_rate")
+  signOnBonus             Int       @default(0) @map("sign_on_bonus")
+  performanceBonusPct     Int       @default(0) @map("performance_bonus_pct")
+  overtimeRate            Int?      @map("overtime_rate")
+  weekendRate             Int?      @map("weekend_rate")
+  contractType            String    @map("contract_type")
+  contractDurationMonths  Int?      @map("contract_duration_months")
+  hoursPerWeek            Int       @map("hours_per_week")
+  startDateType           String    @default("flexible") @map("start_date_type")
+  startDate               DateTime? @map("start_date")
+  probationMonths         Int       @default(2) @map("probation_months")
+  vacationDays            Int       @map("vacation_days")
+  holidayAllowancePct     Int       @default(8) @map("holiday_allowance_pct")
+  pensionContributionPct  Int       @default(0) @map("pension_contribution_pct")
+  trainingBudget          Int       @default(0) @map("training_budget")
+  companyVehicle          String    @map("company_vehicle")
+  vehicleType             String?   @map("vehicle_type")
+  vehicleValueEst         Int?      @map("vehicle_value_est")
+  travelAllowanceType     String    @map("travel_allowance_type")
+  travelAllowanceValue    Int?      @map("travel_allowance_value")
+  phoneProvided           Boolean   @default(false) @map("phone_provided")
+  toolsProvided           Boolean   @default(false) @map("tools_provided")
+  scheduleType            String[]  @map("schedule_type")
+  onCallDetails           String?   @map("on_call_details")
+  remoteWorkPct           Int       @default(0) @map("remote_work_pct")
+  travelRequiredPct       Int       @default(0) @map("travel_required_pct")
+  travelRegion            String?   @map("travel_region")
+  physicalRequirements    String    @map("physical_requirements")
+  requiredCertifications  String[]  @map("required_certifications")
+  requiredExperienceYears Int       @default(0) @map("required_experience_years")
+  createdAt               DateTime  @default(now())
+  currentOffer            Offer?    @relation("CurrentVersion")
+  offer                   Offer     @relation(fields: [offerId], references: [id], onDelete: Cascade)
+
+  @@index([offerId])
+  @@index([offerId, version])
+}
+
+model Conversation {
+  id                     String    @id @default(uuid())
+  offerId                String    @unique
+  participant1Id         String
+  participant2Id         String
+  workerIdentityRevealed Boolean   @default(false)
+  workerIdentitySnapshot Json?
+  lastMessageAt          DateTime?
+  lastMessagePreview     String?
+  unreadCountWorker      Int       @default(0)
+  unreadCountEmployer    Int       @default(0)
+  isArchivedWorker       Boolean   @default(false)
+  isArchivedEmployer     Boolean   @default(false)
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+  offer                  Offer     @relation(fields: [offerId], references: [id])
+  participant1           User      @relation("ConversationParticipant1", fields: [participant1Id], references: [id])
+  participant2           User      @relation("ConversationParticipant2", fields: [participant2Id], references: [id])
+  messages               Message[]
+
+  @@index([offerId])
+  @@index([participant1Id])
+  @@index([participant2Id])
+}
+
+model Message {
+  id               String       @id @default(uuid())
+  conversationId   String
+  senderId         String
+  recipientId      String
+  content          String
+  contentEncrypted String?
+  messageType      MessageType  @default(TEXT)
+  attachments      Json[]
+  isRead           Boolean      @default(false)
+  readAt           DateTime?
+  isDeleted        Boolean      @default(false)
+  isSystemMessage  Boolean      @default(false)
+  createdAt        DateTime     @default(now())
+  conversation     Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  recipient        User         @relation("MessageRecipient", fields: [recipientId], references: [id])
+  sender           User         @relation("MessageSender", fields: [senderId], references: [id])
+
+  @@index([conversationId])
+  @@index([senderId])
+  @@index([recipientId])
+  @@index([recipientId, isRead])
+}
+
+model BlockedCompany {
+  id         String   @id @default(uuid())
+  workerId   String
+  employerId String
+  reason     String?
+  createdAt  DateTime @default(now())
+  employer   Employer @relation(fields: [employerId], references: [id], onDelete: Cascade)
+  worker     Worker   @relation(fields: [workerId], references: [id], onDelete: Cascade)
+
+  @@unique([workerId, employerId])
+  @@index([workerId])
+  @@index([employerId])
+}
+
+model Rating {
+  id                        String    @id @default(uuid())
+  offerId                   String    @unique
+  raterId                   String
+  employerId                String
+  ratingOverall             Int
+  ratingInterviewExperience Int?
+  ratingTransparency        Int?
+  ratingCommunication       Int?
+  ratingOfferAccuracy       Int?
+  ratingWorkLifeBalance     Int?
+  wouldWorkAgain            Boolean?
+  reviewText                String?
+  reviewTitle               String?
+  isPublished               Boolean   @default(false)
+  isVerifiedHire            Boolean   @default(false)
+  flaggedAt                 DateTime?
+  createdAt                 DateTime  @default(now())
+  updatedAt                 DateTime  @updatedAt
+  employer                  Employer  @relation(fields: [employerId], references: [id])
+  offer                     Offer     @relation(fields: [offerId], references: [id])
+  rater                     User      @relation(fields: [raterId], references: [id])
+
+  @@index([offerId])
+  @@index([employerId])
+  @@index([raterId])
+  @@index([isPublished])
+}
+
+model Notification {
+  id               String    @id @default(uuid())
+  userId           String
+  notificationType String
+  category         String?
+  title            String
+  body             String
+  actionUrl        String?
+  actionData       Json?
+  channelEmail     Boolean   @default(false)
+  channelPush      Boolean   @default(false)
+  channelSms       Boolean   @default(false)
+  isRead           Boolean   @default(false)
+  readAt           DateTime?
+  deliveredAt      DateTime?
+  createdAt        DateTime  @default(now())
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([notificationType])
+  @@index([userId, isRead])
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String?
+  userEmail  String?
+  userRole   String?
+  action     String
+  entityType String
+  entityId   String?
+  changes    Json?
+  ipAddress  String?
+  userAgent  String?
+  requestId  String?
+  occurredAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([entityType, entityId])
+  @@index([action])
+  @@index([occurredAt])
+}
+
+// ============================================================================
+// ADMIN & SUPPORT MODELS
+// ============================================================================
+
+model AdminSettings {
+  id         String   @id @default(uuid())
+  key        String   @unique
+  value      Json
+  category   String   @default("general")
+  isPublic   Boolean  @default(false)
+  updatedAt  DateTime @updatedAt
+  updatedBy  String?  // User ID of admin who last updated
+  createdAt  DateTime @default(now())
+
+  @@index([category])
+  @@index([key])
+}
+
+model SupportTicket {
+  id              String           @id @default(uuid())
+  ticketNumber    String           @unique // e.g., "SUP-2026-000001"
+  userId          String           // User who created the ticket
+  assignedToId    String?          // Support admin assigned
+  subject         String
+  description     String
+  category        String           // e.g., "account", "payment", "technical", "dispute"
+  priority        TicketPriority   @default(MEDIUM)
+  status          TicketStatus     @default(OPEN)
+  relatedEntityType String?        // e.g., "offer", "employer", "worker"
+  relatedEntityId   String?
+  conversation    TicketMessage[]
+  resolvedAt      DateTime?
+  resolvedById    String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  user            User             @relation("UserSupportTickets", fields: [userId], references: [id])
+  assignedTo      User?            @relation("AssignedSupportTickets", fields: [assignedToId], references: [id])
+  resolver        User?            @relation("ResolvedSupportTickets", fields: [resolvedById], references: [id])
+
+  @@index([userId])
+  @@index([assignedToId])
+  @@index([status])
+  @@index([priority])
+  @@index([createdAt])
+}
+
+model TicketMessage {
+  id          String   @id @default(uuid())
+  ticketId    String
+  senderId    String   // User or Support admin
+  content     String
+  isInternal  Boolean  @default(false) // Internal notes not visible to user
+  attachments Json?
+  createdAt   DateTime @default(now())
+
+  ticket      SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId])
+  @@index([senderId])
+}
+
+model AdminAction {
+  id          String   @id @default(uuid())
+  adminId     String
+  action      String   // e.g., "USER_SUSPENDED", "EMPLOYER_VERIFIED"
+  entityType  String   // e.g., "user", "employer", "offer"
+  entityId    String?
+  details     Json?
+  ipAddress   String?
+  createdAt   DateTime @default(now())
+
+  @@index([adminId])
+  @@index([action])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+}
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  PENDING_USER
+  RESOLVED
+  CLOSED
+}
+
+enum UserRole {
+  WORKER
+  EMPLOYER
+  ADMIN
+  SUPPORT
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  BANNED
+  PENDING_VERIFICATION
+  DELETED
+}
+
+enum Availability {
+  IMMEDIATE
+  ONE_MONTH
+  THREE_MONTHS
+  SIX_MONTHS
+  NOT_AVAILABLE
+}
+
+enum ProfileVisibility {
+  ALL_VERIFIED
+  SELECTED_COMPANIES
+  HIDDEN
+}
+
+enum SkillLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+  EXPERT
+  MASTER
+}
+
+enum VerificationStatus {
+  PENDING
+  VERIFIED
+  EXPIRED
+  REVOKED
+}
+
+enum EmployerVerificationStatus {
+  PENDING
+  BASIC_VERIFIED
+  PREMIUM_VERIFIED
+  REJECTED
+}
+
+enum RegionType {
+  COUNTRY
+  PROVINCE
+  CITY
+  DISTRICT
+  POSTAL_CODE
+}
+
+enum OfferStatus {
+  DRAFT
+  SUBMITTED
+  VIEWED
+  SHORTLISTED
+  ACCEPTED
+  REJECTED
+  EXPIRED
+  WITHDRAWN
+  COUNTERED
+}
+
+enum MessageType {
+  TEXT
+  FILE
+  CALENDAR_INVITE
+  DOCUMENT_REQUEST
+}
+
+enum WorkScheduleType {
+  STANDARD
+  FLEXIBLE
+  WEEKEND
+  EVENING
+  ROTATING
+}
+
+enum IndustryType {
+  CONSTRUCTION
+  INDUSTRIAL
+  RESIDENTIAL
+  COMMERCIAL
+  INFRASTRUCTURE
+  ENERGY
+  TELECOM
+  MANUFACTURING
+  HEALTHCARE
+  EDUCATION
+  HOSPITALITY
+  RETAIL
+  TRANSPORTATION
+  AGRICULTURE
+  PUBLIC_SECTOR
+}
+
+enum CareerPriority {
+  WORK_LIFE_BALANCE
+  HIGH_SALARY
+  CAREER_GROWTH
+  REMOTE_FLEXIBILITY
+  JOB_SECURITY
+  IMPACTFUL_WORK
+  TEAM_CULTURE
+  LEARNING_OPPORTUNITIES
+  LOCATION_CONVENIENCE
+  BENEFITS_PERKS
+}
+
+enum EmploymentType {
+  FULL_TIME
+  PART_TIME
+  FREELANCE
+  CONTRACT
+  TEMPORARY
+  INTERNSHIP
+}

@@ -42,7 +42,7 @@ coverage/
 *.sqlite
 *.sqlite3
 prisma/dev.db
-*.prisma
+prisma/generated/
 
 # IDE
 .claude
