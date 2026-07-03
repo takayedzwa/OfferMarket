@@ -49,7 +49,7 @@ export default function EmployerDashboard() {
         // Fetch offers
         let offersData = [];
         try {
-          const offersRes = await offersApi.getEmployerOffers();
+          const offersRes = await offersApi.getEmployerOffers(userId);
           offersData = offersRes.data || [];
         } catch (err: any) {
           console.error("Failed to fetch offers:", err);
