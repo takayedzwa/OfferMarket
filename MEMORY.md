@@ -7,3 +7,4 @@
 - [Marketplace Mechanics](docs/business/marketplace-mechanics.md) — Algorithms and reputation
 - [Revenue Model](docs/business/revenue-model.md) — 5-year financial projections
 - [Launch Strategy](docs/business/launch-strategy.md) — 6-week MVP and GTM plan
+- [Trust Layer](docs/TRUST_LAYER.md) — Verification, fraud prevention, reputation scoring

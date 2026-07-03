@@ -34,7 +34,16 @@ export default function ConversationsPage() {
   useEffect(() => {
     async function loadConversations() {
       try {
-        const response = await api.get('/conversations/me');
+        const userId = localStorage.getItem('userId');
+        const role = localStorage.getItem('userRole');
+        const userType = role === 'EMPLOYER' ? 'employer' : 'worker';
+
+        if (!userId || !userType) {
+          router.push('/login');
+          return;
+        }
+
+        const response = await conversationsApi.listConversations(userId, userType);
         setConversations(response.data);
       } catch (error) {
         console.error("Failed to load conversations:", error);
@@ -54,7 +63,10 @@ export default function ConversationsPage() {
 
   const loadMessages = async (conversationId: string) => {
     try {
-      const response = await api.get(`/conversations/${conversationId}/messages`);
+      const userId = localStorage.getItem('userId');
+      const response = await api.get(`/conversations/${conversationId}/messages`, {
+        params: { userId }
+      });
       setMessages(response.data);
     } catch (error) {
       console.error("Failed to load messages:", error);
@@ -67,15 +79,18 @@ export default function ConversationsPage() {
 
     setSending(true);
     try {
+      const userId = localStorage.getItem('userId');
       const response = await api.post(
         `/conversations/${selectedConversation.id}/messages`,
-        { content: newMessage.trim() }
+        { content: newMessage.trim() },
+        { params: { userId } }
       );
       setMessages((prev) => [...prev, response.data]);
       setNewMessage("");
 
       // Refresh conversations to update last message
-      const convsResponse = await api.get('/conversations/me');
+      const userType = userRole === 'EMPLOYER' ? 'employer' : 'worker';
+      const convsResponse = await conversationsApi.listConversations(userId, userType);
       setConversations(convsResponse.data);
     } catch (error) {
       console.error("Failed to send message:", error);
@@ -216,9 +231,10 @@ export default function ConversationsPage() {
                     <ArrowLeft className="w-5 h-5" />
                   </button>
                   <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                    {getOtherParty(selectedConversation).icon({
-                      className: "w-5 h-5 text-blue-600",
-                    })}
+                    {(() => {
+                      const IconComponent = getOtherParty(selectedConversation).icon;
+                      return <IconComponent className="w-5 h-5 text-blue-600" />;
+                    })()}
                   </div>
                   <div>
                     <h3 className="font-medium text-gray-900">

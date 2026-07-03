@@ -244,8 +244,8 @@ export const offersApi = {
   },
 
   // Get offers for employer
-  getEmployerOffers: () => {
-    return api.get('/offers');
+  getEmployerOffers: (employerId: string) => {
+    return api.get('/offers', { params: { employerId } });
   },
 };
 

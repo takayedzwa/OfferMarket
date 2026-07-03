@@ -44,6 +44,19 @@ export class MessagesController {
     return this.messagesService.getConversation(id, userId);
   }
 
+  @Get(':id/messages')
+  @UseGuards(SimpleAuthGuard)
+  async getMessages(
+    @Param('id') id: string,
+    @Query('userId') userId: string
+  ) {
+    if (!userId) {
+      throw new BadRequestException('userId is required');
+    }
+    const conversation = await this.messagesService.getConversation(id, userId);
+    return conversation.messages || [];
+  }
+
   @Post(':id/messages')
   @UseGuards(SimpleAuthGuard)
   async sendMessage(
