@@ -4,8 +4,6 @@ import { PrismaService } from '../../../prisma/prisma.service';
 import {
   VerificationLevel,
   RiskLevel,
-  BackgroundCheckStatus,
-  ReferenceCheckStatus,
   SeverityLevel,
   ActivityStatus,
   EntityType,
@@ -13,8 +11,6 @@ import {
   VerificationStatus,
   FraudIndicatorType,
   DuplicateMatchType,
-  IdentityCheckResult,
-  IdentityCheckType,
 } from '@prisma/client';
 
 /**
@@ -948,7 +944,6 @@ describe('TrustService', () => {
 
   describe('Reputation Scoring', () => {
     const mockEmployerId = 'employer-123';
-    const mockWorkerId = 'worker-123';
 
     describe('calculateReputationScore', () => {
       it('should calculate employer reputation score', async () => {
@@ -999,19 +994,14 @@ describe('TrustService', () => {
 
       it('should calculate worker reputation score', async () => {
         // Arrange
+        const mockWorkerId = 'worker-123';
         const dto = {
           workerId: mockWorkerId,
         };
 
         prisma.worker.findUnique.mockResolvedValue({
           id: mockWorkerId,
-          verificationStatus: 'STANDARD_VERIFIED',
-          verification: {
-            identityVerified: true,
-            documentVerified: true,
-            backgroundCheckStatus: BackgroundCheckStatus.CLEAR,
-            referenceCheckStatus: ReferenceCheckStatus.POSITIVE,
-          },
+          profileCompletenessPct: 85,
           offersReceived: [
             { status: 'ACCEPTED', submittedAt: new Date() },
             { status: 'ACCEPTED', submittedAt: new Date() },
@@ -1023,8 +1013,8 @@ describe('TrustService', () => {
           id: 'ts-1',
           entityId: mockWorkerId,
           entityType: 'WORKER',
-          overallScore: 85,
-          scoreGrade: 'A',
+          overallScore: 75,
+          scoreGrade: 'B',
         });
 
         // Act
