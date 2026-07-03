@@ -73,7 +73,6 @@ model Worker {
   skills                 ProfileSkill[]
   region                 Region?           @relation(fields: [regionId], references: [id])
   user                   User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  verification           WorkerVerification?
   fraudIndicators        FraudIndicator[]  @relation("WorkerFraudIndicators")
   blacklistEntries       BlacklistEntry[]  @relation("BlacklistedWorker")
 
@@ -685,40 +684,6 @@ model EmployerVerification {
   @@index([riskLevel])
 }
 
-model WorkerVerification {
-  id                    String              @id @default(uuid())
-  workerId              String              @unique
-  identityVerified      Boolean             @default(false)
-  identityVerifiedAt    DateTime?
-  identityMethod        IdentityVerificationMethod?
-  documentVerified      Boolean             @default(false)
-  documentVerifiedAt    DateTime?
-  verifiedDocuments     String[]            @default([])
-  backgroundCheckStatus BackgroundCheckStatus @default(NOT_STARTED)
-  backgroundCheckAt     DateTime?
-  referenceCheckStatus  ReferenceCheckStatus  @default(NOT_STARTED)
-  referenceCheckAt      DateTime?
-  certificationVerified Boolean             @default(false)
-  certificationVerifiedAt DateTime?
-  verificationLevel     VerificationLevel   @default(NONE)
-  riskLevel             RiskLevel           @default(UNKNOWN)
-  riskScore             Int                 @default(50)
-  lastReviewAt          DateTime?
-  lastReviewBy          String?
-  rejectionReason       String?
-  notes                 String?
-  createdAt             DateTime            @default(now())
-  updatedAt             DateTime            @updatedAt
-  worker                Worker              @relation(fields: [workerId], references: [id], onDelete: Cascade)
-  verificationDocuments VerificationDocument[] @relation("WorkerVerificationDocs")
-  verificationLogs      VerificationLog[]   @relation("WorkerVerificationLogs")
-  identityChecks        IdentityCheck[]     @relation("WorkerIdentityChecks")
-
-  @@index([workerId])
-  @@index([verificationLevel])
-  @@index([riskLevel])
-  @@index([backgroundCheckStatus])
-}
 
 model VerificationDocument {
   id                  String                @id @default(uuid())
@@ -741,7 +706,6 @@ model VerificationDocument {
   createdAt           DateTime              @default(now())
   updatedAt           DateTime              @updatedAt
   employerVerification EmployerVerification? @relation("EmployerVerificationDocs", fields: [entityId], references: [employerId], map: "VerDoc_employer_fk")
-  workerVerification  WorkerVerification?   @relation("WorkerVerificationDocs", fields: [entityId], references: [workerId], map: "VerDoc_worker_fk")
 
   @@index([entityType, entityId])
   @@index([documentType])
@@ -763,36 +727,12 @@ model VerificationLog {
   metadata            Json?
   createdAt           DateTime            @default(now())
   employerVerification EmployerVerification? @relation("EmployerVerificationLogs", fields: [entityId], references: [employerId], map: "VerLog_employer_fk")
-  workerVerification  WorkerVerification?   @relation("WorkerVerificationLogs", fields: [entityId], references: [workerId], map: "VerLog_worker_fk")
 
   @@index([entityType, entityId])
   @@index([action])
   @@index([createdAt])
 }
 
-model IdentityCheck {
-  id                  String              @id @default(uuid())
-  workerId            String
-  checkType           IdentityCheckType
-  provider            String?
-  providerReferenceId String?
-  status              VerificationStatus  @default(PENDING)
-  requestPayload      Json?
-  responsePayload     Json?
-  result              IdentityCheckResult?
-  confidenceScore     Int?
-  failureReason       String?
-  checkedAt           DateTime?
-  checkedBy           String?
-  metadata            Json?
-  createdAt           DateTime            @default(now())
-  updatedAt           DateTime            @updatedAt
-  worker              WorkerVerification  @relation("WorkerIdentityChecks", fields: [workerId], references: [id], onDelete: Cascade)
-
-  @@index([workerId])
-  @@index([checkType])
-  @@index([status])
-}
 
 model SuspiciousActivity {
   id                  String              @id @default(uuid())
@@ -934,30 +874,6 @@ enum RiskLevel {
   CRITICAL
 }
 
-enum IdentityVerificationMethod {
-  MANUAL
-  DOCUMENT_SCAN
-  BIOMETRIC
-  VIDEO_CALL
-  THIRD_PARTY
-}
-
-enum BackgroundCheckStatus {
-  NOT_STARTED
-  IN_PROGRESS
-  CLEAR
-  FLAGS_FOUND
-  FAILED
-}
-
-enum ReferenceCheckStatus {
-  NOT_STARTED
-  IN_PROGRESS
-  POSITIVE
-  MIXED
-  NEGATIVE
-  FAILED
-}
 
 enum EntityType {
   USER
@@ -993,23 +909,6 @@ enum VerificationAction {
   UPDATED
 }
 
-enum IdentityCheckType {
-  DOCUMENT_VERIFICATION
-  FACIAL_RECOGNITION
-  LIVENESS_CHECK
-  ADDRESS_VERIFICATION
-  PHONE_VERIFICATION
-  EMAIL_VERIFICATION
-  SSN_VERIFICATION
-  BACKGROUND_CHECK
-}
-
-enum IdentityCheckResult {
-  PASS
-  FAIL
-  UNCERTAIN
-  ERROR
-}
 
 enum SuspiciousActivityType {
   RAPID_ACCOUNT_CREATION

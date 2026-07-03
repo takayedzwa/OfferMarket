@@ -3,14 +3,11 @@ import { PrismaService } from '../../prisma/prisma.service';
 import {
   VerificationLevel,
   RiskLevel,
-  BackgroundCheckStatus,
-  ReferenceCheckStatus,
   SeverityLevel,
   ActivityStatus,
   EntityType,
   DocumentType,
   VerificationStatus,
-  IdentityCheckResult,
   FraudIndicatorType,
   DuplicateMatchType,
 } from '@prisma/client';
@@ -18,13 +15,6 @@ import {
   SubmitEmployerVerificationDto,
   SubmitEmployerDocumentDto,
   ReviewEmployerVerificationDto,
-  SubmitWorkerVerificationDto,
-  SubmitWorkerDocumentDto,
-  SubmitBackgroundCheckDto,
-  SubmitReferenceCheckDto,
-  ReviewWorkerVerificationDto,
-  InitiateIdentityCheckDto,
-  SubmitIdentityCheckResultDto,
 } from './dto/verification.dto';
 import {
   ReportSuspiciousActivityDto,
@@ -304,506 +294,6 @@ export class TrustService {
     return verification;
   }
 
-  // ============================================================================
-  // WORKER VERIFICATION
-  // ============================================================================
-
-  /**
-   * Initialize worker verification record
-   */
-  async initializeWorkerVerification(workerId: string) {
-    const existing = await this.prisma.workerVerification.findUnique({
-      where: { workerId },
-    });
-
-    if (existing) {
-      return existing;
-    }
-
-    return this.prisma.workerVerification.create({
-      data: {
-        workerId,
-        riskLevel: RiskLevel.UNKNOWN,
-        riskScore: 50,
-        verificationLevel: VerificationLevel.NONE,
-        backgroundCheckStatus: BackgroundCheckStatus.NOT_STARTED,
-        referenceCheckStatus: ReferenceCheckStatus.NOT_STARTED,
-      },
-    });
-  }
-
-  /**
-   * Submit worker verification data
-   */
-  async submitWorkerVerification(
-    workerId: string,
-    dto: SubmitWorkerVerificationDto,
-    userId?: string,
-  ) {
-    return this.prisma.$transaction(async (tx) => {
-      let verification = await tx.workerVerification.findUnique({
-        where: { workerId },
-      });
-
-      if (!verification) {
-        verification = await tx.workerVerification.create({
-          data: {
-            workerId,
-            riskLevel: RiskLevel.UNKNOWN,
-            riskScore: 50,
-            verificationLevel: VerificationLevel.NONE,
-            backgroundCheckStatus: BackgroundCheckStatus.NOT_STARTED,
-            referenceCheckStatus: ReferenceCheckStatus.NOT_STARTED,
-          },
-        });
-      }
-
-      const updateData: any = {};
-
-      if (dto.identityMethod) {
-        updateData.identityMethod = dto.identityMethod;
-      }
-
-      if (Object.keys(updateData).length > 0) {
-        verification = await tx.workerVerification.update({
-          where: { workerId },
-          data: updateData,
-        });
-
-        await tx.verificationLog.create({
-          data: {
-            entityType: 'WORKER',
-            entityId: workerId,
-            action: 'SUBMITTED',
-            newStatus: 'PENDING',
-            reason: 'Verification data submitted',
-            performedBy: userId,
-          },
-        });
-      }
-
-      return verification;
-    });
-  }
-
-  /**
-   * Submit worker verification document
-   */
-  async submitWorkerDocument(
-    workerId: string,
-    dto: SubmitWorkerDocumentDto,
-    userId?: string,
-  ) {
-    return this.prisma.$transaction(async (tx) => {
-      const verification = await tx.workerVerification.findUnique({
-        where: { workerId },
-      });
-
-      if (!verification) {
-        throw new NotFoundException('Worker verification record not found');
-      }
-
-      const document = await tx.verificationDocument.create({
-        data: {
-          entityType: 'WORKER',
-          entityId: workerId,
-          documentType: dto.documentType as DocumentType,
-          documentSubtype: dto.documentSubtype,
-          fileUrl: dto.fileUrl,
-          fileHash: dto.fileHash,
-          mimeType: dto.metadata?.['mimeType'] || 'application/pdf',
-          metadata: dto.metadata,
-        },
-      });
-
-      await tx.verificationLog.create({
-        data: {
-          entityType: 'WORKER',
-          entityId: workerId,
-          action: 'SUBMITTED',
-          newStatus: 'PENDING',
-          reason: `Document submitted: ${dto.documentType}`,
-          performedBy: userId,
-        },
-      });
-
-      return document;
-    });
-  }
-
-  /**
-   * Initiate identity check for worker
-   */
-  async initiateIdentityCheck(
-    workerId: string,
-    dto: InitiateIdentityCheckDto,
-    userId?: string,
-  ) {
-    return this.prisma.$transaction(async (tx) => {
-      const verification = await tx.workerVerification.findUnique({
-        where: { workerId },
-      });
-
-      if (!verification) {
-        throw new NotFoundException('Worker verification record not found');
-      }
-
-      const identityCheck = await tx.identityCheck.create({
-        data: {
-          workerId,
-          checkType: dto.checkType as any,
-          provider: dto.provider,
-          status: VerificationStatus.PENDING,
-          requestPayload: dto.payload,
-        },
-      });
-
-      await tx.verificationLog.create({
-        data: {
-          entityType: 'WORKER',
-          entityId: workerId,
-          action: 'SUBMITTED',
-          newStatus: 'PENDING',
-          reason: `Identity check initiated: ${dto.checkType}`,
-          performedBy: userId,
-        },
-      });
-
-      return identityCheck;
-    });
-  }
-
-  /**
-   * Submit identity check result
-   */
-  async submitIdentityCheckResult(
-    workerId: string,
-    checkId: string,
-    dto: SubmitIdentityCheckResultDto,
-  ) {
-    return this.prisma.$transaction(async (tx) => {
-      const identityCheck = await tx.identityCheck.findUnique({
-        where: { id: checkId },
-      });
-
-      if (!identityCheck) {
-        throw new NotFoundException('Identity check not found');
-      }
-
-      const updateData: any = {
-        status:
-          dto.result === 'PASS'
-            ? VerificationStatus.VERIFIED
-            : VerificationStatus.REVOKED,
-        result: dto.result as IdentityCheckResult,
-        confidenceScore: dto.confidenceScore,
-        failureReason: dto.failureReason,
-        responsePayload: dto.responsePayload,
-        checkedAt: new Date(),
-      };
-
-      const updated = await tx.identityCheck.update({
-        where: { id: checkId },
-        data: updateData,
-      });
-
-      // Update worker verification if check passed
-      if (dto.result === 'PASS') {
-        await tx.workerVerification.update({
-          where: { workerId },
-          data: {
-            identityVerified: true,
-            identityVerifiedAt: new Date(),
-          },
-        });
-      }
-
-      return updated;
-    });
-  }
-
-  /**
-   * Submit background check for worker
-   */
-  async submitBackgroundCheck(
-    workerId: string,
-    dto: SubmitBackgroundCheckDto,
-    userId?: string,
-  ) {
-    return this.prisma.$transaction(async (tx) => {
-      const verification = await tx.workerVerification.findUnique({
-        where: { workerId },
-      });
-
-      if (!verification) {
-        throw new NotFoundException('Worker verification record not found');
-      }
-
-      const updateData: any = {
-        backgroundCheckStatus: BackgroundCheckStatus.IN_PROGRESS,
-      };
-
-      if (dto.provider) {
-        updateData.notes = `Provider: ${dto.provider}`;
-      }
-
-      const updated = await tx.workerVerification.update({
-        where: { workerId },
-        data: updateData,
-      });
-
-      await tx.verificationLog.create({
-        data: {
-          entityType: 'WORKER',
-          entityId: workerId,
-          action: 'SUBMITTED',
-          newStatus: VerificationStatus.PENDING,
-          reason: 'Background check initiated',
-          performedBy: userId,
-        },
-      });
-
-      return updated;
-    });
-  }
-
-  /**
-   * Complete background check for worker
-   */
-  async completeBackgroundCheck(
-    workerId: string,
-    status: BackgroundCheckStatus,
-    adminUserId?: string,
-  ) {
-    return this.prisma.$transaction(async (tx) => {
-      const verification = await tx.workerVerification.findUnique({
-        where: { workerId },
-      });
-
-      if (!verification) {
-        throw new NotFoundException('Worker verification record not found');
-      }
-
-      const updateData: any = {
-        backgroundCheckStatus: status,
-        backgroundCheckAt: new Date(),
-      };
-
-      if (status === BackgroundCheckStatus.CLEAR) {
-        updateData.verificationLevel = VerificationLevel.ENHANCED;
-        updateData.riskLevel = RiskLevel.LOW;
-        updateData.riskScore = Math.max(0, verification.riskScore - 25);
-      } else if (
-        status === BackgroundCheckStatus.FLAGS_FOUND ||
-        status === BackgroundCheckStatus.FAILED
-      ) {
-        updateData.riskLevel = RiskLevel.HIGH;
-        updateData.riskScore = Math.min(100, verification.riskScore + 40);
-      }
-
-      const updated = await tx.workerVerification.update({
-        where: { workerId },
-        data: updateData,
-      });
-
-      await tx.verificationLog.create({
-        data: {
-          entityType: 'WORKER',
-          entityId: workerId,
-          action: 'REVIEWED',
-          previousStatus: VerificationStatus.PENDING,
-          newStatus: status === BackgroundCheckStatus.CLEAR ? VerificationStatus.VERIFIED : VerificationStatus.REVOKED,
-          reason: 'Background check completed',
-          performedBy: adminUserId,
-          performedById: adminUserId,
-        },
-      });
-
-      return updated;
-    });
-  }
-
-  /**
-   * Submit reference check for worker
-   */
-  async submitReferenceCheck(
-    workerId: string,
-    dto: SubmitReferenceCheckDto,
-    userId?: string,
-  ) {
-    return this.prisma.$transaction(async (tx) => {
-      const verification = await tx.workerVerification.findUnique({
-        where: { workerId },
-      });
-
-      if (!verification) {
-        throw new NotFoundException('Worker verification record not found');
-      }
-
-      const updateData: any = {
-        referenceCheckStatus: ReferenceCheckStatus.IN_PROGRESS,
-      };
-
-      const updated = await tx.workerVerification.update({
-        where: { workerId },
-        data: updateData,
-      });
-
-      await tx.verificationLog.create({
-        data: {
-          entityType: 'WORKER',
-          entityId: workerId,
-          action: 'SUBMITTED',
-          newStatus: VerificationStatus.PENDING,
-          reason: 'Reference check initiated',
-          performedBy: userId,
-        },
-      });
-
-      return updated;
-    });
-  }
-
-  /**
-   * Complete reference check for worker
-   */
-  async completeReferenceCheck(
-    workerId: string,
-    status: ReferenceCheckStatus,
-    adminUserId?: string,
-  ) {
-    return this.prisma.$transaction(async (tx) => {
-      const verification = await tx.workerVerification.findUnique({
-        where: { workerId },
-      });
-
-      if (!verification) {
-        throw new NotFoundException('Worker verification record not found');
-      }
-
-      const updateData: any = {
-        referenceCheckStatus: status,
-        referenceCheckAt: new Date(),
-      };
-
-      if (status === ReferenceCheckStatus.POSITIVE) {
-        updateData.verificationLevel = VerificationLevel.STANDARD;
-        updateData.riskLevel = RiskLevel.LOW;
-        updateData.riskScore = Math.max(0, verification.riskScore - 15);
-      } else if (
-        status === ReferenceCheckStatus.NEGATIVE ||
-        status === ReferenceCheckStatus.FAILED
-      ) {
-        updateData.riskLevel = RiskLevel.HIGH;
-        updateData.riskScore = Math.min(100, verification.riskScore + 30);
-      }
-
-      const updated = await tx.workerVerification.update({
-        where: { workerId },
-        data: updateData,
-      });
-
-      await tx.verificationLog.create({
-        data: {
-          entityType: 'WORKER',
-          entityId: workerId,
-          action: 'REVIEWED',
-          previousStatus: VerificationStatus.PENDING,
-          newStatus: status === ReferenceCheckStatus.POSITIVE ? VerificationStatus.VERIFIED : VerificationStatus.REVOKED,
-          reason: 'Reference check completed',
-          performedBy: adminUserId,
-          performedById: adminUserId,
-        },
-      });
-
-      return updated;
-    });
-  }
-
-  /**
-   * Review worker verification (admin function)
-   */
-  async reviewWorkerVerification(
-    workerId: string,
-    dto: ReviewWorkerVerificationDto,
-    adminUserId: string,
-  ) {
-    return this.prisma.$transaction(async (tx) => {
-      const verification = await tx.workerVerification.findUnique({
-        where: { workerId },
-      });
-
-      if (!verification) {
-        throw new NotFoundException('Worker verification record not found');
-      }
-
-      const updateData: any = {
-        verificationLevel: dto.verificationLevel,
-        lastReviewAt: new Date(),
-        lastReviewBy: adminUserId,
-        rejectionReason: dto.rejectionReason,
-        notes: dto.notes,
-      };
-
-      if (dto.isApproved) {
-        updateData.riskLevel =
-          dto.verificationLevel === VerificationLevel.PREMIUM
-            ? RiskLevel.VERY_LOW
-            : RiskLevel.LOW;
-        updateData.riskScore = Math.max(0, verification.riskScore - 20);
-      } else {
-        updateData.riskLevel = RiskLevel.HIGH;
-        updateData.riskScore = Math.min(100, verification.riskScore + 30);
-      }
-
-      const updated = await tx.workerVerification.update({
-        where: { workerId },
-        data: updateData,
-      });
-
-      await tx.verificationLog.create({
-        data: {
-          entityType: 'WORKER',
-          entityId: workerId,
-          action: dto.isApproved ? 'APPROVED' : 'REJECTED',
-          previousStatus: VerificationStatus.PENDING,
-          newStatus: dto.isApproved ? VerificationStatus.VERIFIED : VerificationStatus.REVOKED,
-          reason: dto.rejectionReason || dto.notes,
-          performedBy: adminUserId,
-          performedById: adminUserId,
-        },
-      });
-
-      return updated;
-    });
-  }
-
-  /**
-   * Get worker verification status
-   */
-  async getWorkerVerification(workerId: string) {
-    const verification = await this.prisma.workerVerification.findUnique({
-      where: { workerId },
-      include: {
-        verificationDocuments: {
-          orderBy: { createdAt: 'desc' },
-        },
-        verificationLogs: {
-          orderBy: { createdAt: 'desc' },
-          take: 10,
-        },
-        identityChecks: {
-          orderBy: { createdAt: 'desc' },
-        },
-      },
-    });
-
-    if (!verification) {
-      return this.initializeWorkerVerification(workerId);
-    }
-
-    return verification;
-  }
 
   // ============================================================================
   // FRAUD PREVENTION
@@ -1362,7 +852,6 @@ export class TrustService {
     const worker = await this.prisma.worker.findUnique({
       where: { id: workerId },
       include: {
-        verification: true,
         offersReceived: {
           select: {
             status: true,
@@ -1378,7 +867,7 @@ export class TrustService {
     }
 
     const scores = {
-      verificationScore: this.calculateWorkerVerificationScore(worker),
+      profileCompletenessScore: this.calculateWorkerProfileCompletenessScore(worker),
       behaviorScore: this.calculateWorkerBehaviorScore(worker),
       reputationScore: this.calculateWorkerReputationComponent(worker),
       activityScore: this.calculateWorkerActivityScore(worker),
@@ -1387,7 +876,7 @@ export class TrustService {
 
     // Weighted average
     const overallScore = Math.round(
-      scores.verificationScore * 0.30 +
+      scores.profileCompletenessScore * 0.30 +
       scores.behaviorScore * 0.20 +
       scores.reputationScore * 0.25 +
       scores.activityScore * 0.10 +
@@ -1403,7 +892,7 @@ export class TrustService {
       overallScore,
       scoreGrade,
       workerScore: overallScore,
-      verificationScore: scores.verificationScore,
+      verificationScore: scores.profileCompletenessScore,
       behaviorScore: scores.behaviorScore,
       reputationScore: scores.reputationScore,
     });
@@ -1414,7 +903,7 @@ export class TrustService {
       overallScore,
       scoreGrade,
       scoreBreakdown: scores,
-      riskAdjustedScore: this.applyRiskAdjustment(overallScore, worker.verification?.riskLevel),
+      riskAdjustedScore: overallScore,
       factors: this.getWorkerScoreFactors(worker, scores),
       lastCalculatedAt: new Date(),
     };
@@ -1569,48 +1058,15 @@ export class TrustService {
     return consistencyPoints + volumePoints;
   }
 
-  private calculateWorkerVerificationScore(worker: any): number {
+  private calculateWorkerProfileCompletenessScore(worker: any): number {
     let score = 0;
 
     // Base score for having a profile
     score += 10;
 
-    const verification = worker.verification;
-    if (!verification) {
-      return score;
-    }
-
-    // Identity verified (25 points)
-    if (verification.identityVerified) {
-      score += 25;
-    }
-
-    // Document verified (20 points)
-    if (verification.documentVerified) {
-      score += 20;
-    }
-
-    // Background check (25 points)
-    switch (verification.backgroundCheckStatus) {
-      case 'CLEAR':
-        score += 25;
-        break;
-      case 'IN_PROGRESS':
-        score += 10;
-        break;
-    }
-
-    // Reference check (20 points)
-    switch (verification.referenceCheckStatus) {
-      case 'POSITIVE':
-        score += 20;
-        break;
-      case 'MIXED':
-        score += 10;
-        break;
-      case 'IN_PROGRESS':
-        score += 5;
-        break;
+    // Profile completeness percentage (up to 90 points)
+    if (worker.profileCompletenessPct !== undefined) {
+      score += Math.round((worker.profileCompletenessPct / 100) * 90);
     }
 
     return Math.min(100, score);
@@ -1724,28 +1180,18 @@ export class TrustService {
     const negative: string[] = [];
     const neutral: string[] = [];
 
-    const verification = worker.verification;
-
-    if (verification?.identityVerified) {
-      positive.push('Identity verified');
+    if (worker.profileCompletenessPct >= 90) {
+      positive.push('Complete profile');
+    } else if (worker.profileCompletenessPct >= 50) {
+      neutral.push('Profile partially complete');
     } else {
-      neutral.push('Identity not verified');
+      negative.push('Incomplete profile');
     }
 
-    if (verification?.backgroundCheckStatus === 'CLEAR') {
-      positive.push('Clear background check');
-    } else if (verification?.backgroundCheckStatus === 'NOT_STARTED') {
-      neutral.push('Background check not started');
-    }
-
-    if (verification?.referenceCheckStatus === 'POSITIVE') {
-      positive.push('Positive references');
-    }
-
-    if (scores.verificationScore >= 70) {
-      positive.push('Strong verification profile');
-    } else if (scores.verificationScore < 40) {
-      negative.push('Incomplete verification');
+    if (scores.profileCompletenessScore >= 70) {
+      positive.push('Strong profile completeness');
+    } else if (scores.profileCompletenessScore < 40) {
+      negative.push('Profile needs more details');
     }
 
     return { positive, negative, neutral };
