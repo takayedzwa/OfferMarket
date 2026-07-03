@@ -90,7 +90,7 @@ export default function ConversationsPage() {
 
       // Refresh conversations to update last message
       const userType = userRole === 'EMPLOYER' ? 'employer' : 'worker';
-      const convsResponse = await conversationsApi.listConversations(userId, userType);
+      const convsResponse = await conversationsApi.listConversations(userId ?? undefined, userType);
       setConversations(convsResponse.data);
     } catch (error) {
       console.error("Failed to send message:", error);
