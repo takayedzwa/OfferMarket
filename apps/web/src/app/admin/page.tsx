@@ -4,8 +4,9 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../contexts/AuthContext";
 import {
-  Users, Building2, CheckCircle, Settings, AlertTriangle,
-  FileText, Eye, DollarSign, TrendingUp, Clock, Activity
+  Users, Building2, Settings, AlertTriangle,
+  FileText, Eye, DollarSign, Clock, Activity,
+  UserCheck
 } from "lucide-react";
 
 interface DashboardStats {
@@ -89,23 +90,19 @@ export default function AdminDashboard() {
     );
   }
 
-  const navItems = [
-    { href: '/admin/users', label: 'Users', icon: Users, description: 'Manage all users' },
-    { href: '/admin/employers', label: 'Employers', icon: Building2, description: 'View & verify employers' },
-    { href: '/admin/verifications', label: 'Verifications', icon: CheckCircle, description: 'Pending verifications', badge: stats?.pendingVerifications },
-    { href: '/admin/offers', label: 'Offers', icon: FileText, description: 'Monitor all offers' },
-    { href: '/admin/settings', label: 'Settings', icon: Settings, description: 'Platform settings' },
-    { href: '/admin/reports', label: 'Reports', icon: AlertTriangle, description: 'Reported content' },
-    { href: '/admin/audit-logs', label: 'Audit Logs', icon: Eye, description: 'View audit trail' },
+  const statCards = [
+    { label: 'Total Users', value: stats?.totalUsers || 0, icon: Users, color: 'bg-blue-500', href: '/admin/users' },
+    { label: 'Workers', value: stats?.totalWorkers || 0, icon: UserCheck, color: 'bg-green-500', href: '/admin/users' },
+    { label: 'Employers', value: stats?.totalEmployers || 0, icon: Building2, color: 'bg-purple-500', href: '/admin/employers' },
+    { label: 'Pending Verifications', value: stats?.pendingVerifications || 0, icon: Clock, color: 'bg-yellow-500', href: '/admin/verifications' },
+    { label: 'Active Offers', value: stats?.activeOffers || 0, icon: FileText, color: 'bg-indigo-500', href: '/admin/offers' },
+    { label: 'Total Credits', value: `€${(stats?.totalCredits || 0).toLocaleString()}`, icon: DollarSign, color: 'bg-emerald-500', href: '/admin/settings' },
   ];
 
-  const statCards = [
-    { label: 'Total Users', value: stats?.totalUsers || 0, icon: Users, color: 'bg-blue-500' },
-    { label: 'Workers', value: stats?.totalWorkers || 0, icon: Users, color: 'bg-green-500' },
-    { label: 'Employers', value: stats?.totalEmployers || 0, icon: Building2, color: 'bg-purple-500' },
-    { label: 'Pending Verifications', value: stats?.pendingVerifications || 0, icon: Clock, color: 'bg-yellow-500' },
-    { label: 'Active Offers', value: stats?.activeOffers || 0, icon: FileText, color: 'bg-indigo-500' },
-    { label: 'Total Credits', value: `€${(stats?.totalCredits || 0).toLocaleString()}`, icon: DollarSign, color: 'bg-emerald-500' },
+  const quickActions = [
+    { label: 'Settings', icon: Settings, href: '/admin/settings', description: 'Platform settings' },
+    { label: 'Reports', icon: AlertTriangle, href: '/admin/reports', description: 'Reported content' },
+    { label: 'Audit Logs', icon: Eye, href: '/admin/audit-logs', description: 'View audit trail' },
   ];
 
   return (
@@ -141,10 +138,14 @@ export default function AdminDashboard() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Stats Grid */}
+        {/* Stats Grid — clickable cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
           {statCards.map((stat) => (
-            <div key={stat.label} className="bg-white rounded-xl border shadow-sm p-6">
+            <button
+              key={stat.label}
+              onClick={() => router.push(stat.href)}
+              className="bg-white rounded-xl border shadow-sm p-6 hover:shadow-md hover:border-blue-300 transition-all text-left"
+            >
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600">{stat.label}</p>
@@ -154,33 +155,26 @@ export default function AdminDashboard() {
                   <stat.icon className="w-6 h-6 text-white" />
                 </div>
               </div>
-            </div>
+            </button>
           ))}
         </div>
 
-        {/* Navigation Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {navItems.map((item) => (
+        {/* Quick Actions */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {quickActions.map((action) => (
             <button
-              key={item.href}
-              onClick={() => router.push(item.href)}
+              key={action.href}
+              onClick={() => router.push(action.href)}
               className="bg-white rounded-xl border shadow-sm p-6 hover:shadow-md hover:border-blue-300 transition-all text-left"
             >
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="bg-gray-100 p-2 rounded-lg">
-                    <item.icon className="w-6 h-6 text-gray-700" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-900">{item.label}</h3>
-                    <p className="text-sm text-gray-500">{item.description}</p>
-                  </div>
+              <div className="flex items-center gap-3">
+                <div className="bg-gray-100 p-2 rounded-lg">
+                  <action.icon className="w-6 h-6 text-gray-700" />
                 </div>
-                {item.badge && item.badge > 0 && (
-                  <span className="bg-red-500 text-white text-xs font-medium px-2 py-1 rounded-full">
-                    {item.badge}
-                  </span>
-                )}
+                <div>
+                  <h3 className="font-semibold text-gray-900">{action.label}</h3>
+                  <p className="text-sm text-gray-500">{action.description}</p>
+                </div>
               </div>
             </button>
           ))}

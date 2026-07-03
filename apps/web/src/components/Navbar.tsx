@@ -4,8 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "../contexts/AuthContext";
 import {
-  Home, Users, Briefcase, MessageSquare, FileText, Settings,
-  Shield, Ticket, Building2, User, CheckCircle
+  Home, Users, Briefcase, MessageSquare, FileText,
+  Shield, Ticket, Building2, User
 } from "lucide-react";
 
 interface NavbarProps {
@@ -104,26 +104,6 @@ export default function Navbar({ variant = "default" }: NavbarProps) {
                     <Link href="/admin" className={navLinkClass("/admin")}>
                       <Shield className="w-4 h-4 inline mr-1" />
                       Admin
-                    </Link>
-                    <Link href="/admin/users" className={navLinkClass("/admin/users")}>
-                      <Users className="w-4 h-4 inline mr-1" />
-                      Users
-                    </Link>
-                    <Link href="/admin/employers" className={navLinkClass("/admin/employers")}>
-                      <Building2 className="w-4 h-4 inline mr-1" />
-                      Employers
-                    </Link>
-                    <Link href="/admin/verifications" className={navLinkClass("/admin/verifications")}>
-                      <CheckCircle className="w-4 h-4 inline mr-1" />
-                      Verifications
-                    </Link>
-                    <Link href="/admin/offers" className={navLinkClass("/admin/offers")}>
-                      <Briefcase className="w-4 h-4 inline mr-1" />
-                      Offers
-                    </Link>
-                    <Link href="/admin/settings" className={navLinkClass("/admin/settings")}>
-                      <Settings className="w-4 h-4 inline mr-1" />
-                      Settings
                     </Link>
                   </>
                 )}
