@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException, UnauthorizedException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { BillingService } from '../billing/billing.service';
 import { CreateOfferDto } from './dto/create-offer.dto';
 import { CounterOfferDto } from './dto/counter-offer.dto';
 
@@ -16,7 +17,10 @@ import { CounterOfferDto } from './dto/counter-offer.dto';
 
 @Injectable()
 export class OffersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private billingService: BillingService,
+  ) {}
 
   // ============================================================================
   // CREATE OFFER
@@ -578,7 +582,7 @@ export class OffersService {
       });
 
       // 9. Generate invoice for introduction fee
-      const invoice = await this.createIntroductionInvoice(tx, offer.employerId, offer, offer.employer);
+      const invoice = await this.billingService.createIntroductionInvoice(tx, offer.employerId, offerId);
 
       // 10. Update employer stats
       await tx.employer.update({
@@ -1013,39 +1017,4 @@ export class OffersService {
     return worker?.user?.phone || '';
   }
 
-  private async createIntroductionInvoice(tx: any, employerId: string, offer: any, employer: any) {
-    const lastInvoice = await tx.offer.findFirst({
-      where: { employerId, status: 'ACCEPTED' },
-      orderBy: { acceptedAt: 'desc' }
-    });
-
-    let invoiceNumber = '2026-000001';
-    if (lastInvoice) {
-      const count = await tx.offer.count({
-        where: { employerId, status: 'ACCEPTED' }
-      });
-      invoiceNumber = `2026-${String(count + 1).padStart(6, '0')}`;
-    }
-
-    const subtotal = 49900; // €499 in cents
-    const vatRate = 21;
-    const vatAmount = Math.round(subtotal * vatRate / 100);
-    const total = subtotal + vatAmount;
-
-    // Return invoice data (invoice table not in schema yet)
-    return {
-      invoiceNumber,
-      employerId,
-      employerName: employer?.companyName || employer?.companyTradeName || 'Employer',
-      offerId: offer.id,
-      currency: 'EUR',
-      subtotal,
-      vatRate,
-      vatAmount,
-      total,
-      status: 'SENT',
-      issuedAt: new Date(),
-      dueAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000) // 14 days
-    };
-  }
 }

@@ -43,6 +43,7 @@ jest.mock('lucide-react', () => ({
   Clock: () => 'ClockIcon',
   Activity: () => 'ActivityIcon',
   UserCheck: () => 'UserCheckIcon',
+  CreditCard: () => 'CreditCardIcon',
 }));
 
 // --- Mock fetch ---

@@ -515,13 +515,92 @@ export type VerificationStatus =
   | 'REVOKED';
 
 // ============================================================================
+// BILLING & INVOICES
+// ============================================================================
+
+export type InvoiceStatus =
+  | 'DRAFT'
+  | 'ISSUED'
+  | 'PAID'
+  | 'OVERDUE'
+  | 'CANCELLED'
+  | 'REFUNDED';
+
+export interface Invoice {
+  id: string;
+  invoiceNumber: string;
+  employerId: string;
+  offerId: string;
+  status: InvoiceStatus;
+  currency: string;
+  subtotalCents: number;
+  vatRatePct: number;
+  vatAmountCents: number;
+  totalCents: number;
+  dueDate: string;
+  paidAt?: string;
+  paymentMethod?: string;
+  paymentReference?: string;
+  notes?: string;
+  issuedAt: string;
+  createdAt: string;
+  updatedAt: string;
+  lineItems: InvoiceLineItem[];
+  offer?: {
+    id: string;
+    jobTitle: string;
+    publicId: string;
+  };
+  employer?: {
+    id: string;
+    companyName: string;
+    billingEmail?: string;
+  };
+}
+
+export interface InvoiceLineItem {
+  id: string;
+  invoiceId: string;
+  description: string;
+  quantity: number;
+  unitPriceCents: number;
+  totalCents: number;
+}
+
+export interface InvoiceSummary {
+  unpaidCount: number;
+  outstandingCents: number;
+  nextDueDate?: string;
+}
+
+export interface BillingStats {
+  totalInvoices: number;
+  totalPaidInvoices: number;
+  totalUnpaidInvoices: number;
+  totalOverdueInvoices: number;
+  totalRevenueCents: number;
+  totalPaidCents: number;
+  totalOutstandingCents: number;
+  averageDaysToPayment: number;
+}
+
+export interface BillingSettings {
+  introduction_fee_cents: number;
+  vat_rate_pct: number;
+  invoice_payment_terms_days: number;
+  invoice_bank_account_iban: string;
+  invoice_bank_account_name: string;
+  invoice_prefix: string;
+}
+
+// ============================================================================
 // API RESPONSE TYPES
 // ============================================================================
 
 export interface AcceptOfferResult {
   offer: Offer;
   conversation: Conversation;
-  invoice: any;
+  invoice: Invoice;
   workerIdentityRevealed: {
     fullName: string;
     email: string;

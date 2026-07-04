@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useAuth } from "../contexts/AuthContext";
 import {
   Home, Users, Briefcase, MessageSquare, FileText,
-  Shield, Ticket, Building2, User
+  Shield, Ticket, Building2, User, CreditCard
 } from "lucide-react";
 
 interface NavbarProps {
@@ -95,6 +95,10 @@ export default function Navbar({ variant = "default" }: NavbarProps) {
                     <Link href="/conversations" className={navLinkClass("/conversations")}>
                       <MessageSquare className="w-4 h-4 inline mr-1" />
                       Messages
+                    </Link>
+                    <Link href="/dashboard/employer/billing" className={navLinkClass("/dashboard/employer/billing")}>
+                      <CreditCard className="w-4 h-4 inline mr-1" />
+                      Billing
                     </Link>
                   </>
                 )}
