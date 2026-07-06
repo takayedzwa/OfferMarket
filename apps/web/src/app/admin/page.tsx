@@ -6,7 +6,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import {
   Users, Building2, Settings, AlertTriangle,
   FileText, Eye, DollarSign, Clock, Activity,
-  UserCheck
+  UserCheck, CreditCard
 } from "lucide-react";
 
 interface DashboardStats {
@@ -100,6 +100,7 @@ export default function AdminDashboard() {
   ];
 
   const quickActions = [
+    { label: 'Billing', icon: CreditCard, href: '/admin/billing', description: 'Manage invoices & settings' },
     { label: 'Settings', icon: Settings, href: '/admin/settings', description: 'Platform settings' },
     { label: 'Reports', icon: AlertTriangle, href: '/admin/reports', description: 'Reported content' },
     { label: 'Audit Logs', icon: Eye, href: '/admin/audit-logs', description: 'View audit trail' },

@@ -188,6 +188,7 @@ model Employer {
   verification         EmployerVerification?
   fraudIndicators      FraudIndicator[]           @relation("EmployerFraudIndicators")
   blacklistEntries     BlacklistEntry[]           @relation("BlacklistedEmployer")
+  invoices             Invoice[]
 
   @@index([userId])
   @@index([kvkNumber])
@@ -240,6 +241,7 @@ model Offer {
   worker           Worker         @relation(fields: [workerId], references: [id])
   versions         OfferVersion[]
   rating           Rating?
+  invoice          Invoice?
 
   @@index([workerId])
   @@index([employerId])
@@ -963,4 +965,62 @@ enum DuplicateMatchType {
   ADDRESS
   NAME_SIMILARITY
   COMPOSITE
+}
+
+// ============================================================================
+// BILLING MODELS
+// ============================================================================
+
+enum InvoiceStatus {
+  DRAFT
+  ISSUED
+  PAID
+  OVERDUE
+  CANCELLED
+  REFUNDED
+}
+
+model Invoice {
+  id               String         @id @default(uuid())
+  invoiceNumber    String         @unique
+  employerId       String
+  offerId          String         @unique
+  status           InvoiceStatus  @default(DRAFT)
+  currency         String         @default("EUR")
+  subtotalCents    Int
+  vatRatePct       Int            @default(21)
+  vatAmountCents   Int
+  totalCents       Int
+  dueDate          DateTime
+  paidAt           DateTime?
+  paymentMethod    String?
+  paymentReference String?
+  notes            String?
+  issuedAt         DateTime       @default(now())
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  employer         Employer       @relation(fields: [employerId], references: [id], onDelete: Cascade)
+  offer            Offer          @relation(fields: [offerId], references: [id], onDelete: Cascade)
+  lineItems        InvoiceLineItem[]
+
+  @@index([employerId])
+  @@index([employerId, status])
+  @@index([status])
+  @@index([issuedAt])
+}
+
+model InvoiceLineItem {
+  id              String   @id @default(uuid())
+  invoiceId       String
+  description     String
+  quantity        Int      @default(1)
+  unitPriceCents Int
+  totalCents      Int
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  invoice         Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId])
 }

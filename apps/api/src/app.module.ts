@@ -11,6 +11,7 @@ import { AdminModule } from './modules/admin/admin.module';
 import { SupportModule } from './modules/support/support.module';
 import { RatingsModule } from './modules/ratings/ratings.module';
 import { TrustModule } from './modules/trust/trust.module';
+import { BillingModule } from './modules/billing/billing.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { TrustModule } from './modules/trust/trust.module';
     SupportModule,
     RatingsModule,
     TrustModule,
+    BillingModule,
   ],
 })
 export class AppModule {}

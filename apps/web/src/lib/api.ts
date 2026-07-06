@@ -250,6 +250,47 @@ export const offersApi = {
 };
 
 // ============================================================================
+// BILLING API
+// ============================================================================
+
+export const billingApi = {
+  // Employer endpoints
+  getMyInvoices: (params?: { unpaidOnly?: boolean; status?: string; page?: number; limit?: number }) =>
+    api.get('/billing/invoices', { params }),
+
+  getInvoice: (invoiceId: string) =>
+    api.get(`/billing/invoices/${invoiceId}`),
+
+  getInvoiceSummary: () =>
+    api.get('/billing/invoices/summary'),
+
+  // Admin endpoints
+  adminGetInvoices: (params?: { employerId?: string; status?: string; page?: number; limit?: number }) =>
+    api.get('/billing/admin/invoices', { params }),
+
+  adminGetInvoice: (invoiceId: string) =>
+    api.get(`/billing/admin/invoices/${invoiceId}`),
+
+  adminMarkInvoicePaid: (invoiceId: string, data?: { paymentReference?: string; paymentMethod?: string; notes?: string }) =>
+    api.post(`/billing/admin/invoices/${invoiceId}/mark-paid`, data),
+
+  adminCancelInvoice: (invoiceId: string, reason?: string) =>
+    api.post(`/billing/admin/invoices/${invoiceId}/cancel`, { reason }),
+
+  adminCheckOverdue: () =>
+    api.post('/billing/admin/check-overdue'),
+
+  adminGetStats: () =>
+    api.get('/billing/admin/stats'),
+
+  adminGetSettings: () =>
+    api.get('/billing/admin/settings'),
+
+  adminUpdateSetting: (key: string, value: any) =>
+    api.patch('/billing/admin/settings', { key, value }),
+};
+
+// ============================================================================
 // CONVERSATIONS API
 // ============================================================================
 

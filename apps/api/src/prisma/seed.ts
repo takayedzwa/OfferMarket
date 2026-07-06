@@ -69,6 +69,13 @@ async function main() {
     { key: 'platform.offer_expiry_days', value: 14, category: 'offers' },
     { key: 'email.verification_required', value: true, category: 'email' },
     { key: 'email.welcome_enabled', value: true, category: 'email' },
+    // Billing settings
+    { key: 'introduction_fee_cents', value: 49900, category: 'billing' },
+    { key: 'vat_rate_pct', value: 21, category: 'billing' },
+    { key: 'invoice_payment_terms_days', value: 14, category: 'billing' },
+    { key: 'invoice_bank_account_iban', value: '', category: 'billing' },
+    { key: 'invoice_bank_account_name', value: 'OfferMarket B.V.', category: 'billing' },
+    { key: 'invoice_prefix', value: 'INV', category: 'billing' },
   ];
 
   for (const setting of defaultSettings) {
