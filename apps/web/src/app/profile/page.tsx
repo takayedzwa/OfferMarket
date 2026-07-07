@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "../../contexts/AuthContext";
 import Navbar from "../../components/Navbar";
 import { workersApi, employersApi, api } from "../../lib/api";
-import { PublicWorkerProfile, Employer } from "../../lib/types";
+import { PrivateWorkerProfile, Employer } from "../../lib/types";
 import {
   User,
   Mail,
@@ -25,7 +25,7 @@ import {
 export default function ProfilePage() {
   const router = useRouter();
   const { user, logout } = useAuth();
-  const [profile, setProfile] = useState<PublicWorkerProfile | null>(null);
+  const [profile, setProfile] = useState<PrivateWorkerProfile | null>(null);
   const [employer, setEmployer] = useState<Employer | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -92,14 +92,18 @@ export default function ProfilePage() {
                     </p>
                     <span
                       className={`inline-block mt-2 px-3 py-1 rounded-full text-xs font-medium ${
-                        profile.profileVisibility === "PUBLIC"
+                        profile.profileVisibility === "ALL_VERIFIED"
                           ? "bg-green-100 text-green-700"
-                          : profile.profileVisibility === "SHORTLIST"
+                          : profile.profileVisibility === "SELECTED_COMPANIES"
                           ? "bg-yellow-100 text-yellow-700"
                           : "bg-gray-100 text-gray-700"
                       }`}
                     >
-                      {profile.profileVisibility || "PRIVATE"} Profile
+                      {profile.profileVisibility === "ALL_VERIFIED"
+                        ? "All Verified Employers"
+                        : profile.profileVisibility === "SELECTED_COMPANIES"
+                        ? "Selected Companies Only"
+                        : "Hidden"} Profile
                     </span>
                   </div>
                 </div>
@@ -155,7 +159,7 @@ export default function ProfilePage() {
                         key={i}
                         className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm"
                       >
-                        {ps.name} ({ps.level?.toLowerCase()})
+                        {ps.skill?.name || 'Unknown'} ({ps.level?.toLowerCase()})
                       </span>
                     ))}
                   </div>
@@ -178,14 +182,14 @@ export default function ProfilePage() {
               )}
 
               {/* Salary Expectations */}
-              {profile.desiredSalaryRange?.min && (
+              {profile.desiredSalaryMin && (
                 <div className="bg-white rounded-xl border shadow-sm p-6">
                   <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
                     <Euro className="w-5 h-5" />
                     Salary Expectation
                   </h3>
                   <p className="text-2xl font-bold text-gray-900">
-                    €{profile.desiredSalaryRange.min.toLocaleString()} - €{profile.desiredSalaryRange.max?.toLocaleString() || '∞'}
+                    €{profile.desiredSalaryMin.toLocaleString()} - €{profile.desiredSalaryMax?.toLocaleString() || '∞'}
                   </p>
                   <p className="text-sm text-gray-500">per year</p>
                 </div>

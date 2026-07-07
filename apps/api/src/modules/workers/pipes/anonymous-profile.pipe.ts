@@ -11,20 +11,31 @@ import { Injectable, PipeTransform, ForbiddenException } from '@nestjs/common';
 
 interface SafeProfile {
   publicId: string;
+  headline: string | null;
+  summary: string | null;
   region: any;
   yearsOfExperience: number | null;
   primaryTrade: string | null;
+  specializations: string[];
   skills: any[];
   certifications: any[];
+  languages: any[];
+  education: any[];
+  projectExperiences: any[];
   availability: string;
+  hasDrivingLicense: boolean;
+  hasOwnVehicle: boolean;
+  travelDistanceKm: number | null;
+  workAuthorization: string | null;
   desiredSalaryRange: any;
   employmentTypes: string[];
-  travelDistanceKm: number | null;
   workSchedulePrefs: string[];
   industryPrefs: string[];
   careerPriorities: string[];
   profileCompletenessPct: number;
   reputationScore: number;
+  safetyScore: number;
+  badges: string[];
   lastActive: Date;
   _meta: {
     identityRevealed: boolean;
@@ -38,20 +49,31 @@ export class AnonymousProfilePipe implements PipeTransform {
   // EXPLICIT WHITELIST: Only these fields can be shown to employers
   private readonly ALLOWED_FIELDS = new Set([
     'publicId',
+    'headline',
+    'summary',
     'region',
     'yearsOfExperience',
     'primaryTrade',
+    'specializations',
     'skills',
     'certifications',
+    'languages',
+    'education',
+    'projectExperiences',
     'availability',
+    'hasDrivingLicense',
+    'hasOwnVehicle',
+    'travelDistanceKm',
+    'workAuthorization',
     'desiredSalaryRange',
     'employmentTypes',
-    'travelDistanceKm',
     'workSchedulePrefs',
     'industryPrefs',
     'careerPriorities',
     'profileCompletenessPct',
     'reputationScore',
+    'safetyScore',
+    'badges',
     'lastActive',
     '_meta'
   ]);
@@ -86,7 +108,6 @@ export class AnonymousProfilePipe implements PipeTransform {
     for (const field of this.BLACKLISTED_FIELDS) {
       if (safeProfile.hasOwnProperty(field)) {
         // SECURITY VIOLATION - This should never happen
-        // Log this incident and throw error
         console.error(
           `🚨 SECURITY VIOLATION: Blacklisted field "${field}" found in public profile. ` +
           `This indicates a bug in the profile transformation logic. ` +
@@ -193,13 +214,11 @@ export class AnonymousProfilePipe implements PipeTransform {
   }
 
   private looksLikeEmail(value: string): boolean {
-    // Simple email regex
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(value);
   }
 
   private looksLikePhone(value: string): boolean {
-    // Simple phone regex for NL numbers
     const phoneRegex = /^(\+31|0)[0-9]{9,}$/;
     return phoneRegex.test(value.replace(/[\s.-]/g, ''));
   }

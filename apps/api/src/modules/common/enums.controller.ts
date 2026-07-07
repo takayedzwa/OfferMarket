@@ -28,6 +28,9 @@ export class EnumsController {
       industry: this.getIndustryEnums(),
       careerPriority: this.getCareerPriorityEnums(),
       employmentType: this.getEmploymentTypeEnums(),
+      specialization: this.getSpecializationEnums(),
+      workAuthorization: this.getWorkAuthorizationEnums(),
+      languageLevel: this.getLanguageLevelEnums(),
     };
   }
 
@@ -68,6 +71,21 @@ export class EnumsController {
   @Get('employment-type')
   async getEmploymentType() {
     return this.getEmploymentTypeEnums();
+  }
+
+  @Get('specialization')
+  async getSpecialization() {
+    return this.getSpecializationEnums();
+  }
+
+  @Get('work-authorization')
+  async getWorkAuthorization() {
+    return this.getWorkAuthorizationEnums();
+  }
+
+  @Get('language-level')
+  async getLanguageLevel() {
+    return this.getLanguageLevelEnums();
   }
 
   // ===========================================================================
@@ -155,6 +173,49 @@ export class EnumsController {
       { value: 'CONTRACT', label: 'Contract' },
       { value: 'TEMPORARY', label: 'Temporary' },
       { value: 'INTERNSHIP', label: 'Internship' },
+    ];
+  }
+
+  private getSpecializationEnums() {
+    return [
+      { value: 'RESIDENTIAL_INSTALLATIONS', label: 'Residential Installations' },
+      { value: 'COMMERCIAL_INSTALLATIONS', label: 'Commercial Installations' },
+      { value: 'INDUSTRIAL_INSTALLATIONS', label: 'Industrial Installations' },
+      { value: 'MAINTENANCE', label: 'Maintenance' },
+      { value: 'HIGH_VOLTAGE', label: 'High Voltage' },
+      { value: 'LOW_VOLTAGE', label: 'Low Voltage' },
+      { value: 'SOLAR_PV', label: 'Solar PV' },
+      { value: 'EV_CHARGING', label: 'EV Charging Stations' },
+      { value: 'CONTROL_PANELS', label: 'Control Panels' },
+      { value: 'PLC_SYSTEMS', label: 'PLC Systems' },
+      { value: 'AUTOMATION', label: 'Automation' },
+      { value: 'BUILDING_MANAGEMENT', label: 'Building Management Systems' },
+      { value: 'FIRE_ALARM_SYSTEMS', label: 'Fire Alarm Systems' },
+      { value: 'SECURITY_SYSTEMS', label: 'Security Systems' },
+      { value: 'DATA_CABLING', label: 'Data Cabling' },
+      { value: 'MARINE_ELECTRICAL', label: 'Marine Electrical' },
+      { value: 'RENEWABLE_ENERGY', label: 'Renewable Energy' },
+    ];
+  }
+
+  private getWorkAuthorizationEnums() {
+    return [
+      { value: 'EU_CITIZEN', label: 'EU Citizen' },
+      { value: 'DUTCH_WORK_PERMIT', label: 'Dutch Work Permit' },
+      { value: 'HIGHLY_SKILLED_MIGRANT', label: 'Highly Skilled Migrant Visa' },
+      { value: 'REQUIRES_SPONSORSHIP', label: 'Requires Sponsorship' },
+    ];
+  }
+
+  private getLanguageLevelEnums() {
+    return [
+      { value: 'A1', label: 'A1 - Beginner' },
+      { value: 'A2', label: 'A2 - Elementary' },
+      { value: 'B1', label: 'B1 - Intermediate' },
+      { value: 'B2', label: 'B2 - Upper Intermediate' },
+      { value: 'C1', label: 'C1 - Advanced' },
+      { value: 'C2', label: 'C2 - Proficient' },
+      { value: 'NATIVE', label: 'Native Speaker' },
     ];
   }
 }

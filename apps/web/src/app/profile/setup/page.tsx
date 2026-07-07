@@ -3,8 +3,8 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../../contexts/AuthContext";
-import { workersApi, enumsApi } from "../../../lib/api";
-import { ArrowLeft, ArrowRight } from "lucide-react";
+import { workersApi, enumsApi, regionsApi } from "../../../lib/api";
+import { ArrowLeft, ArrowRight, Plus, X } from "lucide-react";
 
 // Enums matching backend Prisma definitions
 enum Availability {
@@ -29,6 +29,14 @@ interface EnumOption {
   description?: string;
 }
 
+const SKILL_LEVEL_LABELS: Record<string, string> = {
+  BEGINNER: "Beginner",
+  INTERMEDIATE: "Intermediate",
+  ADVANCED: "Advanced",
+  EXPERT: "Expert",
+  MASTER: "Master",
+};
+
 const steps = [
   { id: 1, title: "Basic Info", description: "Availability and experience" },
   { id: 2, title: "Trade & Skills", description: "Primary trade and skills" },
@@ -47,17 +55,46 @@ export default function SetupWorkerProfile() {
   const [industryOptions, setIndustryOptions] = useState<EnumOption[]>([]);
   const [careerPriorityOptions, setCareerPriorityOptions] = useState<EnumOption[]>([]);
   const [employmentTypeOptions, setEmploymentTypeOptions] = useState<EnumOption[]>([]);
+  const [regions, setRegions] = useState<any[]>([]);
+  const [skillsCatalog, setSkillsCatalog] = useState<any[]>([]);
+
+  // Add-form state for skills
+  const [newSkillId, setNewSkillId] = useState("");
+  const [newSkillLevel, setNewSkillLevel] = useState<string>("INTERMEDIATE");
+
+  const [formData, setFormData] = useState({
+    // Step 1: Basic Info
+    availability: Availability.IMMEDIATE,
+    yearsOfExperience: 0,
+    primaryTrade: "",
+    noticePeriodDays: 0,
+
+    // Step 2: Skills (collected locally, sent via separate API after profile creation)
+    skills: [] as { skillId: string; level: string }[],
+
+    // Step 3: Preferences
+    postalCode: "",
+    regionId: "",
+    desiredSalaryMin: 50000,
+    desiredSalaryMax: 70000,
+    employmentTypes: ["FULL_TIME"],
+    travelDistanceKm: 30,
+    workSchedulePrefs: [] as string[],
+    industryPrefs: [] as string[],
+    careerPriorities: [] as string[],
+
+    // Step 4: Privacy
+    profileVisibility: "ALL_VERIFIED" as "ALL_VERIFIED" | "SELECTED_COMPANIES" | "HIDDEN",
+  });
 
   // Load enums and trades from backend
   useEffect(() => {
-    // Load available trades
     workersApi.getTrades()
       .then((res) => setTrades(res.data.trades || []))
       .catch(() => {
         setTrades([{ value: "Electrician", label: "Electrician", available: true }]);
       });
 
-    // Load enum options from backend
     enumsApi.getWorkSchedule()
       .then((res) => setWorkScheduleOptions(res.data))
       .catch(() => {
@@ -108,42 +145,36 @@ export default function SetupWorkerProfile() {
         ]);
       });
 
-    // Pre-populate with saved user data from registration
-    const savedPhone = localStorage.getItem('userPhone');
-    const savedEmail = localStorage.getItem('userEmail');
-    if (savedEmail && !formData.postalCode) {
-      // Could use email to infer region if needed
-    }
+    // Load regions for dropdown
+    regionsApi.getRegions()
+      .then((res) => setRegions(res.data || []))
+      .catch(() => {
+        setRegions([]);
+      });
+
+    // Load skills catalog for dropdown
+    workersApi.getSkillsCatalog()
+      .then((res) => setSkillsCatalog(res.data || []))
+      .catch(() => {
+        setSkillsCatalog([]);
+      });
   }, []);
-
-  const [formData, setFormData] = useState({
-    // Step 1: Basic Info
-    availability: Availability.IMMEDIATE,
-    yearsOfExperience: 0,
-    primaryTrade: "",
-    noticePeriodDays: 0,
-
-    // Step 2: Skills (stored but sent separately via skills API)
-    skills: [] as { skillId: string; level: SkillLevel }[],
-    certifications: [] as { name: string; issuer: string; date: string }[],
-
-    // Step 3: Preferences
-    postalCode: "",
-    regionId: "",
-    desiredSalaryMin: 50000,
-    desiredSalaryMax: 70000,
-    employmentTypes: ["FULL_TIME"],
-    travelDistanceKm: 30,
-    workSchedulePrefs: [] as string[],
-    industryPrefs: [] as string[],
-    careerPriorities: [] as string[],
-
-    // Step 4: Privacy
-    profileVisibility: "ALL_VERIFIED" as "ALL_VERIFIED" | "SELECTED_COMPANIES" | "HIDDEN",
-  });
 
   const updateField = (field: string, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleAddSkill = () => {
+    if (!newSkillId) return;
+    // Prevent duplicates
+    if (formData.skills.some((s) => s.skillId === newSkillId)) return;
+    updateField("skills", [...formData.skills, { skillId: newSkillId, level: newSkillLevel }]);
+    setNewSkillId("");
+    setNewSkillLevel("INTERMEDIATE");
+  };
+
+  const handleRemoveSkill = (skillId: string) => {
+    updateField("skills", formData.skills.filter((s) => s.skillId !== skillId));
   };
 
   const handleSubmit = async () => {
@@ -169,17 +200,25 @@ export default function SetupWorkerProfile() {
         profileVisibility: formData.profileVisibility,
       };
 
-      // Try to get existing profile first
+      // Create or update profile
       try {
         await workersApi.getMyProfile();
-        // Profile exists, use update
         await workersApi.updateProfile(profileData);
       } catch (checkErr: any) {
         if (checkErr.response?.status === 404) {
-          // No profile exists, create new one
           await workersApi.createProfile(profileData);
         } else {
           throw checkErr;
+        }
+      }
+
+      // Send skills via separate API calls (after profile exists)
+      for (const skill of formData.skills) {
+        try {
+          await workersApi.addSkill({ skillId: skill.skillId, level: skill.level });
+        } catch (e) {
+          console.error("Failed to add skill:", skill.skillId, e);
+          // Continue with other skills — don't block profile creation
         }
       }
 
@@ -286,38 +325,75 @@ export default function SetupWorkerProfile() {
               </p>
             </div>
 
-            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <p className="text-sm text-blue-800 font-medium mb-2">Skills</p>
-              <p className="text-sm text-blue-700">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Skills
+              </label>
+              <p className="text-sm text-gray-500 mb-3">
                 Add your key skills. This helps employers find and match with your profile.
-                <br/>
-                <span className="text-xs">(Note: Skills are managed separately in the full implementation)</span>
               </p>
-              <button
-                type="button"
-                onClick={() => {
-                  const skillName = prompt("Enter skill name:");
-                  if (skillName) {
-                    updateField("skills", [
-                      ...formData.skills,
-                      { skillId: skillName, level: SkillLevel.INTERMEDIATE },
-                    ]);
-                  }
-                }}
-                className="mt-3 text-sm text-blue-600 hover:text-blue-700 font-medium"
-              >
-                + Add a skill (demo: enter skill name)
-              </button>
-              {formData.skills.length > 0 && (
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {formData.skills.map((s, i) => (
-                    <span
-                      key={i}
-                      className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-sm"
+
+              {/* Add skill form */}
+              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg mb-3">
+                <div className="grid grid-cols-2 gap-3 mb-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Skill</label>
+                    <select
+                      value={newSkillId}
+                      onChange={(e) => setNewSkillId(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none text-sm"
                     >
-                      {s.skillId} ({s.level.toLowerCase()})
-                    </span>
-                  ))}
+                      <option value="">Select a skill...</option>
+                      {skillsCatalog.map((skill: any) => (
+                        <option key={skill.id} value={skill.id}>{skill.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Level</label>
+                    <select
+                      value={newSkillLevel}
+                      onChange={(e) => setNewSkillLevel(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none text-sm"
+                    >
+                      {Object.entries(SKILL_LEVEL_LABELS).map(([key, label]) => (
+                        <option key={key} value={key}>{label}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleAddSkill}
+                  disabled={!newSkillId}
+                  className="flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Plus className="w-4 h-4" /> Add Skill
+                </button>
+              </div>
+
+              {/* Skill chips */}
+              {formData.skills.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {formData.skills.map((s) => {
+                    const skillName = skillsCatalog.find((sk: any) => sk.id === s.skillId)?.name || s.skillId;
+                    return (
+                      <span
+                        key={s.skillId}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-100 text-blue-700 rounded-full text-sm"
+                      >
+                        {skillName}
+                        <span className="text-xs text-blue-500">({SKILL_LEVEL_LABELS[s.level] || s.level})</span>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveSkill(s.skillId)}
+                          className="text-blue-400 hover:text-blue-700"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </span>
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -343,15 +419,20 @@ export default function SetupWorkerProfile() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  City
+                  Region
                 </label>
-                <input
-                  type="text"
+                <select
                   value={formData.regionId}
                   onChange={(e) => updateField("regionId", e.target.value)}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
-                  placeholder="e.g., Amsterdam"
-                />
+                >
+                  <option value="">Select region</option>
+                  {regions.map((region) => (
+                    <option key={region.id} value={region.id}>
+                      {region.nameEn || region.name}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
 

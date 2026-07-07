@@ -8,73 +8,83 @@ datasource db {
 }
 
 model User {
-  id               String          @id @default(uuid())
-  email            String          @unique
-  passwordHash     String
-  role             UserRole
-  emailVerified    Boolean         @default(false)
-  phone            String?
-  phoneVerified    Boolean         @default(false)
-  status           UserStatus      @default(ACTIVE)
-  twoFactorEnabled Boolean         @default(false)
-  twoFactorSecret  String?
-  lastLoginAt      DateTime?
-  lastLoginIp      String?
-  createdAt        DateTime        @default(now())
-  updatedAt        DateTime        @updatedAt
-  deletedAt        DateTime?
-  conversations1   Conversation[]  @relation("ConversationParticipant1")
-  conversations2   Conversation[]  @relation("ConversationParticipant2")
-  employer         Employer?
-  receivedMessages Message[]       @relation("MessageRecipient")
-  sentMessages     Message[]       @relation("MessageSender")
-  notifications    Notification[]
-  ratings          Rating[]
-  worker           Worker?
-  supportTickets   SupportTicket[] @relation("UserSupportTickets")
-  assignedTickets  SupportTicket[] @relation("AssignedSupportTickets")
-  resolvedTickets  SupportTicket[] @relation("ResolvedSupportTickets")
+  id                   String               @id @default(uuid())
+  email                String               @unique
+  passwordHash         String
+  role                 UserRole
+  emailVerified        Boolean              @default(false)
+  phone                String?             @unique
+  phoneVerified        Boolean              @default(false)
+  status               UserStatus           @default(ACTIVE)
+  twoFactorEnabled     Boolean              @default(false)
+  twoFactorSecret      String?
+  lastLoginAt          DateTime?
+  lastLoginIp          String?
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+  deletedAt            DateTime?
+  conversations1       Conversation[]       @relation("ConversationParticipant1")
+  conversations2       Conversation[]       @relation("ConversationParticipant2")
+  employer             Employer?
+  receivedMessages     Message[]            @relation("MessageRecipient")
+  sentMessages         Message[]            @relation("MessageSender")
+  notifications        Notification[]
+  ratings              Rating[]
+  worker               Worker?
+  supportTickets       SupportTicket[]      @relation("UserSupportTickets")
+  assignedTickets      SupportTicket[]      @relation("AssignedSupportTickets")
+  resolvedTickets      SupportTicket[]      @relation("ResolvedSupportTickets")
   suspiciousActivities SuspiciousActivity[]
-  blacklistEntries BlacklistEntry[] @relation("BlacklistedUser")
+  blacklistEntries     BlacklistEntry[]     @relation("BlacklistedUser")
 
   @@index([email])
   @@index([role])
 }
 
 model Worker {
-  id                     String            @id @default(uuid())
-  userId                 String            @unique
-  publicId               String            @unique
+  id                     String              @id @default(uuid())
+  userId                 String              @unique
+  publicId               String              @unique
   regionId               String?
   postalCode             String?
-  country                String            @default("NL")
-  yearsOfExperience      Int?              @map("years_of_experience")
-  primaryTrade           String?           @map("primary_trade")
-  availability           Availability      @default(NOT_AVAILABLE)
-  noticePeriodDays       Int?              @map("notice_period_days")
-  desiredSalaryMin       Int?              @map("desired_salary_min")
-  desiredSalaryMax       Int?              @map("desired_salary_max")
-  desiredHourlyRate      Int?              @map("desired_hourly_rate")
-  employmentTypes        EmploymentType[]  @map("employment_types")
-  travelDistanceKm       Int?              @default(30) @map("travel_distance_km")
-  workSchedulePrefs      WorkScheduleType[] @map("work_schedule_prefs")
-  industryPrefs          IndustryType[]    @map("industry_prefs")
-  careerPriorities       CareerPriority[]  @map("career_priorities")
-  profileVisibility      ProfileVisibility @default(ALL_VERIFIED)
-  isProfileComplete      Boolean           @default(false) @map("is_profile_complete")
-  profileCompletenessPct Int               @default(0) @map("profile_completeness_pct")
-  reputationScore        Int               @default(50) @map("reputation_score")
-  createdAt              DateTime          @default(now())
-  updatedAt              DateTime          @updatedAt
+  country                String              @default("NL")
+  yearsOfExperience      Int?                @map("years_of_experience")
+  primaryTrade           String?             @map("primary_trade")
+  headline               String?             @map("headline")
+  summary                String?             @map("summary")
+  specializations        Specialization[]    @map("specializations")
+  availability           Availability        @default(NOT_AVAILABLE)
+  noticePeriodDays       Int?                @map("notice_period_days")
+  desiredSalaryMin       Int?                @map("desired_salary_min")
+  desiredSalaryMax       Int?                @map("desired_salary_max")
+  desiredHourlyRate      Int?                @map("desired_hourly_rate")
+  employmentTypes        EmploymentType[]    @map("employment_types")
+  travelDistanceKm       Int?                @default(30) @map("travel_distance_km")
+  hasDrivingLicense      Boolean             @default(false) @map("has_driving_license")
+  hasOwnVehicle          Boolean             @default(false) @map("has_own_vehicle")
+  workAuthorization      WorkAuthorization?  @map("work_authorization")
+  workSchedulePrefs      WorkScheduleType[]  @map("work_schedule_prefs")
+  industryPrefs          IndustryType[]      @map("industry_prefs")
+  careerPriorities       CareerPriority[]    @map("career_priorities")
+  profileVisibility      ProfileVisibility   @default(ALL_VERIFIED)
+  isProfileComplete      Boolean             @default(false) @map("is_profile_complete")
+  profileCompletenessPct Int                 @default(0) @map("profile_completeness_pct")
+  reputationScore        Int                 @default(50) @map("reputation_score")
+  safetyScore            Int                 @default(0) @map("safety_score")
+  createdAt              DateTime            @default(now())
+  updatedAt              DateTime            @updatedAt
   deletedAt              DateTime?
   blockedCompanies       BlockedCompany[]
   certifications         Certification[]
   offersReceived         Offer[]
   skills                 ProfileSkill[]
-  region                 Region?           @relation(fields: [regionId], references: [id])
-  user                   User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  fraudIndicators        FraudIndicator[]  @relation("WorkerFraudIndicators")
-  blacklistEntries       BlacklistEntry[]  @relation("BlacklistedWorker")
+  languages              WorkerLanguage[]
+  education              Education[]
+  projectExperiences     ProjectExperience[]
+  region                 Region?             @relation(fields: [regionId], references: [id])
+  user                   User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fraudIndicators        FraudIndicator[]    @relation("WorkerFraudIndicators")
+  blacklistEntries       BlacklistEntry[]    @relation("BlacklistedWorker")
 
   @@index([userId])
   @@index([regionId])
@@ -150,6 +160,47 @@ model Certification {
 
   @@index([profileId])
   @@index([verificationStatus])
+}
+
+model WorkerLanguage {
+  id       String @id @default(uuid())
+  workerId String @map("worker_id")
+  language String
+  level    String // A1, A2, B1, B2, C1, C2, NATIVE
+
+  worker Worker @relation(fields: [workerId], references: [id], onDelete: Cascade)
+
+  @@unique([workerId, language])
+  @@index([workerId])
+}
+
+model Education {
+  id            String  @id @default(uuid())
+  workerId      String  @map("worker_id")
+  qualification String  @map("qualification")
+  institution   String?
+  country       String  @default("NL")
+  yearCompleted Int?    @map("year_completed")
+
+  worker Worker @relation(fields: [workerId], references: [id], onDelete: Cascade)
+
+  @@index([workerId])
+}
+
+model ProjectExperience {
+  id               String    @id @default(uuid())
+  workerId         String    @map("worker_id")
+  projectType      String    @map("project_type")
+  industry         String
+  durationMonths   Int?      @map("duration_months")
+  responsibilities String[]
+  startDate        DateTime? @map("start_date")
+  endDate          DateTime? @map("end_date")
+  description      String?
+
+  worker Worker @relation(fields: [workerId], references: [id], onDelete: Cascade)
+
+  @@index([workerId])
 }
 
 model Employer {
@@ -437,40 +488,40 @@ model AuditLog {
 // ============================================================================
 
 model AdminSettings {
-  id         String   @id @default(uuid())
-  key        String   @unique
-  value      Json
-  category   String   @default("general")
-  isPublic   Boolean  @default(false)
-  updatedAt  DateTime @updatedAt
-  updatedBy  String?  // User ID of admin who last updated
-  createdAt  DateTime @default(now())
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     Json
+  category  String   @default("general")
+  isPublic  Boolean  @default(false)
+  updatedAt DateTime @updatedAt
+  updatedBy String? // User ID of admin who last updated
+  createdAt DateTime @default(now())
 
   @@index([category])
   @@index([key])
 }
 
 model SupportTicket {
-  id              String           @id @default(uuid())
-  ticketNumber    String           @unique // e.g., "SUP-2026-000001"
-  userId          String           // User who created the ticket
-  assignedToId    String?          // Support admin assigned
-  subject         String
-  description     String
-  category        String           // e.g., "account", "payment", "technical", "dispute"
-  priority        TicketPriority   @default(MEDIUM)
-  status          TicketStatus     @default(OPEN)
-  relatedEntityType String?        // e.g., "offer", "employer", "worker"
+  id                String          @id @default(uuid())
+  ticketNumber      String          @unique // e.g., "SUP-2026-000001"
+  userId            String // User who created the ticket
+  assignedToId      String? // Support admin assigned
+  subject           String
+  description       String
+  category          String // e.g., "account", "payment", "technical", "dispute"
+  priority          TicketPriority  @default(MEDIUM)
+  status            TicketStatus    @default(OPEN)
+  relatedEntityType String? // e.g., "offer", "employer", "worker"
   relatedEntityId   String?
-  conversation    TicketMessage[]
-  resolvedAt      DateTime?
-  resolvedById    String?
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
+  conversation      TicketMessage[]
+  resolvedAt        DateTime?
+  resolvedById      String?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
 
-  user            User             @relation("UserSupportTickets", fields: [userId], references: [id])
-  assignedTo      User?            @relation("AssignedSupportTickets", fields: [assignedToId], references: [id])
-  resolver        User?            @relation("ResolvedSupportTickets", fields: [resolvedById], references: [id])
+  user       User  @relation("UserSupportTickets", fields: [userId], references: [id])
+  assignedTo User? @relation("AssignedSupportTickets", fields: [assignedToId], references: [id])
+  resolver   User? @relation("ResolvedSupportTickets", fields: [resolvedById], references: [id])
 
   @@index([userId])
   @@index([assignedToId])
@@ -482,27 +533,27 @@ model SupportTicket {
 model TicketMessage {
   id          String   @id @default(uuid())
   ticketId    String
-  senderId    String   // User or Support admin
+  senderId    String // User or Support admin
   content     String
   isInternal  Boolean  @default(false) // Internal notes not visible to user
   attachments Json?
   createdAt   DateTime @default(now())
 
-  ticket      SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  ticket SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
 
   @@index([ticketId])
   @@index([senderId])
 }
 
 model AdminAction {
-  id          String   @id @default(uuid())
-  adminId     String
-  action      String   // e.g., "USER_SUSPENDED", "EMPLOYER_VERIFIED"
-  entityType  String   // e.g., "user", "employer", "offer"
-  entityId    String?
-  details     Json?
-  ipAddress   String?
-  createdAt   DateTime @default(now())
+  id         String   @id @default(uuid())
+  adminId    String
+  action     String // e.g., "USER_SUSPENDED", "EMPLOYER_VERIFIED"
+  entityType String // e.g., "user", "employer", "offer"
+  entityId   String?
+  details    Json?
+  ipAddress  String?
+  createdAt  DateTime @default(now())
 
   @@index([adminId])
   @@index([action])
@@ -651,62 +702,88 @@ enum EmploymentType {
   INTERNSHIP
 }
 
+enum Specialization {
+  RESIDENTIAL_INSTALLATIONS
+  COMMERCIAL_INSTALLATIONS
+  INDUSTRIAL_INSTALLATIONS
+  MAINTENANCE
+  HIGH_VOLTAGE
+  LOW_VOLTAGE
+  SOLAR_PV
+  EV_CHARGING
+  CONTROL_PANELS
+  PLC_SYSTEMS
+  AUTOMATION
+  BUILDING_MANAGEMENT
+  FIRE_ALARM_SYSTEMS
+  SECURITY_SYSTEMS
+  DATA_CABLING
+  MARINE_ELECTRICAL
+  RENEWABLE_ENERGY
+}
+
+enum WorkAuthorization {
+  EU_CITIZEN
+  DUTCH_WORK_PERMIT
+  HIGHLY_SKILLED_MIGRANT
+  REQUIRES_SPONSORSHIP
+}
+
 // ============================================================================
 // TRUST LAYER MODELS
 // ============================================================================
 
 model EmployerVerification {
-  id                    String              @id @default(uuid())
-  employerId            String              @unique
-  kvkVerified           Boolean             @default(false)
+  id                    String                 @id @default(uuid())
+  employerId            String                 @unique
+  kvkVerified           Boolean                @default(false)
   kvkVerifiedAt         DateTime?
   kvkData               Json?
-  vatVerified           Boolean             @default(false)
+  vatVerified           Boolean                @default(false)
   vatVerifiedAt         DateTime?
-  companyVerified       Boolean             @default(false)
+  companyVerified       Boolean                @default(false)
   companyVerifiedAt     DateTime?
-  documentVerified      Boolean             @default(false)
+  documentVerified      Boolean                @default(false)
   documentVerifiedAt    DateTime?
-  verifiedDocuments     String[]            @default([])
-  verificationLevel     VerificationLevel   @default(NONE)
-  riskLevel             RiskLevel           @default(UNKNOWN)
-  riskScore             Int                 @default(50)
+  verifiedDocuments     String[]               @default([])
+  verificationLevel     VerificationLevel      @default(NONE)
+  riskLevel             RiskLevel              @default(UNKNOWN)
+  riskScore             Int                    @default(50)
   lastReviewAt          DateTime?
   lastReviewBy          String?
   rejectionReason       String?
   notes                 String?
-  createdAt             DateTime            @default(now())
-  updatedAt             DateTime            @updatedAt
-  employer              Employer            @relation(fields: [employerId], references: [id], onDelete: Cascade)
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  employer              Employer               @relation(fields: [employerId], references: [id], onDelete: Cascade)
   verificationDocuments VerificationDocument[] @relation("EmployerVerificationDocs")
-  verificationLogs      VerificationLog[]   @relation("EmployerVerificationLogs")
+  verificationLogs      VerificationLog[]      @relation("EmployerVerificationLogs")
 
   @@index([employerId])
   @@index([verificationLevel])
   @@index([riskLevel])
 }
 
-
 model VerificationDocument {
-  id                  String                @id @default(uuid())
-  entityType          EntityType
-  entityId            String
-  documentType        DocumentType
-  documentSubtype     String?
-  fileUrl             String
-  fileHash            String?
-  fileSize            Int?
-  mimeType            String
-  status              VerificationStatus    @default(PENDING)
-  verificationResult  Json?
-  rejectionReason     String?
-  verifiedAt          DateTime?
-  verifiedBy          String?
-  expiresAt           DateTime?
-  isExpired           Boolean               @default(false)
-  metadata            Json?
-  createdAt           DateTime              @default(now())
-  updatedAt           DateTime              @updatedAt
+  id                   String                @id @default(uuid())
+  entityType           EntityType
+  entityId             String
+  documentType         DocumentType
+  documentSubtype      String?
+  fileUrl              String
+  fileHash             String?
+  fileSize             Int?
+  mimeType             String
+  status               VerificationStatus    @default(PENDING)
+  verificationResult   Json?
+  rejectionReason      String?
+  verifiedAt           DateTime?
+  verifiedBy           String?
+  expiresAt            DateTime?
+  isExpired            Boolean               @default(false)
+  metadata             Json?
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
   employerVerification EmployerVerification? @relation("EmployerVerificationDocs", fields: [entityId], references: [employerId], map: "VerDoc_employer_fk")
 
   @@index([entityType, entityId])
@@ -715,19 +792,19 @@ model VerificationDocument {
 }
 
 model VerificationLog {
-  id                  String              @id @default(uuid())
-  entityType          EntityType
-  entityId            String
-  action              VerificationAction
-  previousStatus      VerificationStatus?
-  newStatus           VerificationStatus
-  reason              String?
-  performedBy         String?
-  performedById       String?
-  ipAddress           String?
-  userAgent           String?
-  metadata            Json?
-  createdAt           DateTime            @default(now())
+  id                   String                @id @default(uuid())
+  entityType           EntityType
+  entityId             String
+  action               VerificationAction
+  previousStatus       VerificationStatus?
+  newStatus            VerificationStatus
+  reason               String?
+  performedBy          String?
+  performedById        String?
+  ipAddress            String?
+  userAgent            String?
+  metadata             Json?
+  createdAt            DateTime              @default(now())
   employerVerification EmployerVerification? @relation("EmployerVerificationLogs", fields: [entityId], references: [employerId], map: "VerLog_employer_fk")
 
   @@index([entityType, entityId])
@@ -735,29 +812,28 @@ model VerificationLog {
   @@index([createdAt])
 }
 
-
 model SuspiciousActivity {
-  id                  String              @id @default(uuid())
-  entityType          EntityType
-  entityId            String?
-  userId              String?
-  activityType        SuspiciousActivityType
-  severity            SeverityLevel       @default(MEDIUM)
-  riskScore           Int                 @default(50)
-  description         String
-  details             Json?
-  ipAddress           String?
-  userAgent           String?
-  fingerprint         String?
-  status              ActivityStatus      @default(NEW)
-  reviewedAt          DateTime?
-  reviewedBy          String?
-  reviewNotes         String?
-  actionTaken         String?
-  isFalsePositive     Boolean             @default(false)
-  createdAt           DateTime            @default(now())
-  updatedAt           DateTime            @updatedAt
-  user                User?               @relation(fields: [userId], references: [id], map: "SuspAct_user_fk")
+  id              String                 @id @default(uuid())
+  entityType      EntityType
+  entityId        String?
+  userId          String?
+  activityType    SuspiciousActivityType
+  severity        SeverityLevel          @default(MEDIUM)
+  riskScore       Int                    @default(50)
+  description     String
+  details         Json?
+  ipAddress       String?
+  userAgent       String?
+  fingerprint     String?
+  status          ActivityStatus         @default(NEW)
+  reviewedAt      DateTime?
+  reviewedBy      String?
+  reviewNotes     String?
+  actionTaken     String?
+  isFalsePositive Boolean                @default(false)
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+  user            User?                  @relation(fields: [userId], references: [id], map: "SuspAct_user_fk")
 
   @@index([entityType, entityId])
   @@index([userId])
@@ -768,20 +844,20 @@ model SuspiciousActivity {
 }
 
 model FraudIndicator {
-  id                  String              @id @default(uuid())
-  entityType          EntityType
-  entityId            String
-  indicatorType       FraudIndicatorType
-  description         String
-  severity            SeverityLevel
-  isConfirmed         Boolean             @default(false)
-  isFalsePositive     Boolean             @default(false)
-  confidenceScore     Int                 @default(50)
-  details             Json?
-  createdAt           DateTime            @default(now())
-  updatedAt           DateTime            @updatedAt
-  worker              Worker?             @relation("WorkerFraudIndicators", fields: [entityId], references: [id], map: "FraudInd_worker_fk")
-  employer            Employer?           @relation("EmployerFraudIndicators", fields: [entityId], references: [id], map: "FraudInd_employer_fk")
+  id              String             @id @default(uuid())
+  entityType      EntityType
+  entityId        String
+  indicatorType   FraudIndicatorType
+  description     String
+  severity        SeverityLevel
+  isConfirmed     Boolean            @default(false)
+  isFalsePositive Boolean            @default(false)
+  confidenceScore Int                @default(50)
+  details         Json?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  worker          Worker?            @relation("WorkerFraudIndicators", fields: [entityId], references: [id], map: "FraudInd_worker_fk")
+  employer        Employer?          @relation("EmployerFraudIndicators", fields: [entityId], references: [id], map: "FraudInd_employer_fk")
 
   @@index([entityType, entityId])
   @@index([indicatorType])
@@ -789,20 +865,20 @@ model FraudIndicator {
 }
 
 model DuplicateAccountCheck {
-  id                  String              @id @default(uuid())
-  primaryUserId       String
-  suspectedUserId     String
-  matchType           DuplicateMatchType
-  matchFields         String[]
-  confidenceScore     Int
-  isConfirmed         Boolean             @default(false)
-  isFalsePositive     Boolean             @default(false)
-  reviewedAt          DateTime?
-  reviewedBy          String?
-  actionTaken         String?
-  details             Json?
-  createdAt           DateTime            @default(now())
-  updatedAt           DateTime            @updatedAt
+  id              String             @id @default(uuid())
+  primaryUserId   String
+  suspectedUserId String
+  matchType       DuplicateMatchType
+  matchFields     String[]
+  confidenceScore Int
+  isConfirmed     Boolean            @default(false)
+  isFalsePositive Boolean            @default(false)
+  reviewedAt      DateTime?
+  reviewedBy      String?
+  actionTaken     String?
+  details         Json?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
 
   @@unique([primaryUserId, suspectedUserId])
   @@index([primaryUserId])
@@ -811,22 +887,22 @@ model DuplicateAccountCheck {
 }
 
 model TrustScore {
-  id                  String              @id @default(uuid())
-  entityType          EntityType
-  entityId            String              @unique
-  overallScore        Int                 @default(50)
-  scoreGrade          String              @default("C")
-  employerScore       Int?
-  workerScore         Int?
-  verificationScore   Int?
-  behaviorScore       Int?
-  reputationScore     Int?
-  riskAdjustedScore   Int?
-  scoreHistory        Json?
-  factors             Json?
-  lastCalculatedAt    DateTime            @default(now())
-  createdAt           DateTime            @default(now())
-  updatedAt           DateTime            @updatedAt
+  id                String     @id @default(uuid())
+  entityType        EntityType
+  entityId          String     @unique
+  overallScore      Int        @default(50)
+  scoreGrade        String     @default("C")
+  employerScore     Int?
+  workerScore       Int?
+  verificationScore Int?
+  behaviorScore     Int?
+  reputationScore   Int?
+  riskAdjustedScore Int?
+  scoreHistory      Json?
+  factors           Json?
+  lastCalculatedAt  DateTime   @default(now())
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
 
   @@index([entityType, entityId])
   @@index([overallScore])
@@ -834,23 +910,23 @@ model TrustScore {
 }
 
 model BlacklistEntry {
-  id                  String              @id @default(uuid())
-  entityType          EntityType
-  entityId            String
-  userId              String?
-  reason              String
-  severity            SeverityLevel
-  source              String
-  evidence            Json?
-  isActive            Boolean             @default(true)
-  expiresAt           DateTime?
-  reviewedAt          DateTime?
-  reviewedBy          String?
-  createdAt           DateTime            @default(now())
-  updatedAt           DateTime            @updatedAt
-  user                User?               @relation("BlacklistedUser", fields: [userId], references: [id], map: "Blacklist_user_fk")
-  worker              Worker?             @relation("BlacklistedWorker", fields: [entityId], references: [id], map: "Blacklist_worker_fk")
-  employer            Employer?           @relation("BlacklistedEmployer", fields: [entityId], references: [id], map: "Blacklist_employer_fk")
+  id         String        @id @default(uuid())
+  entityType EntityType
+  entityId   String
+  userId     String?
+  reason     String
+  severity   SeverityLevel
+  source     String
+  evidence   Json?
+  isActive   Boolean       @default(true)
+  expiresAt  DateTime?
+  reviewedAt DateTime?
+  reviewedBy String?
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+  user       User?         @relation("BlacklistedUser", fields: [userId], references: [id], map: "Blacklist_user_fk")
+  worker     Worker?       @relation("BlacklistedWorker", fields: [entityId], references: [id], map: "Blacklist_worker_fk")
+  employer   Employer?     @relation("BlacklistedEmployer", fields: [entityId], references: [id], map: "Blacklist_employer_fk")
 
   @@unique([entityType, entityId])
   @@index([entityType])
@@ -875,7 +951,6 @@ enum RiskLevel {
   VERY_HIGH
   CRITICAL
 }
-
 
 enum EntityType {
   USER
@@ -910,7 +985,6 @@ enum VerificationAction {
   REVIEWED
   UPDATED
 }
-
 
 enum SuspiciousActivityType {
   RAPID_ACCOUNT_CREATION
@@ -981,14 +1055,14 @@ enum InvoiceStatus {
 }
 
 model Invoice {
-  id               String         @id @default(uuid())
-  invoiceNumber    String         @unique
+  id               String        @id @default(uuid())
+  invoiceNumber    String        @unique
   employerId       String
-  offerId          String         @unique
-  status           InvoiceStatus  @default(DRAFT)
-  currency         String         @default("EUR")
+  offerId          String        @unique
+  status           InvoiceStatus @default(DRAFT)
+  currency         String        @default("EUR")
   subtotalCents    Int
-  vatRatePct       Int            @default(21)
+  vatRatePct       Int           @default(21)
   vatAmountCents   Int
   totalCents       Int
   dueDate          DateTime
@@ -996,13 +1070,13 @@ model Invoice {
   paymentMethod    String?
   paymentReference String?
   notes            String?
-  issuedAt         DateTime       @default(now())
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
+  issuedAt         DateTime      @default(now())
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
 
-  employer         Employer       @relation(fields: [employerId], references: [id], onDelete: Cascade)
-  offer            Offer          @relation(fields: [offerId], references: [id], onDelete: Cascade)
-  lineItems        InvoiceLineItem[]
+  employer  Employer          @relation(fields: [employerId], references: [id], onDelete: Cascade)
+  offer     Offer             @relation(fields: [offerId], references: [id], onDelete: Cascade)
+  lineItems InvoiceLineItem[]
 
   @@index([employerId])
   @@index([employerId, status])
@@ -1011,16 +1085,16 @@ model Invoice {
 }
 
 model InvoiceLineItem {
-  id              String   @id @default(uuid())
-  invoiceId       String
-  description     String
-  quantity        Int      @default(1)
+  id             String   @id @default(uuid())
+  invoiceId      String
+  description    String
+  quantity       Int      @default(1)
   unitPriceCents Int
-  totalCents      Int
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  totalCents     Int
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
-  invoice         Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
 
   @@index([invoiceId])
 }

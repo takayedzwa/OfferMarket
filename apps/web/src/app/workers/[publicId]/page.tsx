@@ -17,32 +17,114 @@ import {
   CheckCircle,
   User,
   Lock,
+  Shield,
+  Car,
+  Globe,
+  GraduationCap,
+  Building2,
+  BadgeCheck,
 } from "lucide-react";
 
 interface WorkerProfile {
   publicId: string;
+  headline?: string;
+  summary?: string;
   region: { name: string; province?: string; type?: string } | null;
   yearsOfExperience?: number;
   primaryTrade?: string;
+  specializations?: string[];
   availability: string;
   skills: Array<{
+    id?: string;
     name: string;
     level: string;
     yearsOfExperience?: number;
     isCertified?: boolean;
+    isPrimary?: boolean;
   }>;
   certifications: Array<{
+    id?: string;
     name: string;
+    issuingBody?: string;
     isValid: boolean;
     validUntil?: string;
+    isLifetime?: boolean;
   }>;
+  languages?: Array<{ language: string; level: string }>;
+  education?: Array<{
+    id?: string;
+    qualification: string;
+    institution?: string;
+    country?: string;
+    yearCompleted?: number;
+  }>;
+  projectExperiences?: Array<{
+    id?: string;
+    projectType: string;
+    industry: string;
+    durationMonths?: number;
+    responsibilities?: string[];
+    startDate?: string;
+    endDate?: string;
+    description?: string;
+  }>;
+  hasDrivingLicense?: boolean;
+  hasOwnVehicle?: boolean;
+  travelDistanceKm?: number;
+  workAuthorization?: string;
   desiredSalaryRange: { min?: number; max?: number };
   employmentTypes: string[];
-  travelDistanceKm?: number;
+  workSchedulePrefs?: string[];
+  industryPrefs?: string[];
+  careerPriorities?: string[];
   profileCompletenessPct: number;
   reputationScore: number;
+  safetyScore?: number;
+  badges?: string[];
   lastActive: string;
 }
+
+const BADGE_LABELS: Record<string, { label: string; icon: string }> = {
+  NEN_3140_CERTIFIED: { label: "NEN 3140 Certified", icon: "🏅" },
+  VCA_CERTIFIED: { label: "VCA Certified", icon: "🏅" },
+  NEN_1010_CERTIFIED: { label: "NEN 1010 Certified", icon: "🏅" },
+  FIRST_AID_CERTIFIED: { label: "First Aid / BHV", icon: "🏅" },
+  MULTIPLE_CERTIFIED: { label: "Multiple Certifications", icon: "🏅" },
+  SENIOR_EXPERT: { label: "10+ Years Experience", icon: "🏆" },
+  EXPERIENCED: { label: "5+ Years Experience", icon: "⭐" },
+  INDUSTRIAL_SPECIALIST: { label: "Industrial Specialist", icon: "🔧" },
+  PLC_SPECIALIST: { label: "PLC Specialist", icon: "⚙️" },
+  SOLAR_SPECIALIST: { label: "Solar PV Specialist", icon: "☀️" },
+  RENEWABLE_SPECIALIST: { label: "Renewable Energy", icon: "🌱" },
+  AVAILABLE_IMMEDIATELY: { label: "Available Immediately", icon: "✅" },
+  DRIVING_LICENCE_B: { label: "Driving Licence B", icon: "🚗" },
+  OWN_VEHICLE: { label: "Own Vehicle", icon: "🚙" },
+  DUTCH_B2: { label: "Dutch B2+", icon: "🇳🇱" },
+  ENGLISH_B2: { label: "English B2+", icon: "🇬🇧" },
+  EU_CITIZEN: { label: "EU Citizen", icon: "🇪🇺" },
+  WORK_PERMIT_VALID: { label: "Work Permit Valid", icon: "📋" },
+  VERIFIED_CREDENTIALS: { label: "Verified Credentials", icon: "✓" },
+};
+
+const SPECIALIZATION_LABELS: Record<string, string> = {
+  RESIDENTIAL_INSTALLATIONS: "Residential",
+  COMMERCIAL_INSTALLATIONS: "Commercial",
+  INDUSTRIAL_INSTALLATIONS: "Industrial",
+  MAINTENANCE: "Maintenance",
+  HIGH_VOLTAGE: "High Voltage",
+  LOW_VOLTAGE: "Low Voltage",
+  SOLAR_PV: "Solar PV",
+  EV_CHARGING: "EV Charging",
+  CONTROL_PANELS: "Control Panels",
+  PLC_SYSTEMS: "PLC Systems",
+  AUTOMATION: "Automation",
+  BUILDING_MANAGEMENT: "Building Management",
+  FIRE_ALARM_SYSTEMS: "Fire Alarm Systems",
+  SECURITY_SYSTEMS: "Security Systems",
+  DATA_CABLING: "Data Cabling",
+  MARINE_ELECTRICAL: "Marine Electrical",
+  RENEWABLE_ENERGY: "Renewable Energy",
+};
 
 export default function WorkerProfilePage() {
   const router = useRouter();
@@ -102,12 +184,22 @@ export default function WorkerProfilePage() {
       INTERMEDIATE: "bg-blue-100 text-blue-700",
       ADVANCED: "bg-purple-100 text-purple-700",
       EXPERT: "bg-green-100 text-green-700",
+      MASTER: "bg-yellow-100 text-yellow-800",
     };
     return colors[level] || "bg-gray-100 text-gray-700";
   };
 
+  const getWorkAuthLabel = (wa: string) => {
+    const labels: Record<string, string> = {
+      EU_CITIZEN: "EU Citizen",
+      DUTCH_WORK_PERMIT: "Dutch Work Permit",
+      HIGHLY_SKILLED_MIGRANT: "Highly Skilled Migrant",
+      REQUIRES_SPONSORSHIP: "Requires Sponsorship",
+    };
+    return labels[wa] || wa.replace(/_/g, " ");
+  };
+
   const handleCreateOffer = () => {
-    // Navigate to create offer page with worker info
     router.push(`/offers/create?workerId=${publicId}`);
   };
 
@@ -166,8 +258,29 @@ export default function WorkerProfilePage() {
                 <User className="w-8 h-8 text-white" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">{worker.publicId}</h1>
-                <p className="text-gray-600">{worker.primaryTrade || "General Worker"}</p>
+                <h1 className="text-2xl font-bold text-gray-900">
+                  {worker.headline || worker.publicId}
+                </h1>
+                <p className="text-gray-600">
+                  {worker.primaryTrade || "General Worker"}
+                </p>
+                {worker.specializations && worker.specializations.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    {worker.specializations.slice(0, 4).map((spec) => (
+                      <span
+                        key={spec}
+                        className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-xs font-medium"
+                      >
+                        {SPECIALIZATION_LABELS[spec] || spec.replace(/_/g, " ")}
+                      </span>
+                    ))}
+                    {worker.specializations.length > 4 && (
+                      <span className="px-2 py-0.5 bg-gray-50 text-gray-500 rounded text-xs">
+                        +{worker.specializations.length - 4} more
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
             <div
@@ -178,6 +291,28 @@ export default function WorkerProfilePage() {
               {getAvailabilityLabel(worker.availability)}
             </div>
           </div>
+
+          {/* Summary */}
+          {worker.summary && (
+            <p className="text-gray-700 text-sm mt-3 mb-4">{worker.summary}</p>
+          )}
+
+          {/* Badges */}
+          {worker.badges && worker.badges.length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-3 mb-4">
+              {worker.badges.map((badge) => {
+                const badgeInfo = BADGE_LABELS[badge];
+                return (
+                  <span
+                    key={badge}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-50 text-amber-800 border border-amber-200 rounded-full text-xs font-medium"
+                  >
+                    {badgeInfo ? `${badgeInfo.icon} ${badgeInfo.label}` : badge.replace(/_/g, " ")}
+                  </span>
+                );
+              })}
+            </div>
+          )}
 
           {/* Key Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t">
@@ -216,6 +351,25 @@ export default function WorkerProfilePage() {
               </div>
             </div>
           </div>
+
+          {/* Mobility & Authorization Row */}
+          <div className="flex flex-wrap gap-3 mt-4 pt-4 border-t">
+            {worker.hasDrivingLicense && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-50 text-green-700 rounded-lg text-sm">
+                <Car className="w-4 h-4" /> Driving Licence B
+              </span>
+            )}
+            {worker.hasOwnVehicle && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-50 text-green-700 rounded-lg text-sm">
+                <Truck className="w-4 h-4" /> Own Vehicle
+              </span>
+            )}
+            {worker.workAuthorization && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg text-sm">
+                <Globe className="w-4 h-4" /> {getWorkAuthLabel(worker.workAuthorization)}
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Anonymous Notice */}
@@ -238,14 +392,19 @@ export default function WorkerProfilePage() {
           <div className="bg-white rounded-xl border shadow-sm p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
               <Award className="w-5 h-5" />
-              Skills & Certifications
+              Skills
             </h2>
             {worker.skills.length > 0 ? (
               <div className="space-y-3">
                 {worker.skills.map((skill, idx) => (
-                  <div key={idx} className="flex items-center justify-between">
+                  <div key={skill.id || idx} className="flex items-center justify-between">
                     <div>
-                      <div className="font-medium text-gray-900">{skill.name}</div>
+                      <div className="font-medium text-gray-900 flex items-center gap-2">
+                        {skill.name}
+                        {skill.isPrimary && (
+                          <span className="px-1.5 py-0.5 bg-yellow-100 text-yellow-700 text-xs rounded">Primary</span>
+                        )}
+                      </div>
                       {skill.yearsOfExperience !== undefined && (
                         <div className="text-sm text-gray-500">
                           {skill.yearsOfExperience} years
@@ -277,19 +436,25 @@ export default function WorkerProfilePage() {
           {/* Certifications */}
           <div className="bg-white rounded-xl border shadow-sm p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              <Award className="w-5 h-5" />
+              <BadgeCheck className="w-5 h-5" />
               Certifications
             </h2>
             {worker.certifications.length > 0 ? (
               <div className="space-y-3">
                 {worker.certifications.map((cert, idx) => (
-                  <div key={idx} className="flex items-center justify-between">
+                  <div key={cert.id || idx} className="flex items-center justify-between">
                     <div>
                       <div className="font-medium text-gray-900">{cert.name}</div>
-                      {cert.validUntil && (
+                      {cert.issuingBody && (
+                        <div className="text-sm text-gray-500">{cert.issuingBody}</div>
+                      )}
+                      {cert.validUntil && !cert.isLifetime && (
                         <div className="text-sm text-gray-500">
                           Valid until {new Date(cert.validUntil).toLocaleDateString()}
                         </div>
+                      )}
+                      {cert.isLifetime && (
+                        <div className="text-sm text-green-600">Lifetime certification</div>
                       )}
                     </div>
                     {cert.isValid ? (
@@ -309,6 +474,82 @@ export default function WorkerProfilePage() {
             )}
           </div>
 
+          {/* Languages */}
+          {worker.languages && worker.languages.length > 0 && (
+            <div className="bg-white rounded-xl border shadow-sm p-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <Globe className="w-5 h-5" />
+                Languages
+              </h2>
+              <div className="space-y-2">
+                {worker.languages.map((lang, idx) => (
+                  <div key={idx} className="flex items-center justify-between">
+                    <span className="font-medium text-gray-900">{lang.language}</span>
+                    <span className="px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs font-medium">
+                      {lang.level}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Education */}
+          {worker.education && worker.education.length > 0 && (
+            <div className="bg-white rounded-xl border shadow-sm p-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <GraduationCap className="w-5 h-5" />
+                Education
+              </h2>
+              <div className="space-y-3">
+                {worker.education.map((edu, idx) => (
+                  <div key={edu.id || idx}>
+                    <div className="font-medium text-gray-900">{edu.qualification}</div>
+                    {edu.institution && (
+                      <div className="text-sm text-gray-600">{edu.institution}</div>
+                    )}
+                    <div className="text-sm text-gray-500">
+                      {edu.country || "NL"}{edu.yearCompleted ? ` · ${edu.yearCompleted}` : ""}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Project Experience */}
+          {worker.projectExperiences && worker.projectExperiences.length > 0 && (
+            <div className="bg-white rounded-xl border shadow-sm p-6 md:col-span-2">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <Building2 className="w-5 h-5" />
+                Project Experience
+              </h2>
+              <div className="space-y-4">
+                {worker.projectExperiences.map((proj, idx) => (
+                  <div key={proj.id || idx} className="border-l-2 border-blue-200 pl-4">
+                    <div className="font-medium text-gray-900">{proj.projectType}</div>
+                    <div className="text-sm text-blue-600">{proj.industry}</div>
+                    {proj.durationMonths && (
+                      <div className="text-sm text-gray-500">{proj.durationMonths} months</div>
+                    )}
+                    {proj.description && (
+                      <p className="text-sm text-gray-700 mt-1">{proj.description}</p>
+                    )}
+                    {proj.responsibilities && proj.responsibilities.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {proj.responsibilities.map((r, i) => (
+                          <span key={i} className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded text-xs">
+                            {r}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Employment Preferences */}
           <div className="bg-white rounded-xl border shadow-sm p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
@@ -325,7 +566,7 @@ export default function WorkerProfilePage() {
                         key={idx}
                         className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm"
                       >
-                        {type.replace("_", " ")}
+                        {type.replace(/_/g, " ")}
                       </span>
                     ))
                   ) : (
@@ -333,6 +574,18 @@ export default function WorkerProfilePage() {
                   )}
                 </div>
               </div>
+              {(worker.workSchedulePrefs && worker.workSchedulePrefs.length > 0) && (
+                <div>
+                  <div className="text-sm text-gray-500 mb-2">Work Schedule</div>
+                  <div className="flex flex-wrap gap-2">
+                    {worker.workSchedulePrefs.map((pref, idx) => (
+                      <span key={idx} className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-sm">
+                        {pref.replace(/_/g, " ")}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
               <div>
                 <div className="text-sm text-gray-500 mb-2 flex items-center gap-2">
                   <DollarSign className="w-4 h-4" />
@@ -350,13 +603,33 @@ export default function WorkerProfilePage() {
             </div>
           </div>
 
-          {/* Profile Completeness */}
+          {/* Safety & Profile Info */}
           <div className="bg-white rounded-xl border shadow-sm p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              <Calendar className="w-5 h-5" />
-              Profile Info
+              <Shield className="w-5 h-5" />
+              Safety & Profile
             </h2>
             <div className="space-y-4">
+              {/* Safety Score */}
+              {worker.safetyScore !== undefined && worker.safetyScore > 0 && (
+                <div>
+                  <div className="text-sm text-gray-500 mb-2">Safety Compliance Score</div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-full bg-gray-200 rounded-full h-3">
+                      <div
+                        className={`h-3 rounded-full transition-all ${
+                          worker.safetyScore >= 80 ? "bg-green-600" :
+                          worker.safetyScore >= 50 ? "bg-yellow-500" : "bg-red-500"
+                        }`}
+                        style={{ width: `${worker.safetyScore}%` }}
+                      />
+                    </div>
+                    <span className="font-semibold text-gray-900">{worker.safetyScore}/100</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Profile Completeness */}
               <div>
                 <div className="text-sm text-gray-500 mb-2">Profile Completeness</div>
                 <div className="w-full bg-gray-200 rounded-full h-3">
@@ -369,6 +642,7 @@ export default function WorkerProfilePage() {
                   {worker.profileCompletenessPct}% complete
                 </div>
               </div>
+
               <div>
                 <div className="text-sm text-gray-500 mb-2">Last Active</div>
                 <div className="font-medium text-gray-900">

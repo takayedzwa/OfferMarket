@@ -17,10 +17,18 @@ export class AuthService {
 
   async registerWorker(email: string, password: string, phone?: string, ipAddress?: string) {
     return this.prisma.$transaction(async (tx) => {
-      // Check if user already exists
-      const existing = await tx.user.findUnique({ where: { email } });
-      if (existing) {
+      // Check if email already exists
+      const existingByEmail = await tx.user.findUnique({ where: { email } });
+      if (existingByEmail) {
         throw new BadRequestException('Email already registered');
+      }
+
+      // Check if phone already exists (when provided)
+      if (phone) {
+        const existingByPhone = await tx.user.findUnique({ where: { phone } });
+        if (existingByPhone) {
+          throw new BadRequestException('Phone number already registered');
+        }
       }
 
       // TRUST LAYER: Check for rapid account creation
@@ -52,25 +60,6 @@ export class AuthService {
           lastLoginIp: ipAddress,
         }
       });
-
-      // TRUST LAYER: Initialize worker verification record
-      // We'll create the worker first, then initialize verification
-      await tx.$executeRaw`
-        INSERT INTO "WorkerVerification" (id, "workerId", "verificationLevel", "riskLevel", "riskScore", "backgroundCheckStatus", "referenceCheckStatus", "createdAt", "updatedAt")
-        SELECT
-          gen_random_uuid(),
-          id,
-          'NONE',
-          'UNKNOWN',
-          50,
-          'NOT_STARTED',
-          'NOT_STARTED',
-          NOW(),
-          NOW()
-        FROM "Worker"
-        WHERE "userId" = ${user.id}
-        ON CONFLICT ("workerId") DO NOTHING
-      `;
 
       // Generate JWT
       const tokens = this.generateTokens(user.id, user.role);
@@ -208,10 +197,18 @@ export class AuthService {
     ipAddress?: string,
   ) {
     return this.prisma.$transaction(async (tx) => {
-      // Check if user already exists
-      const existing = await tx.user.findUnique({ where: { email } });
-      if (existing) {
+      // Check if email already exists
+      const existingByEmail = await tx.user.findUnique({ where: { email } });
+      if (existingByEmail) {
         throw new BadRequestException('Email already registered');
+      }
+
+      // Check if phone already exists
+      if (phone) {
+        const existingByPhone = await tx.user.findUnique({ where: { phone } });
+        if (existingByPhone) {
+          throw new BadRequestException('Phone number already registered');
+        }
       }
 
       // Check if KvK already exists

@@ -38,6 +38,9 @@ export interface Worker {
   country: string;
   yearsOfExperience?: number;
   primaryTrade?: string;
+  headline?: string;
+  summary?: string;
+  specializations: Specialization[];
   availability: Availability;
   noticePeriodDays?: number;
   desiredSalaryMin?: number;
@@ -45,6 +48,9 @@ export interface Worker {
   desiredHourlyRate?: number;
   employmentTypes: string[];
   travelDistanceKm: number;
+  hasDrivingLicense: boolean;
+  hasOwnVehicle: boolean;
+  workAuthorization?: WorkAuthorization;
   workSchedulePrefs: string[];
   industryPrefs: string[];
   careerPriorities: string[];
@@ -52,12 +58,20 @@ export interface Worker {
   isProfileComplete: boolean;
   profileCompletenessPct: number;
   reputationScore: number;
+  safetyScore: number;
+  skills?: ProfileSkill[];
+  certifications?: Certification[];
+  languages?: WorkerLanguage[];
+  education?: Education[];
+  projectExperiences?: ProjectExperience[];
   createdAt: Date;
   updatedAt: Date;
 }
 
 export interface PublicWorkerProfile {
   publicId: string;
+  headline: string;
+  summary?: string;
   region: {
     name: string;
     province?: string;
@@ -65,22 +79,30 @@ export interface PublicWorkerProfile {
   };
   yearsOfExperience?: number;
   primaryTrade?: string;
+  specializations: string[];
   skills: PublicSkill[];
   certifications: PublicCertification[];
+  languages: WorkerLanguage[];
+  education: Education[];
+  projectExperiences: ProjectExperience[];
   availability: Availability;
+  hasDrivingLicense: boolean;
+  hasOwnVehicle: boolean;
+  travelDistanceKm: number;
+  workAuthorization?: string;
   desiredSalaryRange: {
     min?: number;
     max?: number;
   };
   employmentTypes: string[];
-  travelDistanceKm: number;
   workSchedulePrefs: string[];
   industryPrefs: string[];
   careerPriorities: string[];
   profileCompletenessPct: number;
   reputationScore: number;
+  safetyScore: number;
+  badges: string[];
   lastActive: Date;
-  profileVisibility?: string;
   _meta: {
     identityRevealed: false;
     identityRevealedOn: 'offer_acceptance';
@@ -94,17 +116,78 @@ export interface PublicWorkerProfile {
   };
 }
 
+// Private worker profile type (what the worker sees when editing their own profile)
+// Extends Worker with badges computed field
+export interface PrivateWorkerProfile extends Worker {
+  badges: string[];
+}
+
 export interface PublicSkill {
+  id?: string;
   name: string;
   level: SkillLevel;
   yearsOfExperience?: number;
   isCertified: boolean;
+  isPrimary?: boolean;
 }
 
 export interface PublicCertification {
+  id?: string;
   name: string;
+  issuingBody?: string;
   isValid: boolean;
   validUntil?: Date;
+  isLifetime?: boolean;
+}
+
+export type Specialization =
+  | 'RESIDENTIAL_INSTALLATIONS'
+  | 'COMMERCIAL_INSTALLATIONS'
+  | 'INDUSTRIAL_INSTALLATIONS'
+  | 'MAINTENANCE'
+  | 'HIGH_VOLTAGE'
+  | 'LOW_VOLTAGE'
+  | 'SOLAR_PV'
+  | 'EV_CHARGING'
+  | 'CONTROL_PANELS'
+  | 'PLC_SYSTEMS'
+  | 'AUTOMATION'
+  | 'BUILDING_MANAGEMENT'
+  | 'FIRE_ALARM_SYSTEMS'
+  | 'SECURITY_SYSTEMS'
+  | 'DATA_CABLING'
+  | 'MARINE_ELECTRICAL'
+  | 'RENEWABLE_ENERGY';
+
+export type WorkAuthorization =
+  | 'EU_CITIZEN'
+  | 'DUTCH_WORK_PERMIT'
+  | 'HIGHLY_SKILLED_MIGRANT'
+  | 'REQUIRES_SPONSORSHIP';
+
+export interface WorkerLanguage {
+  id?: string;
+  language: string;
+  level: string; // A1, A2, B1, B2, C1, C2, NATIVE
+}
+
+export interface Education {
+  id?: string;
+  qualification: string;
+  institution?: string;
+  country?: string;
+  yearCompleted?: number;
+}
+
+export interface ProjectExperience {
+  id?: string;
+  projectType: string;
+  industry: string;
+  durationMonths?: number;
+  responsibilities: string[];
+  startDate?: Date;
+  endDate?: Date;
+  description?: string;
 }
 
 export type Availability =

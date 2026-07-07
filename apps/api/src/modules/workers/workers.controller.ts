@@ -1,7 +1,7 @@
 import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards, BadRequestException } from '@nestjs/common';
 import { WorkersService } from './workers.service';
 import { AnonymousProfilePipe } from './pipes/anonymous-profile.pipe';
-import { CreateWorkerDto, UpdateWorkerDto, BlockCompanyDto } from './dto/worker.dto';
+import { CreateWorkerDto, UpdateWorkerDto, BlockCompanyDto, CreateProfileSkillDto, UpdateProfileSkillDto, CreateCertificationDto, UpdateCertificationDto, CreateWorkerLanguageDto, UpdateWorkerLanguageDto, CreateEducationDto, UpdateEducationDto, CreateProjectExperienceDto, UpdateProjectExperienceDto } from './dto/worker.dto';
 
 class SimpleAuthGuard {
   canActivate(context: any): boolean {
@@ -23,28 +23,28 @@ export class WorkersController {
   constructor(private readonly workersService: WorkersService) {}
 
   // ===========================================================================
-  // GET AVAILABLE TRADES
+  // GET AVAILABLE TRADES & SPECIALIZATIONS
   // ===========================================================================
 
-  /**
-   * GET /workers/trades
-   *
-   * Get list of available worker trades
-   */
   @Get('trades')
   async getAvailableTrades() {
     return this.workersService.getAvailableTrades();
+  }
+
+  @Get('specializations')
+  async getAvailableSpecializations() {
+    return this.workersService.getAvailableSpecializations();
+  }
+
+  @Get('skills')
+  async getSkillsCatalog(@Query('category') category?: string) {
+    return this.workersService.getSkillsCatalog(category);
   }
 
   // ===========================================================================
   // SEARCH WORKERS (For Employers - Anonymous Profiles)
   // ===========================================================================
 
-  /**
-   * GET /workers/search
-   *
-   * Search available workers (anonymous profiles for employers)
-   */
   @Get('search')
   @UseGuards(SimpleAuthGuard)
   async searchWorkers(
@@ -53,13 +53,21 @@ export class WorkersController {
     @Query('availability') availability?: string,
     @Query('minExperience') minExperience?: string,
     @Query('maxExperience') maxExperience?: string,
+    @Query('specializations') specializations?: string,
+    @Query('hasDrivingLicense') hasDrivingLicense?: string,
+    @Query('workAuthorization') workAuthorization?: string,
+    @Query('skillIds') skillIds?: string,
+    @Query('certificationNames') certificationNames?: string,
+    @Query('language') language?: string,
+    @Query('languageMinLevel') languageMinLevel?: string,
+    @Query('employmentTypes') employmentTypes?: string,
     @Query('page') page?: string,
     @Query('limit') limit?: string
   ) {
     const minExp = minExperience && !isNaN(Number(minExperience)) ? Number(minExperience) : undefined;
     const maxExp = maxExperience && !isNaN(Number(maxExperience)) ? Number(maxExperience) : undefined;
 
-    return this.workersService.searchWorkers({
+    const searchFilters: any = {
       trade,
       regionId,
       availability,
@@ -67,18 +75,43 @@ export class WorkersController {
       maxExperience: maxExp,
       page: page ? parseInt(String(page)) : 1,
       limit: limit ? parseInt(String(limit)) : 20
-    });
+    };
+
+    if (specializations) {
+      searchFilters.specializations = specializations.split(',');
+    }
+
+    if (hasDrivingLicense !== undefined) {
+      searchFilters.hasDrivingLicense = hasDrivingLicense === 'true';
+    }
+
+    if (workAuthorization) {
+      searchFilters.workAuthorization = workAuthorization;
+    }
+
+    if (skillIds) {
+      searchFilters.skillIds = skillIds.split(',');
+    }
+
+    if (certificationNames) {
+      searchFilters.certificationNames = certificationNames.split(',');
+    }
+
+    if (language && languageMinLevel) {
+      searchFilters.languageMinLevel = { language, level: languageMinLevel };
+    }
+
+    if (employmentTypes) {
+      searchFilters.employmentTypes = employmentTypes.split(',');
+    }
+
+    return this.workersService.searchWorkers(searchFilters);
   }
 
   // ===========================================================================
   // GET MY PROFILE (Worker's private view)
   // ===========================================================================
 
-  /**
-   * GET /workers/me
-   *
-   * Worker's own profile with ALL data (for editing)
-   */
   @Get('me')
   @UseGuards(SimpleAuthGuard)
   async getMyProfile(@Query('userId') userId: string) {
@@ -93,11 +126,6 @@ export class WorkersController {
   // CREATE MY PROFILE
   // ===========================================================================
 
-  /**
-   * POST /workers
-   *
-   * Create worker profile
-   */
   @Post()
   @UseGuards(SimpleAuthGuard)
   async createProfile(
@@ -115,11 +143,6 @@ export class WorkersController {
   // UPDATE MY PROFILE
   // ===========================================================================
 
-  /**
-   * PATCH /workers/me
-   *
-   * Update worker profile
-   */
   @Patch('me')
   @UseGuards(SimpleAuthGuard)
   async updateProfile(
@@ -134,17 +157,214 @@ export class WorkersController {
   }
 
   // ===========================================================================
+  // PROFILE SKILL CRUD
+  // ===========================================================================
+
+  @Post('me/skills')
+  @UseGuards(SimpleAuthGuard)
+  async addProfileSkill(
+    @Body() dto: CreateProfileSkillDto,
+    @Query('userId') userId: string
+  ) {
+    if (!userId) {
+      throw new BadRequestException('userId is required');
+    }
+    return this.workersService.addProfileSkill(userId, dto);
+  }
+
+  @Patch('me/skills/:id')
+  @UseGuards(SimpleAuthGuard)
+  async updateProfileSkill(
+    @Param('id') id: string,
+    @Body() dto: UpdateProfileSkillDto,
+    @Query('userId') userId: string
+  ) {
+    if (!userId) {
+      throw new BadRequestException('userId is required');
+    }
+    return this.workersService.updateProfileSkill(userId, id, dto);
+  }
+
+  @Delete('me/skills/:id')
+  @UseGuards(SimpleAuthGuard)
+  async removeProfileSkill(
+    @Param('id') id: string,
+    @Query('userId') userId: string
+  ) {
+    if (!userId) {
+      throw new BadRequestException('userId is required');
+    }
+    return this.workersService.removeProfileSkill(userId, id);
+  }
+
+  // ===========================================================================
+  // CERTIFICATION CRUD
+  // ===========================================================================
+
+  @Post('me/certifications')
+  @UseGuards(SimpleAuthGuard)
+  async addCertification(
+    @Body() dto: CreateCertificationDto,
+    @Query('userId') userId: string
+  ) {
+    if (!userId) {
+      throw new BadRequestException('userId is required');
+    }
+    return this.workersService.addCertification(userId, dto);
+  }
+
+  @Patch('me/certifications/:id')
+  @UseGuards(SimpleAuthGuard)
+  async updateCertification(
+    @Param('id') id: string,
+    @Body() dto: UpdateCertificationDto,
+    @Query('userId') userId: string
+  ) {
+    if (!userId) {
+      throw new BadRequestException('userId is required');
+    }
+    return this.workersService.updateCertification(userId, id, dto);
+  }
+
+  @Delete('me/certifications/:id')
+  @UseGuards(SimpleAuthGuard)
+  async removeCertification(
+    @Param('id') id: string,
+    @Query('userId') userId: string
+  ) {
+    if (!userId) {
+      throw new BadRequestException('userId is required');
+    }
+    return this.workersService.removeCertification(userId, id);
+  }
+
+  // ===========================================================================
+  // LANGUAGE CRUD
+  // ===========================================================================
+
+  @Post('me/languages')
+  @UseGuards(SimpleAuthGuard)
+  async addLanguage(
+    @Body() dto: CreateWorkerLanguageDto,
+    @Query('userId') userId: string
+  ) {
+    if (!userId) {
+      throw new BadRequestException('userId is required');
+    }
+    return this.workersService.addLanguage(userId, dto);
+  }
+
+  @Patch('me/languages/:id')
+  @UseGuards(SimpleAuthGuard)
+  async updateLanguage(
+    @Param('id') id: string,
+    @Body() dto: UpdateWorkerLanguageDto,
+    @Query('userId') userId: string
+  ) {
+    if (!userId) {
+      throw new BadRequestException('userId is required');
+    }
+    return this.workersService.updateLanguage(userId, id, dto);
+  }
+
+  @Delete('me/languages/:id')
+  @UseGuards(SimpleAuthGuard)
+  async removeLanguage(
+    @Param('id') id: string,
+    @Query('userId') userId: string
+  ) {
+    if (!userId) {
+      throw new BadRequestException('userId is required');
+    }
+    return this.workersService.removeLanguage(userId, id);
+  }
+
+  // ===========================================================================
+  // EDUCATION CRUD
+  // ===========================================================================
+
+  @Post('me/education')
+  @UseGuards(SimpleAuthGuard)
+  async addEducation(
+    @Body() dto: CreateEducationDto,
+    @Query('userId') userId: string
+  ) {
+    if (!userId) {
+      throw new BadRequestException('userId is required');
+    }
+    return this.workersService.addEducation(userId, dto);
+  }
+
+  @Patch('me/education/:id')
+  @UseGuards(SimpleAuthGuard)
+  async updateEducation(
+    @Param('id') id: string,
+    @Body() dto: UpdateEducationDto,
+    @Query('userId') userId: string
+  ) {
+    if (!userId) {
+      throw new BadRequestException('userId is required');
+    }
+    return this.workersService.updateEducation(userId, id, dto);
+  }
+
+  @Delete('me/education/:id')
+  @UseGuards(SimpleAuthGuard)
+  async removeEducation(
+    @Param('id') id: string,
+    @Query('userId') userId: string
+  ) {
+    if (!userId) {
+      throw new BadRequestException('userId is required');
+    }
+    return this.workersService.removeEducation(userId, id);
+  }
+
+  // ===========================================================================
+  // PROJECT EXPERIENCE CRUD
+  // ===========================================================================
+
+  @Post('me/projects')
+  @UseGuards(SimpleAuthGuard)
+  async addProjectExperience(
+    @Body() dto: CreateProjectExperienceDto,
+    @Query('userId') userId: string
+  ) {
+    if (!userId) {
+      throw new BadRequestException('userId is required');
+    }
+    return this.workersService.addProjectExperience(userId, dto);
+  }
+
+  @Patch('me/projects/:id')
+  @UseGuards(SimpleAuthGuard)
+  async updateProjectExperience(
+    @Param('id') id: string,
+    @Body() dto: UpdateProjectExperienceDto,
+    @Query('userId') userId: string
+  ) {
+    if (!userId) {
+      throw new BadRequestException('userId is required');
+    }
+    return this.workersService.updateProjectExperience(userId, id, dto);
+  }
+
+  @Delete('me/projects/:id')
+  @UseGuards(SimpleAuthGuard)
+  async removeProjectExperience(
+    @Param('id') id: string,
+    @Query('userId') userId: string
+  ) {
+    if (!userId) {
+      throw new BadRequestException('userId is required');
+    }
+    return this.workersService.removeProjectExperience(userId, id);
+  }
+
+  // ===========================================================================
   // GET PUBLIC PROFILE (Anonymous - for employers)
   // ===========================================================================
 
-  /**
-   * GET /workers/:publicId
-   *
-   * CRITICAL: This returns ANONYMOUS profile only
-   * - No name, email, phone
-   * - Region only, not exact address
-   * - Verified certifications only
-   */
   @Get(':publicId')
   async getPublicProfile(
     @Param('publicId') publicId: string,
@@ -157,11 +377,6 @@ export class WorkersController {
   // BLOCK COMPANY (Worker Privacy)
   // ===========================================================================
 
-  /**
-   * POST /workers/me/block
-   *
-   * Block a company from viewing profile
-   */
   @Post('me/block')
   @UseGuards(SimpleAuthGuard)
   async blockCompany(
@@ -175,11 +390,6 @@ export class WorkersController {
     return this.workersService.blockCompany(workerId, blockDto.employerId, blockDto.reason);
   }
 
-  /**
-   * DELETE /workers/me/block/:employerId
-   *
-   * Unblock a company
-   */
   @Delete('me/block/:employerId')
   @UseGuards(SimpleAuthGuard)
   async unblockCompany(
@@ -193,11 +403,6 @@ export class WorkersController {
     return this.workersService.unblockCompany(workerId, employerId);
   }
 
-  /**
-   * GET /workers/me/blocked
-   *
-   * List blocked companies
-   */
   @Get('me/blocked')
   @UseGuards(SimpleAuthGuard)
   async getBlockedCompanies(@Query('workerId') workerId: string) {
@@ -212,11 +417,6 @@ export class WorkersController {
   // UPDATE VISIBILITY
   // ===========================================================================
 
-  /**
-   * PATCH /workers/me/visibility
-   *
-   * Update profile visibility settings
-   */
   @Patch('me/visibility')
   @UseGuards(SimpleAuthGuard)
   async updateVisibility(
@@ -234,11 +434,6 @@ export class WorkersController {
   // DELETE PROFILE
   // ===========================================================================
 
-  /**
-   * DELETE /workers/me
-   *
-   * Soft delete worker profile
-   */
   @Delete('me')
   @UseGuards(SimpleAuthGuard)
   async deleteProfile(@Query('workerId') workerId: string) {
