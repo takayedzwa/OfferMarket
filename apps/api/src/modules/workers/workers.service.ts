@@ -436,20 +436,40 @@ export class WorkersService {
     const worker = await this.prisma.worker.findUnique({ where: { userId } });
     if (!worker) throw new NotFoundException('Worker profile not found');
 
+    // Resolve skillId: either provided directly, or look up/create by name
+    let skillId = dto.skillId;
+    if (!skillId && dto.name) {
+      // Try to find an existing skill by name (case-insensitive)
+      const existingSkill = await this.prisma.skill.findFirst({
+        where: { name: { equals: dto.name, mode: 'insensitive' } },
+      });
+      if (existingSkill) {
+        skillId = existingSkill.id;
+      } else {
+        // Create a new skill entry in the catalog
+        const newSkill = await this.prisma.skill.create({
+          data: { name: dto.name, slug: dto.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''), category: 'Other', isActive: true },
+        });
+        skillId = newSkill.id;
+      }
+    }
+
+    if (!skillId) throw new BadRequestException('Either skillId or name is required');
+
     // Verify skill exists
-    const skill = await this.prisma.skill.findUnique({ where: { id: dto.skillId } });
+    const skill = await this.prisma.skill.findUnique({ where: { id: skillId } });
     if (!skill) throw new NotFoundException('Skill not found');
 
     // Check for duplicate
     const existing = await this.prisma.profileSkill.findUnique({
-      where: { profileId_skillId: { profileId: worker.id, skillId: dto.skillId } }
+      where: { profileId_skillId: { profileId: worker.id, skillId } }
     });
     if (existing) throw new BadRequestException('Skill already added to profile');
 
     const profileSkill = await this.prisma.profileSkill.create({
       data: {
         profileId: worker.id,
-        skillId: dto.skillId,
+        skillId,
         level: dto.level as SkillLevel,
         yearsOfExperience: dto.yearsOfExperience,
         certificationNumber: dto.certificationNumber,

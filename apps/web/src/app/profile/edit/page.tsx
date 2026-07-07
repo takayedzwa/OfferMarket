@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../../contexts/AuthContext";
 import { workersApi, enumsApi, regionsApi } from "../../../lib/api";
@@ -143,7 +143,11 @@ export default function EditWorkerProfile() {
 
   // Add-form state
   const [showAddSkill, setShowAddSkill] = useState(false);
-  const [newSkill, setNewSkill] = useState({ skillId: "", level: "INTERMEDIATE", yearsOfExperience: 0, isPrimary: false });
+  const [newSkillText, setNewSkillText] = useState("");
+  const [newSkillId, setNewSkillId] = useState("");
+  const [newSkillLevel, setNewSkillLevel] = useState("INTERMEDIATE");
+  const [newSkillYears, setNewSkillYears] = useState(0);
+  const [newSkillIsPrimary, setNewSkillIsPrimary] = useState(false);
   const [showAddCert, setShowAddCert] = useState(false);
   const [newCert, setNewCert] = useState({ name: "", issuingBody: "", certificationNumber: "", validFrom: "", validUntil: "", isLifetime: false });
   const [showAddLang, setShowAddLang] = useState(false);
@@ -181,14 +185,14 @@ export default function EditWorkerProfile() {
     profileVisibility: "ALL_VERIFIED" as "ALL_VERIFIED" | "SELECTED_COMPANIES" | "HIDDEN",
   });
 
-  const toggleSection = (key: SectionKey) => {
+  const toggleSection = useCallback((key: SectionKey) => {
     setOpenSections((prev) => {
       const next = new Set(prev);
       if (next.has(key)) next.delete(key);
       else next.add(key);
       return next;
     });
-  };
+  }, []);
 
   // Load all data on mount
   useEffect(() => {
@@ -263,7 +267,12 @@ export default function EditWorkerProfile() {
       .catch(() => {});
 
     workersApi.getSkillsCatalog()
-      .then((res) => setSkillsCatalog(res.data || []))
+      .then((res) => {
+        const data = res.data;
+        // API might return array directly or wrapped in { skills: [...] }
+        const skills = Array.isArray(data) ? data : (data.skills || data.items || []);
+        setSkillsCatalog(skills);
+      })
       .catch(() => {});
 
     // Load profile data
@@ -322,17 +331,54 @@ export default function EditWorkerProfile() {
     }
   };
 
+  // When user selects or types a skill, resolve it to a catalog ID (or keep custom text)
+  const handleSkillTextChange = (text: string) => {
+    setNewSkillText(text);
+    // Check if it matches a catalog skill
+    const match = skillsCatalog.find((s: any) => s.name && s.name.toLowerCase() === text.toLowerCase());
+    if (match) {
+      setNewSkillId(match.id);
+    } else {
+      setNewSkillId(""); // custom text, no catalog match
+    }
+  };
+
+  const handleSkillCatalogSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selectedId = e.target.value;
+    if (selectedId) {
+      setNewSkillId(selectedId);
+      const skill = skillsCatalog.find((s: any) => s.id === selectedId);
+      if (skill) {
+        setNewSkillText(skill.name || "");
+      }
+    }
+  };
+
   // --- Sub-resource handlers ---
 
   const handleAddSkill = async () => {
-    if (!newSkill.skillId) return;
+    if (!newSkillId && !newSkillText.trim()) return;
     try {
       setSavingSection("skills");
-      await workersApi.addSkill(newSkill);
+      const payload: any = {
+        level: newSkillLevel,
+      };
+      if (newSkillId) {
+        payload.skillId = newSkillId;
+      } else {
+        payload.name = newSkillText.trim();
+      }
+      if (newSkillYears > 0) payload.yearsOfExperience = newSkillYears;
+      if (newSkillIsPrimary) payload.isPrimary = true;
+      await workersApi.addSkill(payload);
       const res = await workersApi.getMyProfile();
       setProfileSkills(res.data.skills || []);
       setShowAddSkill(false);
-      setNewSkill({ skillId: "", level: "INTERMEDIATE", yearsOfExperience: 0, isPrimary: false });
+      setNewSkillText("");
+      setNewSkillId("");
+      setNewSkillLevel("INTERMEDIATE");
+      setNewSkillYears(0);
+      setNewSkillIsPrimary(false);
     } catch (err: any) {
       setError(err.response?.data?.message || "Failed to add skill");
     } finally {
@@ -455,31 +501,8 @@ export default function EditWorkerProfile() {
     }
   };
 
-  // --- Reusable section component ---
-  const Section = ({ id, title, icon, children }: { id: SectionKey; title: string; icon: React.ReactNode; children: React.ReactNode }) => (
-    <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
-      <button
-        type="button"
-        onClick={() => toggleSection(id)}
-        className="w-full flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition-colors"
-      >
-        <div className="flex items-center gap-3">
-          {icon}
-          <h3 className="text-base font-semibold text-gray-900">{title}</h3>
-        </div>
-        {openSections.has(id) ? (
-          <ChevronUp className="w-5 h-5 text-gray-400" />
-        ) : (
-          <ChevronDown className="w-5 h-5 text-gray-400" />
-        )}
-      </button>
-      {openSections.has(id) && (
-        <div className="px-6 pb-6 space-y-4 border-t">
-          {children}
-        </div>
-      )}
-    </div>
-  );
+  // Derive whether a section is open (useful for rendering)
+  const isOpen = (key: SectionKey) => openSections.has(key);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -507,839 +530,828 @@ export default function EditWorkerProfile() {
           <div className="p-4 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm">{success}</div>
         )}
 
-        {/* Basic Info */}
-        <Section id="basicInfo" title="Basic Info" icon={<User className="w-5 h-5 text-blue-600" />}>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Headline</label>
-            <input
-              type="text"
-              value={formData.headline}
-              onChange={(e) => updateField("headline", e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
-              placeholder="e.g., Senior Industrial Electrician"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">About / Summary</label>
-            <textarea
-              value={formData.summary}
-              onChange={(e) => updateField("summary", e.target.value)}
-              rows={3}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
-              placeholder="Tell employers about your experience and strengths..."
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Primary Trade / Profession</label>
-            <select
-              value={formData.primaryTrade}
-              onChange={(e) => updateField("primaryTrade", e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
-            >
-              <option value="">Select trade...</option>
-              {trades.map((trade) => (
-                trade.available ? (
-                  <option key={trade.value} value={trade.value}>{trade.label}</option>
-                ) : (
-                  <option key={trade.value} value={trade.value} disabled>{trade.label} {trade.comingSoon && "(Coming Soon)"}</option>
-                )
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Specializations</label>
-            <div className="flex flex-wrap gap-2">
-              {specializationOptions.map((spec) => (
-                <label key={spec.value} className="flex items-center gap-1.5 text-sm text-gray-700 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-200 cursor-pointer hover:bg-blue-50 hover:border-blue-300 transition-colors">
-                  <input
-                    type="checkbox"
-                    checked={formData.specializations.includes(spec.value)}
-                    onChange={(e) => {
-                      const specs = e.target.checked
-                        ? [...formData.specializations, spec.value]
-                        : formData.specializations.filter((s) => s !== spec.value);
-                      updateField("specializations", specs);
-                    }}
-                    className="w-3.5 h-3.5 text-blue-600 border-gray-300 rounded focus:ring-blue-600"
-                  />
-                  {spec.label}
-                </label>
-              ))}
+        {/* ===== Basic Info ===== */}
+        <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
+          <button
+            type="button"
+            onClick={() => toggleSection("basicInfo")}
+            className="w-full flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <User className="w-5 h-5 text-blue-600" />
+              <h3 className="text-base font-semibold text-gray-900">Basic Info</h3>
             </div>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Availability</label>
-              <select
-                value={formData.availability}
-                onChange={(e) => updateField("availability", e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
-              >
-                <option value={Availability.IMMEDIATE}>Immediately</option>
-                <option value={Availability.ONE_MONTH}>In 1 month</option>
-                <option value={Availability.THREE_MONTHS}>In 3 months</option>
-                <option value={Availability.SIX_MONTHS}>In 6 months</option>
-                <option value={Availability.NOT_AVAILABLE}>Not available</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Notice Period (days)</label>
-              <input
-                type="number"
-                min="0"
-                max="90"
-                value={formData.noticePeriodDays}
-                onChange={(e) => updateField("noticePeriodDays", parseInt(e.target.value) || 0)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
-              />
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Years of Experience</label>
-            <input
-              type="number"
-              min="0"
-              max="50"
-              value={formData.yearsOfExperience}
-              onChange={(e) => updateField("yearsOfExperience", parseInt(e.target.value) || 0)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
-            />
-          </div>
-        </Section>
-
-        {/* Location & Mobility */}
-        <Section id="location" title="Location & Mobility" icon={<Car className="w-5 h-5 text-blue-600" />}>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Postal Code</label>
-              <input
-                type="text"
-                value={formData.postalCode}
-                onChange={(e) => updateField("postalCode", e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
-                placeholder="1234 AB"
-                maxLength={10}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Region</label>
-              <select
-                value={formData.regionId}
-                onChange={(e) => updateField("regionId", e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
-              >
-                <option value="">Select region...</option>
-                {regions.map((region: any) => (
-                  <option key={region.id} value={region.id}>
-                    {region.province ? `${region.name} (${region.province})` : region.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Work Radius (km)</label>
-            <input
-              type="number"
-              min="0"
-              max="500"
-              value={formData.travelDistanceKm}
-              onChange={(e) => updateField("travelDistanceKm", parseInt(e.target.value) || 30)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
-            />
-            <p className="mt-1 text-sm text-gray-500">
-              Willing to work within {formData.travelDistanceKm} km of your location
-            </p>
-          </div>
-          <div className="flex items-center gap-6">
-            <label className="flex items-center gap-2 text-sm text-gray-700">
-              <input
-                type="checkbox"
-                checked={formData.hasDrivingLicense}
-                onChange={(e) => updateField("hasDrivingLicense", e.target.checked)}
-                className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-600"
-              />
-              Has Driving Licence
-            </label>
-            <label className="flex items-center gap-2 text-sm text-gray-700">
-              <input
-                type="checkbox"
-                checked={formData.hasOwnVehicle}
-                onChange={(e) => updateField("hasOwnVehicle", e.target.checked)}
-                className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-600"
-              />
-              Has Own Vehicle
-            </label>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Work Authorization</label>
-            <select
-              value={formData.workAuthorization}
-              onChange={(e) => updateField("workAuthorization", e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
-            >
-              <option value="">Select...</option>
-              {workAuthorizationOptions.map((opt) => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
-              ))}
-            </select>
-          </div>
-        </Section>
-
-        {/* Salary & Employment */}
-        <Section id="salary" title="Salary & Employment" icon={<Briefcase className="w-5 h-5 text-blue-600" />}>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Min Salary (€/year)</label>
-              <input
-                type="number"
-                min="20000"
-                max="200000"
-                step="1000"
-                value={formData.desiredSalaryMin}
-                onChange={(e) => updateField("desiredSalaryMin", parseInt(e.target.value) || 0)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Max Salary (€/year)</label>
-              <input
-                type="number"
-                min="20000"
-                max="200000"
-                step="1000"
-                value={formData.desiredSalaryMax}
-                onChange={(e) => updateField("desiredSalaryMax", parseInt(e.target.value) || 0)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
-              />
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Desired Hourly Rate (€)</label>
-            <input
-              type="number"
-              min="0"
-              max="500"
-              step="5"
-              value={formData.desiredHourlyRate}
-              onChange={(e) => updateField("desiredHourlyRate", parseInt(e.target.value) || 0)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
-              placeholder="0 if not specified"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Employment Types</label>
-            <div className="flex flex-wrap gap-2">
-              {employmentTypeOptions.map((type) => (
-                <label key={type.value} className="flex items-center gap-1.5 text-sm text-gray-700 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-200 cursor-pointer hover:bg-blue-50 hover:border-blue-300 transition-colors">
-                  <input
-                    type="checkbox"
-                    checked={formData.employmentTypes.includes(type.value)}
-                    onChange={(e) => {
-                      const types = e.target.checked
-                        ? [...formData.employmentTypes, type.value]
-                        : formData.employmentTypes.filter((t) => t !== type.value);
-                      updateField("employmentTypes", types);
-                    }}
-                    className="w-3.5 h-3.5 text-blue-600 border-gray-300 rounded focus:ring-blue-600"
-                  />
-                  {type.label}
-                </label>
-              ))}
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Work Schedule Preferences</label>
-            <div className="flex flex-wrap gap-2">
-              {workScheduleOptions.map((schedule) => (
-                <label key={schedule.value} className="flex items-center gap-1.5 text-sm text-gray-700 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-200 cursor-pointer hover:bg-blue-50 hover:border-blue-300 transition-colors">
-                  <input
-                    type="checkbox"
-                    checked={formData.workSchedulePrefs.includes(schedule.value)}
-                    onChange={(e) => {
-                      const prefs = e.target.checked
-                        ? [...formData.workSchedulePrefs, schedule.value]
-                        : formData.workSchedulePrefs.filter((p) => p !== schedule.value);
-                      updateField("workSchedulePrefs", prefs);
-                    }}
-                    className="w-3.5 h-3.5 text-blue-600 border-gray-300 rounded focus:ring-blue-600"
-                  />
-                  {schedule.label}
-                </label>
-              ))}
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Industry Preferences</label>
-            <div className="flex flex-wrap gap-2">
-              {industryOptions.map((industry) => (
-                <label key={industry.value} className="flex items-center gap-1.5 text-sm text-gray-700 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-200 cursor-pointer hover:bg-blue-50 hover:border-blue-300 transition-colors">
-                  <input
-                    type="checkbox"
-                    checked={formData.industryPrefs.includes(industry.value)}
-                    onChange={(e) => {
-                      const prefs = e.target.checked
-                        ? [...formData.industryPrefs, industry.value]
-                        : formData.industryPrefs.filter((p) => p !== industry.value);
-                      updateField("industryPrefs", prefs);
-                    }}
-                    className="w-3.5 h-3.5 text-blue-600 border-gray-300 rounded focus:ring-blue-600"
-                  />
-                  {industry.label}
-                </label>
-              ))}
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Career Priorities</label>
-            <div className="flex flex-wrap gap-2">
-              {careerPriorityOptions.map((priority) => (
-                <label key={priority.value} className="flex items-center gap-1.5 text-sm text-gray-700 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-200 cursor-pointer hover:bg-blue-50 hover:border-blue-300 transition-colors">
-                  <input
-                    type="checkbox"
-                    checked={formData.careerPriorities.includes(priority.value)}
-                    onChange={(e) => {
-                      const priorities = e.target.checked
-                        ? [...formData.careerPriorities, priority.value]
-                        : formData.careerPriorities.filter((p) => p !== priority.value);
-                      updateField("careerPriorities", priorities);
-                    }}
-                    className="w-3.5 h-3.5 text-blue-600 border-gray-300 rounded focus:ring-blue-600"
-                  />
-                  {priority.label}
-                </label>
-              ))}
-            </div>
-          </div>
-        </Section>
-
-        {/* Skills */}
-        <Section id="skills" title={`Skills (${profileSkills.length})`} icon={<Award className="w-5 h-5 text-blue-600" />}>
-          {profileSkills.length > 0 && (
-            <div className="space-y-2">
-              {profileSkills.map((ps) => (
-                <div key={ps.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <span className="font-medium text-gray-900">{ps.skill?.name || ps.skillId}</span>
-                    <span className="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-700 rounded">
-                      {SKILL_LEVEL_LABELS[ps.level] || ps.level}
-                    </span>
-                    {ps.isPrimary && (
-                      <span className="px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-700 rounded">Primary</span>
-                    )}
-                    {ps.yearsOfExperience ? (
-                      <span className="text-sm text-gray-500">{ps.yearsOfExperience} yrs</span>
-                    ) : null}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveSkill(ps.id)}
-                    className="text-red-500 hover:text-red-700 p-1"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-          {showAddSkill ? (
-            <div className="p-4 bg-blue-50 rounded-lg space-y-3">
+            {isOpen("basicInfo") ? <ChevronUp className="w-5 h-5 text-gray-400" /> : <ChevronDown className="w-5 h-5 text-gray-400" />}
+          </button>
+          {isOpen("basicInfo") && (
+            <div className="px-6 pb-6 space-y-4 border-t">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Skill</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Headline</label>
+                <input
+                  type="text"
+                  value={formData.headline}
+                  onChange={(e) => updateField("headline", e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
+                  placeholder="e.g., Senior Industrial Electrician"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">About / Summary</label>
+                <textarea
+                  value={formData.summary}
+                  onChange={(e) => updateField("summary", e.target.value)}
+                  rows={3}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
+                  placeholder="Tell employers about your experience and strengths..."
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Primary Trade / Profession</label>
                 <select
-                  value={newSkill.skillId}
-                  onChange={(e) => setNewSkill((prev) => ({ ...prev, skillId: e.target.value }))}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 outline-none"
+                  value={formData.primaryTrade}
+                  onChange={(e) => updateField("primaryTrade", e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
                 >
-                  <option value="">Select a skill...</option>
-                  {skillsCatalog.map((skill: any) => (
-                    <option key={skill.id} value={skill.id}>{skill.name}</option>
+                  <option value="">Select trade...</option>
+                  {trades.map((trade) => (
+                    trade.available ? (
+                      <option key={trade.value} value={trade.value}>{trade.label}</option>
+                    ) : (
+                      <option key={trade.value} value={trade.value} disabled>{trade.label} {trade.comingSoon && "(Coming Soon)"}</option>
+                    )
                   ))}
                 </select>
               </div>
-              <div className="grid grid-cols-3 gap-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Specializations</label>
+                <div className="flex flex-wrap gap-2">
+                  {specializationOptions.map((spec) => (
+                    <label key={spec.value} className="flex items-center gap-1.5 text-sm text-gray-700 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-200 cursor-pointer hover:bg-blue-50 hover:border-blue-300 transition-colors">
+                      <input
+                        type="checkbox"
+                        checked={formData.specializations.includes(spec.value)}
+                        onChange={(e) => {
+                          const specs = e.target.checked
+                            ? [...formData.specializations, spec.value]
+                            : formData.specializations.filter((s) => s !== spec.value);
+                          updateField("specializations", specs);
+                        }}
+                        className="w-3.5 h-3.5 text-blue-600 border-gray-300 rounded focus:ring-blue-600"
+                      />
+                      {spec.label}
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Level</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Availability</label>
                   <select
-                    value={newSkill.level}
-                    onChange={(e) => setNewSkill((prev) => ({ ...prev, level: e.target.value }))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 outline-none"
+                    value={formData.availability}
+                    onChange={(e) => updateField("availability", e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
                   >
-                    {Object.entries(SKILL_LEVEL_LABELS).map(([key, label]) => (
-                      <option key={key} value={key}>{label}</option>
-                    ))}
+                    <option value={Availability.IMMEDIATE}>Immediately</option>
+                    <option value={Availability.ONE_MONTH}>In 1 month</option>
+                    <option value={Availability.THREE_MONTHS}>In 3 months</option>
+                    <option value={Availability.SIX_MONTHS}>In 6 months</option>
+                    <option value={Availability.NOT_AVAILABLE}>Not available</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Years Exp</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Notice Period (days)</label>
                   <input
                     type="number"
                     min="0"
-                    max="50"
-                    value={newSkill.yearsOfExperience}
-                    onChange={(e) => setNewSkill((prev) => ({ ...prev, yearsOfExperience: parseInt(e.target.value) || 0 }))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 outline-none"
+                    max="90"
+                    value={formData.noticePeriodDays}
+                    onChange={(e) => updateField("noticePeriodDays", parseInt(e.target.value) || 0)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
                   />
                 </div>
-                <div className="flex items-end pb-1">
-                  <label className="flex items-center gap-2 text-sm text-gray-700">
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Years of Experience</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="50"
+                  value={formData.yearsOfExperience}
+                  onChange={(e) => updateField("yearsOfExperience", parseInt(e.target.value) || 0)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
+                />
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* ===== Location & Mobility ===== */}
+        <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
+          <button
+            type="button"
+            onClick={() => toggleSection("location")}
+            className="w-full flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <Car className="w-5 h-5 text-blue-600" />
+              <h3 className="text-base font-semibold text-gray-900">Location & Mobility</h3>
+            </div>
+            {isOpen("location") ? <ChevronUp className="w-5 h-5 text-gray-400" /> : <ChevronDown className="w-5 h-5 text-gray-400" />}
+          </button>
+          {isOpen("location") && (
+            <div className="px-6 pb-6 space-y-4 border-t">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Postal Code</label>
+                  <input
+                    type="text"
+                    value={formData.postalCode}
+                    onChange={(e) => updateField("postalCode", e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
+                    placeholder="1234 AB"
+                    maxLength={10}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Region</label>
+                  <select
+                    value={formData.regionId}
+                    onChange={(e) => updateField("regionId", e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
+                  >
+                    <option value="">Select region...</option>
+                    {regions.map((region: any) => (
+                      <option key={region.id} value={region.id}>
+                        {region.province ? `${region.name} (${region.province})` : region.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Work Radius (km)</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="500"
+                  value={formData.travelDistanceKm}
+                  onChange={(e) => updateField("travelDistanceKm", parseInt(e.target.value) || 30)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
+                />
+                <p className="mt-1 text-sm text-gray-500">
+                  Willing to work within {formData.travelDistanceKm} km of your location
+                </p>
+              </div>
+              <div className="flex items-center gap-6">
+                <label className="flex items-center gap-2 text-sm text-gray-700">
+                  <input
+                    type="checkbox"
+                    checked={formData.hasDrivingLicense}
+                    onChange={(e) => updateField("hasDrivingLicense", e.target.checked)}
+                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-600"
+                  />
+                  Has Driving Licence
+                </label>
+                <label className="flex items-center gap-2 text-sm text-gray-700">
+                  <input
+                    type="checkbox"
+                    checked={formData.hasOwnVehicle}
+                    onChange={(e) => updateField("hasOwnVehicle", e.target.checked)}
+                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-600"
+                  />
+                  Has Own Vehicle
+                </label>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Work Authorization</label>
+                <select
+                  value={formData.workAuthorization}
+                  onChange={(e) => updateField("workAuthorization", e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
+                >
+                  <option value="">Select...</option>
+                  {workAuthorizationOptions.map((opt) => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* ===== Salary & Employment ===== */}
+        <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
+          <button
+            type="button"
+            onClick={() => toggleSection("salary")}
+            className="w-full flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <Briefcase className="w-5 h-5 text-blue-600" />
+              <h3 className="text-base font-semibold text-gray-900">Salary & Employment</h3>
+            </div>
+            {isOpen("salary") ? <ChevronUp className="w-5 h-5 text-gray-400" /> : <ChevronDown className="w-5 h-5 text-gray-400" />}
+          </button>
+          {isOpen("salary") && (
+            <div className="px-6 pb-6 space-y-4 border-t">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Min Salary (€/year)</label>
+                  <input
+                    type="number"
+                    min="20000"
+                    max="200000"
+                    step="1000"
+                    value={formData.desiredSalaryMin}
+                    onChange={(e) => updateField("desiredSalaryMin", parseInt(e.target.value) || 0)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Max Salary (€/year)</label>
+                  <input
+                    type="number"
+                    min="20000"
+                    max="200000"
+                    step="1000"
+                    value={formData.desiredSalaryMax}
+                    onChange={(e) => updateField("desiredSalaryMax", parseInt(e.target.value) || 0)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Desired Hourly Rate (€)</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="500"
+                  step="5"
+                  value={formData.desiredHourlyRate}
+                  onChange={(e) => updateField("desiredHourlyRate", parseInt(e.target.value) || 0)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
+                  placeholder="0 if not specified"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Employment Types</label>
+                <div className="flex flex-wrap gap-2">
+                  {employmentTypeOptions.map((type) => (
+                    <label key={type.value} className="flex items-center gap-1.5 text-sm text-gray-700 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-200 cursor-pointer hover:bg-blue-50 hover:border-blue-300 transition-colors">
+                      <input
+                        type="checkbox"
+                        checked={formData.employmentTypes.includes(type.value)}
+                        onChange={(e) => {
+                          const types = e.target.checked
+                            ? [...formData.employmentTypes, type.value]
+                            : formData.employmentTypes.filter((t) => t !== type.value);
+                          updateField("employmentTypes", types);
+                        }}
+                        className="w-3.5 h-3.5 text-blue-600 border-gray-300 rounded focus:ring-blue-600"
+                      />
+                      {type.label}
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Work Schedule Preferences</label>
+                <div className="flex flex-wrap gap-2">
+                  {workScheduleOptions.map((schedule) => (
+                    <label key={schedule.value} className="flex items-center gap-1.5 text-sm text-gray-700 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-200 cursor-pointer hover:bg-blue-50 hover:border-blue-300 transition-colors">
+                      <input
+                        type="checkbox"
+                        checked={formData.workSchedulePrefs.includes(schedule.value)}
+                        onChange={(e) => {
+                          const prefs = e.target.checked
+                            ? [...formData.workSchedulePrefs, schedule.value]
+                            : formData.workSchedulePrefs.filter((p) => p !== schedule.value);
+                          updateField("workSchedulePrefs", prefs);
+                        }}
+                        className="w-3.5 h-3.5 text-blue-600 border-gray-300 rounded focus:ring-blue-600"
+                      />
+                      {schedule.label}
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Industry Preferences</label>
+                <div className="flex flex-wrap gap-2">
+                  {industryOptions.map((industry) => (
+                    <label key={industry.value} className="flex items-center gap-1.5 text-sm text-gray-700 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-200 cursor-pointer hover:bg-blue-50 hover:border-blue-300 transition-colors">
+                      <input
+                        type="checkbox"
+                        checked={formData.industryPrefs.includes(industry.value)}
+                        onChange={(e) => {
+                          const prefs = e.target.checked
+                            ? [...formData.industryPrefs, industry.value]
+                            : formData.industryPrefs.filter((p) => p !== industry.value);
+                          updateField("industryPrefs", prefs);
+                        }}
+                        className="w-3.5 h-3.5 text-blue-600 border-gray-300 rounded focus:ring-blue-600"
+                      />
+                      {industry.label}
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Career Priorities</label>
+                <div className="flex flex-wrap gap-2">
+                  {careerPriorityOptions.map((priority) => (
+                    <label key={priority.value} className="flex items-center gap-1.5 text-sm text-gray-700 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-200 cursor-pointer hover:bg-blue-50 hover:border-blue-300 transition-colors">
+                      <input
+                        type="checkbox"
+                        checked={formData.careerPriorities.includes(priority.value)}
+                        onChange={(e) => {
+                          const priorities = e.target.checked
+                            ? [...formData.careerPriorities, priority.value]
+                            : formData.careerPriorities.filter((p) => p !== priority.value);
+                          updateField("careerPriorities", priorities);
+                        }}
+                        className="w-3.5 h-3.5 text-blue-600 border-gray-300 rounded focus:ring-blue-600"
+                      />
+                      {priority.label}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* ===== Skills ===== */}
+        <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
+          <button
+            type="button"
+            onClick={() => toggleSection("skills")}
+            className="w-full flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <Award className="w-5 h-5 text-blue-600" />
+              <h3 className="text-base font-semibold text-gray-900">Skills ({profileSkills.length})</h3>
+            </div>
+            {isOpen("skills") ? <ChevronUp className="w-5 h-5 text-gray-400" /> : <ChevronDown className="w-5 h-5 text-gray-400" />}
+          </button>
+          {isOpen("skills") && (
+            <div className="px-6 pb-6 space-y-4 border-t">
+              {profileSkills.length > 0 && (
+                <div className="space-y-2">
+                  {profileSkills.map((ps) => (
+                    <div key={ps.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <span className="font-medium text-gray-900">{ps.skill?.name || ps.skillId}</span>
+                        <span className="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-700 rounded">
+                          {SKILL_LEVEL_LABELS[ps.level] || ps.level}
+                        </span>
+                        {ps.isPrimary && (
+                          <span className="px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-700 rounded">Primary</span>
+                        )}
+                        {ps.yearsOfExperience ? (
+                          <span className="text-sm text-gray-500">{ps.yearsOfExperience} yrs</span>
+                        ) : null}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveSkill(ps.id)}
+                        className="text-red-500 hover:text-red-700 p-1"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {showAddSkill ? (
+                <div className="p-4 bg-blue-50 rounded-lg space-y-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Skill</label>
+                    {/* Combo: text input for free text + datalist for catalog suggestions */}
                     <input
-                      type="checkbox"
-                      checked={newSkill.isPrimary}
-                      onChange={(e) => setNewSkill((prev) => ({ ...prev, isPrimary: e.target.checked }))}
-                      className="w-4 h-4 text-blue-600 border-gray-300 rounded"
+                      list="skill-suggestions"
+                      type="text"
+                      value={newSkillText}
+                      onChange={(e) => handleSkillTextChange(e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 outline-none"
+                      placeholder="Type a skill or select from list..."
                     />
-                    Primary skill
+                    <datalist id="skill-suggestions">
+                      {skillsCatalog.map((skill: any) => (
+                        <option key={skill.id} value={skill.name} />
+                      ))}
+                    </datalist>
+                    {newSkillText && !newSkillId && (
+                      <p className="mt-1 text-xs text-amber-600">
+                        Custom skill — will be added as "{newSkillText}"
+                      </p>
+                    )}
+                    {newSkillId && (
+                      <p className="mt-1 text-xs text-green-600">
+                        ✓ Matched from skills catalog
+                      </p>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Level</label>
+                      <select
+                        value={newSkillLevel}
+                        onChange={(e) => setNewSkillLevel(e.target.value)}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 outline-none"
+                      >
+                        {Object.entries(SKILL_LEVEL_LABELS).map(([key, label]) => (
+                          <option key={key} value={key}>{label}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Years Exp</label>
+                      <input
+                        type="number"
+                        min="0"
+                        max="50"
+                        value={newSkillYears}
+                        onChange={(e) => setNewSkillYears(parseInt(e.target.value) || 0)}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 outline-none"
+                      />
+                    </div>
+                    <div className="flex items-end pb-1">
+                      <label className="flex items-center gap-2 text-sm text-gray-700">
+                        <input
+                          type="checkbox"
+                          checked={newSkillIsPrimary}
+                          onChange={(e) => setNewSkillIsPrimary(e.target.checked)}
+                          className="w-4 h-4 text-blue-600 border-gray-300 rounded"
+                        />
+                        Primary skill
+                      </label>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={handleAddSkill}
+                      disabled={savingSection === "skills" || (!newSkillId && !newSkillText.trim())}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 text-sm"
+                    >
+                      {savingSection === "skills" ? "Adding..." : "Add Skill"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setShowAddSkill(false); setNewSkillText(""); setNewSkillId(""); setNewSkillLevel("INTERMEDIATE"); setNewSkillYears(0); setNewSkillIsPrimary(false); }}
+                      className="px-4 py-2 text-gray-600 hover:text-gray-800 text-sm"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setShowAddSkill(true)}
+                  className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 font-medium"
+                >
+                  <Plus className="w-4 h-4" /> Add Skill
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* ===== Certifications ===== */}
+        <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
+          <button
+            type="button"
+            onClick={() => toggleSection("certifications")}
+            className="w-full flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <Shield className="w-5 h-5 text-blue-600" />
+              <h3 className="text-base font-semibold text-gray-900">Certifications ({certifications.length})</h3>
+            </div>
+            {isOpen("certifications") ? <ChevronUp className="w-5 h-5 text-gray-400" /> : <ChevronDown className="w-5 h-5 text-gray-400" />}
+          </button>
+          {isOpen("certifications") && (
+            <div className="px-6 pb-6 space-y-4 border-t">
+              {certifications.length > 0 && (
+                <div className="space-y-2">
+                  {certifications.map((cert) => (
+                    <div key={cert.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div>
+                        <span className="font-medium text-gray-900">{cert.name}</span>
+                        <span className="text-sm text-gray-500 ml-2">by {cert.issuingBody}</span>
+                        {cert.isLifetime && <span className="ml-2 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">Lifetime</span>}
+                      </div>
+                      <button type="button" onClick={() => handleRemoveCertification(cert.id)} className="text-red-500 hover:text-red-700 p-1">
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {showAddCert ? (
+                <div className="p-4 bg-blue-50 rounded-lg space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Certification Name *</label>
+                      <input type="text" value={newCert.name} onChange={(e) => setNewCert((prev) => ({ ...prev, name: e.target.value }))} className="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none" placeholder="e.g., NEN 3140" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Issuing Body *</label>
+                      <input type="text" value={newCert.issuingBody} onChange={(e) => setNewCert((prev) => ({ ...prev, issuingBody: e.target.value }))} className="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none" placeholder="e.g., ISO" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Certification Number</label>
+                    <input type="text" value={newCert.certificationNumber} onChange={(e) => setNewCert((prev) => ({ ...prev, certificationNumber: e.target.value }))} className="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none" placeholder="Optional" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Valid From</label>
+                      <input type="date" value={newCert.validFrom} onChange={(e) => setNewCert((prev) => ({ ...prev, validFrom: e.target.value }))} className="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Valid Until</label>
+                      <input type="date" value={newCert.validUntil} onChange={(e) => setNewCert((prev) => ({ ...prev, validUntil: e.target.value }))} className="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none" />
+                    </div>
+                  </div>
+                  <label className="flex items-center gap-2 text-sm text-gray-700">
+                    <input type="checkbox" checked={newCert.isLifetime} onChange={(e) => setNewCert((prev) => ({ ...prev, isLifetime: e.target.checked }))} className="w-4 h-4 text-blue-600 border-gray-300 rounded" />
+                    Lifetime certification (no expiry)
                   </label>
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={handleAddSkill}
-                  disabled={savingSection === "skills" || !newSkill.skillId}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 text-sm"
-                >
-                  {savingSection === "skills" ? "Adding..." : "Add Skill"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setShowAddSkill(false); setNewSkill({ skillId: "", level: "INTERMEDIATE", yearsOfExperience: 0, isPrimary: false }); }}
-                  className="px-4 py-2 text-gray-600 hover:text-gray-800 text-sm"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setShowAddSkill(true)}
-              className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 font-medium"
-            >
-              <Plus className="w-4 h-4" /> Add Skill
-            </button>
-          )}
-        </Section>
-
-        {/* Certifications */}
-        <Section id="certifications" title={`Certifications (${certifications.length})`} icon={<Shield className="w-5 h-5 text-blue-600" />}>
-          {certifications.length > 0 && (
-            <div className="space-y-2">
-              {certifications.map((cert) => (
-                <div key={cert.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div>
-                    <span className="font-medium text-gray-900">{cert.name}</span>
-                    <span className="text-sm text-gray-500 ml-2">by {cert.issuingBody}</span>
-                    {cert.isLifetime && <span className="ml-2 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">Lifetime</span>}
+                  <div className="flex gap-2">
+                    <button type="button" onClick={handleAddCertification} disabled={savingSection === "certifications" || !newCert.name || !newCert.issuingBody} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 text-sm">
+                      {savingSection === "certifications" ? "Adding..." : "Add Certification"}
+                    </button>
+                    <button type="button" onClick={() => { setShowAddCert(false); setNewCert({ name: "", issuingBody: "", certificationNumber: "", validFrom: "", validUntil: "", isLifetime: false }); }} className="px-4 py-2 text-gray-600 hover:text-gray-800 text-sm">
+                      Cancel
+                    </button>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveCertification(cert.id)}
-                    className="text-red-500 hover:text-red-700 p-1"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
                 </div>
-              ))}
+              ) : (
+                <button type="button" onClick={() => setShowAddCert(true)} className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 font-medium">
+                  <Plus className="w-4 h-4" /> Add Certification
+                </button>
+              )}
             </div>
           )}
-          {showAddCert ? (
-            <div className="p-4 bg-blue-50 rounded-lg space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Certification Name *</label>
-                  <input
-                    type="text"
-                    value={newCert.name}
-                    onChange={(e) => setNewCert((prev) => ({ ...prev, name: e.target.value }))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none"
-                    placeholder="e.g., NEN 3140"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Issuing Body *</label>
-                  <input
-                    type="text"
-                    value={newCert.issuingBody}
-                    onChange={(e) => setNewCert((prev) => ({ ...prev, issuingBody: e.target.value }))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none"
-                    placeholder="e.g., ISO"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Certification Number</label>
-                <input
-                  type="text"
-                  value={newCert.certificationNumber}
-                  onChange={(e) => setNewCert((prev) => ({ ...prev, certificationNumber: e.target.value }))}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none"
-                  placeholder="Optional"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Valid From</label>
-                  <input
-                    type="date"
-                    value={newCert.validFrom}
-                    onChange={(e) => setNewCert((prev) => ({ ...prev, validFrom: e.target.value }))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Valid Until</label>
-                  <input
-                    type="date"
-                    value={newCert.validUntil}
-                    onChange={(e) => setNewCert((prev) => ({ ...prev, validUntil: e.target.value }))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none"
-                  />
-                </div>
-              </div>
-              <label className="flex items-center gap-2 text-sm text-gray-700">
-                <input
-                  type="checkbox"
-                  checked={newCert.isLifetime}
-                  onChange={(e) => setNewCert((prev) => ({ ...prev, isLifetime: e.target.checked }))}
-                  className="w-4 h-4 text-blue-600 border-gray-300 rounded"
-                />
-                Lifetime certification (no expiry)
-              </label>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={handleAddCertification}
-                  disabled={savingSection === "certifications" || !newCert.name || !newCert.issuingBody}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 text-sm"
-                >
-                  {savingSection === "certifications" ? "Adding..." : "Add Certification"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setShowAddCert(false); setNewCert({ name: "", issuingBody: "", certificationNumber: "", validFrom: "", validUntil: "", isLifetime: false }); }}
-                  className="px-4 py-2 text-gray-600 hover:text-gray-800 text-sm"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setShowAddCert(true)}
-              className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 font-medium"
-            >
-              <Plus className="w-4 h-4" /> Add Certification
-            </button>
-          )}
-        </Section>
+        </div>
 
-        {/* Languages */}
-        <Section id="languages" title={`Languages (${languages.length})`} icon={<Languages className="w-5 h-5 text-blue-600" />}>
-          {languages.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {languages.map((lang) => (
-                <div key={lang.id} className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 rounded-lg border border-gray-200">
-                  <span className="font-medium text-gray-900">{lang.language}</span>
-                  <span className="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-700 rounded">{lang.level}</span>
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveLanguage(lang.id)}
-                    className="text-red-500 hover:text-red-700"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              ))}
+        {/* ===== Languages ===== */}
+        <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
+          <button
+            type="button"
+            onClick={() => toggleSection("languages")}
+            className="w-full flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <Languages className="w-5 h-5 text-blue-600" />
+              <h3 className="text-base font-semibold text-gray-900">Languages ({languages.length})</h3>
             </div>
-          )}
-          {showAddLang ? (
-            <div className="p-4 bg-blue-50 rounded-lg space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Language</label>
-                  <select
-                    value={newLang.language}
-                    onChange={(e) => setNewLang((prev) => ({ ...prev, language: e.target.value }))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none"
-                  >
-                    {LANGUAGE_OPTIONS.map((l) => (
-                      <option key={l} value={l}>{l}</option>
-                    ))}
-                  </select>
+            {isOpen("languages") ? <ChevronUp className="w-5 h-5 text-gray-400" /> : <ChevronDown className="w-5 h-5 text-gray-400" />}
+          </button>
+          {isOpen("languages") && (
+            <div className="px-6 pb-6 space-y-4 border-t">
+              {languages.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {languages.map((lang) => (
+                    <div key={lang.id} className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 rounded-lg border border-gray-200">
+                      <span className="font-medium text-gray-900">{lang.language}</span>
+                      <span className="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-700 rounded">{lang.level}</span>
+                      <button type="button" onClick={() => handleRemoveLanguage(lang.id)} className="text-red-500 hover:text-red-700">
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Level</label>
-                  <select
-                    value={newLang.level}
-                    onChange={(e) => setNewLang((prev) => ({ ...prev, level: e.target.value }))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none"
-                  >
-                    {LANGUAGE_LEVEL_OPTIONS.map((opt) => (
-                      <option key={opt.value} value={opt.value}>{opt.label}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={handleAddLanguage}
-                  disabled={savingSection === "languages"}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 text-sm"
-                >
-                  {savingSection === "languages" ? "Adding..." : "Add Language"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setShowAddLang(false); setNewLang({ language: "Dutch", level: "B2" }); }}
-                  className="px-4 py-2 text-gray-600 hover:text-gray-800 text-sm"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setShowAddLang(true)}
-              className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 font-medium"
-            >
-              <Plus className="w-4 h-4" /> Add Language
-            </button>
-          )}
-        </Section>
-
-        {/* Education */}
-        <Section id="education" title={`Education (${education.length})`} icon={<GraduationCap className="w-5 h-5 text-blue-600" />}>
-          {education.length > 0 && (
-            <div className="space-y-2">
-              {education.map((edu) => (
-                <div key={edu.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div>
-                    <span className="font-medium text-gray-900">{edu.qualification}</span>
-                    {edu.institution && <span className="text-sm text-gray-500 ml-2">at {edu.institution}</span>}
-                    {edu.yearCompleted && <span className="text-sm text-gray-400 ml-2">({edu.yearCompleted})</span>}
+              )}
+              {showAddLang ? (
+                <div className="p-4 bg-blue-50 rounded-lg space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Language</label>
+                      <select value={newLang.language} onChange={(e) => setNewLang((prev) => ({ ...prev, language: e.target.value }))} className="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none">
+                        {LANGUAGE_OPTIONS.map((l) => (<option key={l} value={l}>{l}</option>))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Level</label>
+                      <select value={newLang.level} onChange={(e) => setNewLang((prev) => ({ ...prev, level: e.target.value }))} className="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none">
+                        {LANGUAGE_LEVEL_OPTIONS.map((opt) => (<option key={opt.value} value={opt.value}>{opt.label}</option>))}
+                      </select>
+                    </div>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveEducation(edu.id)}
-                    className="text-red-500 hover:text-red-700 p-1"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-          {showAddEdu ? (
-            <div className="p-4 bg-blue-50 rounded-lg space-y-3">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Qualification *</label>
-                <input
-                  type="text"
-                  value={newEdu.qualification}
-                  onChange={(e) => setNewEdu((prev) => ({ ...prev, qualification: e.target.value }))}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none"
-                  placeholder="e.g., MBO Electrical Engineering"
-                />
-              </div>
-              <div className="grid grid-cols-3 gap-3">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Institution</label>
-                  <input
-                    type="text"
-                    value={newEdu.institution}
-                    onChange={(e) => setNewEdu((prev) => ({ ...prev, institution: e.target.value }))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none"
-                    placeholder="Optional"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Country</label>
-                  <input
-                    type="text"
-                    value={newEdu.country}
-                    onChange={(e) => setNewEdu((prev) => ({ ...prev, country: e.target.value }))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Year Completed</label>
-                  <input
-                    type="number"
-                    value={newEdu.yearCompleted}
-                    onChange={(e) => setNewEdu((prev) => ({ ...prev, yearCompleted: e.target.value }))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none"
-                    placeholder="2024"
-                  />
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={handleAddEducation}
-                  disabled={savingSection === "education" || !newEdu.qualification}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 text-sm"
-                >
-                  {savingSection === "education" ? "Adding..." : "Add Education"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setShowAddEdu(false); setNewEdu({ qualification: "", institution: "", country: "NL", yearCompleted: "" }); }}
-                  className="px-4 py-2 text-gray-600 hover:text-gray-800 text-sm"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setShowAddEdu(true)}
-              className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 font-medium"
-            >
-              <Plus className="w-4 h-4" /> Add Education
-            </button>
-          )}
-        </Section>
-
-        {/* Project Experience */}
-        <Section id="projects" title={`Project Experience (${projectExperiences.length})`} icon={<Briefcase className="w-5 h-5 text-blue-600" />}>
-          {projectExperiences.length > 0 && (
-            <div className="space-y-2">
-              {projectExperiences.map((proj) => (
-                <div key={proj.id} className="flex items-start justify-between p-3 bg-gray-50 rounded-lg">
-                  <div>
-                    <span className="font-medium text-gray-900">{proj.projectType}</span>
-                    <span className="text-sm text-gray-500 ml-2">in {proj.industry}</span>
-                    {proj.durationMonths && <span className="text-sm text-gray-400 ml-2">({proj.durationMonths} months)</span>}
-                    {proj.description && <p className="text-sm text-gray-600 mt-1">{proj.description}</p>}
+                  <div className="flex gap-2">
+                    <button type="button" onClick={handleAddLanguage} disabled={savingSection === "languages"} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 text-sm">
+                      {savingSection === "languages" ? "Adding..." : "Add Language"}
+                    </button>
+                    <button type="button" onClick={() => { setShowAddLang(false); setNewLang({ language: "Dutch", level: "B2" }); }} className="px-4 py-2 text-gray-600 hover:text-gray-800 text-sm">
+                      Cancel
+                    </button>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveProject(proj.id)}
-                    className="text-red-500 hover:text-red-700 p-1 flex-shrink-0"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
                 </div>
-              ))}
+              ) : (
+                <button type="button" onClick={() => setShowAddLang(true)} className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 font-medium">
+                  <Plus className="w-4 h--4" /> Add Language
+                </button>
+              )}
             </div>
           )}
-          {showAddProject ? (
-            <div className="p-4 bg-blue-50 rounded-lg space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Project Type *</label>
-                  <input
-                    type="text"
-                    value={newProject.projectType}
-                    onChange={(e) => setNewProject((prev) => ({ ...prev, projectType: e.target.value }))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none"
-                    placeholder="e.g., New Construction"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Industry *</label>
-                  <input
-                    type="text"
-                    value={newProject.industry}
-                    onChange={(e) => setNewProject((prev) => ({ ...prev, industry: e.target.value }))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none"
-                    placeholder="e.g., Industrial"
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Duration (months)</label>
-                  <input
-                    type="number"
-                    value={newProject.durationMonths}
-                    onChange={(e) => setNewProject((prev) => ({ ...prev, durationMonths: e.target.value }))}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none"
-                    placeholder="Optional"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                <textarea
-                  value={newProject.description}
-                  onChange={(e) => setNewProject((prev) => ({ ...prev, description: e.target.value }))}
-                  rows={2}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none"
-                  placeholder="Brief description of the project and your role..."
-                />
-              </div>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={handleAddProject}
-                  disabled={savingSection === "projects" || !newProject.projectType || !newProject.industry}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 text-sm"
-                >
-                  {savingSection === "projects" ? "Adding..." : "Add Project"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setShowAddProject(false); setNewProject({ projectType: "", industry: "", durationMonths: "", description: "" }); }}
-                  className="px-4 py-2 text-gray-600 hover:text-gray-800 text-sm"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setShowAddProject(true)}
-              className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 font-medium"
-            >
-              <Plus className="w-4 h-4" /> Add Project Experience
-            </button>
-          )}
-        </Section>
+        </div>
 
-        {/* Privacy */}
-        <Section id="privacy" title="Privacy & Visibility" icon={<Globe className="w-5 h-5 text-blue-600" />}>
-          <div className="space-y-3">
-            {(["ALL_VERIFIED", "SELECTED_COMPANIES", "HIDDEN"] as const).map((visibility) => (
-              <label key={visibility} className="flex items-start gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
-                <input
-                  type="radio"
-                  name="profileVisibility"
-                  value={visibility}
-                  checked={formData.profileVisibility === visibility}
-                  onChange={(e) => updateField("profileVisibility", e.target.value)}
-                  className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-600"
-                />
-                <div>
-                  <p className="font-medium text-gray-900">
-                    {visibility === "ALL_VERIFIED" ? "All Verified Employers" :
-                     visibility === "SELECTED_COMPANIES" ? "Selected Companies Only" : "Hidden"}
-                  </p>
-                  <p className="text-sm text-gray-600">
-                    {visibility === "ALL_VERIFIED" ? "Any verified employer can discover your profile" :
-                     visibility === "SELECTED_COMPANIES" ? "Only employers you approve can view your profile" :
-                     "Your profile is hidden from discovery"}
-                  </p>
+        {/* ===== Education ===== */}
+        <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
+          <button
+            type="button"
+            onClick={() => toggleSection("education")}
+            className="w-full flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <GraduationCap className="w-5 h-5 text-blue-600" />
+              <h3 className="text-base font-semibold text-gray-900">Education ({education.length})</h3>
+            </div>
+            {isOpen("education") ? <ChevronUp className="w-5 h-5 text-gray-400" /> : <ChevronDown className="w-5 h-5 text-gray-400" />}
+          </button>
+          {isOpen("education") && (
+            <div className="px-6 pb-6 space-y-4 border-t">
+              {education.length > 0 && (
+                <div className="space-y-2">
+                  {education.map((edu) => (
+                    <div key={edu.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div>
+                        <span className="font-medium text-gray-900">{edu.qualification}</span>
+                        {edu.institution && <span className="text-sm text-gray-500 ml-2">at {edu.institution}</span>}
+                        {edu.yearCompleted && <span className="text-sm text-gray-400 ml-2">({edu.yearCompleted})</span>}
+                      </div>
+                      <button type="button" onClick={() => handleRemoveEducation(edu.id)} className="text-red-500 hover:text-red-700 p-1">
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
                 </div>
-              </label>
-            ))}
-          </div>
-          <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-            <h4 className="font-medium text-green-800 mb-2">Privacy Guarantee</h4>
-            <ul className="text-sm text-green-700 space-y-1">
-              <li>✓ Your identity is hidden until you accept an offer</li>
-              <li>✓ Employers only see anonymized profile data</li>
-              <li>✓ Your contact info is never shared automatically</li>
-            </ul>
-          </div>
-        </Section>
+              )}
+              {showAddEdu ? (
+                <div className="p-4 bg-blue-50 rounded-lg space-y-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Qualification *</label>
+                    <input type="text" value={newEdu.qualification} onChange={(e) => setNewEdu((prev) => ({ ...prev, qualification: e.target.value }))} className="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none" placeholder="e.g., MBO Electrical Engineering" />
+                  </div>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Institution</label>
+                      <input type="text" value={newEdu.institution} onChange={(e) => setNewEdu((prev) => ({ ...prev, institution: e.target.value }))} className="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none" placeholder="Optional" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Country</label>
+                      <input type="text" value={newEdu.country} onChange={(e) => setNewEdu((prev) => ({ ...prev, country: e.target.value }))} className="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Year Completed</label>
+                      <input type="number" value={newEdu.yearCompleted} onChange={(e) => setNewEdu((prev) => ({ ...prev, yearCompleted: e.target.value }))} className="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none" placeholder="2024" />
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button type="button" onClick={handleAddEducation} disabled={savingSection === "education" || !newEdu.qualification} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 text-sm">
+                      {savingSection === "education" ? "Adding..." : "Add Education"}
+                    </button>
+                    <button type="button" onClick={() => { setShowAddEdu(false); setNewEdu({ qualification: "", institution: "", country: "NL", yearCompleted: "" }); }} className="px-4 py-2 text-gray-600 hover:text-gray-800 text-sm">
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button type="button" onClick={() => setShowAddEdu(true)} className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 font-medium">
+                  <Plus className="w-4 h-4" /> Add Education
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* ===== Project Experience ===== */}
+        <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
+          <button
+            type="button"
+            onClick={() => toggleSection("projects")}
+            className="w-full flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <Briefcase className="w-5 h-5 text-blue-600" />
+              <h3 className="text-base font-semibold text-gray-900">Project Experience ({projectExperiences.length})</h3>
+            </div>
+            {isOpen("projects") ? <ChevronUp className="w-5 h-5 text-gray-400" /> : <ChevronDown className="w-5 h-5 text-gray-400" />}
+          </button>
+          {isOpen("projects") && (
+            <div className="px-6 pb-6 space-y-4 border-t">
+              {projectExperiences.length > 0 && (
+                <div className="space-y-2">
+                  {projectExperiences.map((proj) => (
+                    <div key={proj.id} className="flex items-start justify-between p-3 bg-gray-50 rounded-lg">
+                      <div>
+                        <span className="font-medium text-gray-900">{proj.projectType}</span>
+                        <span className="text-sm text-gray-500 ml-2">in {proj.industry}</span>
+                        {proj.durationMonths && <span className="text-sm text-gray-400 ml-2">({proj.durationMonths} months)</span>}
+                        {proj.description && <p className="text-sm text-gray-600 mt-1">{proj.description}</p>}
+                      </div>
+                      <button type="button" onClick={() => handleRemoveProject(proj.id)} className="text-red-500 hover:text-red-700 p-1 flex-shrink-0">
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {showAddProject ? (
+                <div className="p-4 bg-blue-50 rounded-lg space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Project Type *</label>
+                      <input type="text" value={newProject.projectType} onChange={(e) => setNewProject((prev) => ({ ...prev, projectType: e.target.value }))} className="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none" placeholder="e.g., New Construction" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Industry *</label>
+                      <input type="text" value={newProject.industry} onChange={(e) => setNewProject((prev) => ({ ...prev, industry: e.target.value }))} className="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none" placeholder="e.g., Industrial" />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Duration (months)</label>
+                      <input type="number" value={newProject.durationMonths} onChange={(e) => setNewProject((prev) => ({ ...prev, durationMonths: e.target.value }))} className="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none" placeholder="Optional" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                    <textarea value={newProject.description} onChange={(e) => setNewProject((prev) => ({ ...prev, description: e.target.value }))} rows={2} className="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none" placeholder="Brief description of the project and your role..." />
+                  </div>
+                  <div className="flex gap-2">
+                    <button type="button" onClick={handleAddProject} disabled={savingSection === "projects" || !newProject.projectType || !newProject.industry} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 text-sm">
+                      {savingSection === "projects" ? "Adding..." : "Add Project"}
+                    </button>
+                    <button type="button" onClick={() => { setShowAddProject(false); setNewProject({ projectType: "", industry: "", durationMonths: "", description: "" }); }} className="px-4 py-2 text-gray-600 hover:text-gray-800 text-sm">
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button type="button" onClick={() => setShowAddProject(true)} className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 font-medium">
+                  <Plus className="w-4 h-4" /> Add Project Experience
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* ===== Privacy ===== */}
+        <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
+          <button
+            type="button"
+            onClick={() => toggleSection("privacy")}
+            className="w-full flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <Globe className="w-5 h-5 text-blue-600" />
+              <h3 className="text-base font-semibold text-gray-900">Privacy & Visibility</h3>
+            </div>
+            {isOpen("privacy") ? <ChevronUp className="w-5 h-5 text-gray-400" /> : <ChevronDown className="w-5 h-5 text-gray-400" />}
+          </button>
+          {isOpen("privacy") && (
+            <div className="px-6 pb-6 space-y-4 border-t">
+              <div className="space-y-3">
+                {(["ALL_VERIFIED", "SELECTED_COMPANIES", "HIDDEN"] as const).map((visibility) => (
+                  <label key={visibility} className="flex items-start gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+                    <input
+                      type="radio"
+                      name="profileVisibility"
+                      value={visibility}
+                      checked={formData.profileVisibility === visibility}
+                      onChange={(e) => updateField("profileVisibility", e.target.value)}
+                      className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-600"
+                    />
+                    <div>
+                      <p className="font-medium text-gray-900">
+                        {visibility === "ALL_VERIFIED" ? "All Verified Employers" :
+                         visibility === "SELECTED_COMPANIES" ? "Selected Companies Only" : "Hidden"}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        {visibility === "ALL_VERIFIED" ? "Any verified employer can discover your profile" :
+                         visibility === "SELECTED_COMPANIES" ? "Only employers you approve can view your profile" :
+                         "Your profile is hidden from discovery"}
+                      </p>
+                    </div>
+                  </label>
+                ))}
+              </div>
+              <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                <h4 className="font-medium text-green-800 mb-2">Privacy Guarantee</h4>
+                <ul className="text-sm text-green-700 space-y-1">
+                  <li>✓ Your identity is hidden until you accept an offer</li>
+                  <li>✓ Employers only see anonymized profile data</li>
+                  <li>✓ Your contact info is never shared automatically</li>
+                </ul>
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* Save Profile Button */}
         <button

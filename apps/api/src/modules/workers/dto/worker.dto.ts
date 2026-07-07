@@ -277,7 +277,12 @@ export class BlockCompanyDto {
 
 export class CreateProfileSkillDto {
   @IsString()
-  skillId: string;
+  @IsOptional()
+  skillId?: string;
+
+  @IsString()
+  @IsOptional()
+  name?: string;
 
   @IsString()
   @Transform(({ value }) => value?.toUpperCase())
