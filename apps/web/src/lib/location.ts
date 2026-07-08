@@ -25,6 +25,11 @@ const COUNTRIES: LocationOption[] = [
   { id: 'NL', name: 'Netherlands', code: 'NL' },
 ];
 
+/** The canonical country name for NL, used when resolving regions */
+export const COUNTRY_NAMES: Record<string, string> = {
+  NL: 'Netherlands',
+};
+
 /**
  * Get available countries (currently only Netherlands, expandable)
  */

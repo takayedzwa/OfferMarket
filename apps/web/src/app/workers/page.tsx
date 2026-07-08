@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Navbar from "../../components/Navbar";
 import { workersApi, enumsApi, regionsApi } from "../../lib/api";
-import { getProvinces, getCities, getDefaultCountryCode, type LocationOption, type CityOption } from "../../lib/location";
+import { getProvinces, getCities, getDefaultCountryCode, COUNTRY_NAMES, type LocationOption, type CityOption } from "../../lib/location";
 import {
   Search, Filter, X, MapPin, Briefcase, Star, ArrowRight,
   ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Car,
@@ -558,6 +558,7 @@ export default function WorkersSearch() {
                         if (provinceObj) {
                           const res = await regionsApi.resolveRegion({
                             countryCode: locationCountry,
+                            countryName: COUNTRY_NAMES[locationCountry],
                             provinceCode: prov,
                             provinceName: provinceObj.name,
                             cityName: provinceObj.name, // province-level search
@@ -601,6 +602,7 @@ export default function WorkersSearch() {
                           if (cityObj && provinceObj) {
                             const res = await regionsApi.resolveRegion({
                               countryCode: locationCountry,
+                              countryName: COUNTRY_NAMES[locationCountry],
                               provinceCode: selectedProvince,
                               provinceName: provinceObj.name,
                               cityName: cityObj.name,
@@ -620,6 +622,7 @@ export default function WorkersSearch() {
                           if (provinceObj) {
                             const res = await regionsApi.resolveRegion({
                               countryCode: locationCountry,
+                              countryName: COUNTRY_NAMES[locationCountry],
                               provinceCode: selectedProvince,
                               provinceName: provinceObj.name,
                               cityName: provinceObj.name,

@@ -19,13 +19,14 @@ export class RegionsService {
    * Resolve a location (country + province + city) to Region records.
    * Finds or creates Country, Province, and City records linked via parentId.
    * Returns the City record's ID for storing as worker.regionId.
+   * Uses case-insensitive matching to avoid duplicate regions.
    */
   async resolveOrCreateRegion(dto: ResolveRegionDto): Promise<{ id: string; name: string; type: string; parentId: string | null }> {
     const countryName = dto.countryName || dto.countryCode;
 
-    // 1. Find or create Country
+    // 1. Find or create Country (case-insensitive to avoid duplicates)
     let country = await this.prisma.region.findFirst({
-      where: { type: 'COUNTRY', name: countryName },
+      where: { type: 'COUNTRY', name: { equals: countryName, mode: 'insensitive' } },
     });
     if (!country) {
       country = await this.prisma.region.create({
@@ -37,10 +38,21 @@ export class RegionsService {
       });
     }
 
-    // 2. Find or create Province
-    let province = await this.prisma.region.findFirst({
-      where: { type: 'PROVINCE', name: dto.provinceName, parentId: country.id },
-    });
+    // 2. Find or create Province (case-insensitive, also match by province code)
+    const provinceNameFilter = dto.provinceName
+      ? { name: { equals: dto.provinceName, mode: 'insensitive' as const } }
+      : {};
+    const provinceCodeFilter = dto.provinceCode
+      ? { province: { equals: dto.provinceCode, mode: 'insensitive' as const } }
+      : {};
+    const provinceWhere: any = {
+      type: 'PROVINCE',
+      parentId: country.id,
+      ...(dto.provinceCode
+        ? { OR: [provinceNameFilter, provinceCodeFilter] }
+        : provinceNameFilter),
+    };
+    let province = await this.prisma.region.findFirst({ where: provinceWhere });
     if (!province) {
       province = await this.prisma.region.create({
         data: {
@@ -55,13 +67,13 @@ export class RegionsService {
 
     // 3. Find or create City
     // If cityName matches provinceName (province-level region), return the province
-    if (dto.cityName === dto.provinceName) {
+    if (dto.cityName.toLowerCase() === dto.provinceName.toLowerCase()) {
       return { id: province.id, name: province.name, type: province.type, parentId: province.parentId };
     }
 
     const existingCity = await this.prisma.region.findFirst({
       where: {
-        name: dto.cityName,
+        name: { equals: dto.cityName, mode: 'insensitive' },
         parentId: province.id,
         type: 'CITY',
       },
