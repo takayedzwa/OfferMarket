@@ -119,6 +119,21 @@ export class RegionsService {
   }
 
   /**
+   * Get all ancestor region IDs for a given region (traverse UP the hierarchy).
+   * E.g., if regionId is a City, returns [provinceId, countryId].
+   * This allows city-level searches to also find province-level workers.
+   */
+  async getAncestorIds(regionId: string): Promise<string[]> {
+    const ids: string[] = [];
+    let current = await this.prisma.region.findUnique({ where: { id: regionId } });
+    while (current?.parentId) {
+      ids.push(current.parentId);
+      current = await this.prisma.region.findUnique({ where: { id: current.parentId } });
+    }
+    return ids;
+  }
+
+  /**
    * Get regions with optional filters including parentId for hierarchy navigation
    */
   async getRegions(params: { type?: string; province?: string; parentId?: string }) {

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "../contexts/AuthContext";
@@ -15,12 +16,21 @@ interface NavbarProps {
 export default function Navbar({ variant = "default" }: NavbarProps) {
   const pathname = usePathname();
   const { user, logout } = useAuth();
-  const userRole = typeof window !== "undefined" ? localStorage.getItem("userRole") : null;
-  const accessToken = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
-  const userId = typeof window !== "undefined" ? localStorage.getItem("userId") : null;
+
+  // Read localStorage after mount to avoid hydration mismatch
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [authInfo, setAuthInfo] = useState<{ accessToken: string | null; userId: string | null }>({ accessToken: null, userId: null });
+
+  useEffect(() => {
+    setUserRole(localStorage.getItem("userRole"));
+    setAuthInfo({
+      accessToken: localStorage.getItem("accessToken"),
+      userId: localStorage.getItem("userId"),
+    });
+  }, []);
 
   // Use localStorage auth state as fallback when AuthContext is still loading
-  const isAuthenticated = user || (accessToken && userId && userRole);
+  const isAuthenticated = user || (authInfo.accessToken && authInfo.userId && userRole);
   const isAdmin = userRole === "ADMIN";
   const isSupport = userRole === "SUPPORT" || isAdmin;
 

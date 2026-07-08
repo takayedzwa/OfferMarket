@@ -26,6 +26,7 @@ interface Worker {
   availability: string;
   skills: any[];
   certifications: any[];
+  languages?: { language: string; level: string }[];
   hasDrivingLicense?: boolean;
   hasOwnVehicle?: boolean;
   travelDistanceKm?: number;
@@ -127,6 +128,7 @@ export default function WorkersSearch() {
   const [selectedProvince, setSelectedProvince] = useState("");
   const [locationCities, setLocationCities] = useState<CityOption[]>([]);
   const [selectedCity, setSelectedCity] = useState("");
+  const [locationError, setLocationError] = useState("");
   const [availabilityOptions, setAvailabilityOptions] = useState<any[]>([]);
   const [specializationOptions, setSpecializationOptions] = useState<any[]>([]);
   const [workAuthOptions, setWorkAuthOptions] = useState<any[]>([]);
@@ -180,9 +182,11 @@ export default function WorkersSearch() {
       params.certificationNames = [...new Set(certNames)].join(',');
     }
 
-    if (f.language && f.languageMinLevel) {
+    if (f.language) {
       params.language = f.language;
-      params.languageMinLevel = f.languageMinLevel;
+      if (f.languageMinLevel) {
+        params.languageMinLevel = f.languageMinLevel;
+      }
     }
 
     if (f.employmentTypes.length > 0) {
@@ -281,6 +285,7 @@ export default function WorkersSearch() {
     setSelectedProvince("");
     setSelectedCity("");
     setLocationCities([]);
+    setLocationError("");
     searchWorkers(1, emptyFilters);
     setShowFilters(false);
   };
@@ -383,13 +388,21 @@ export default function WorkersSearch() {
         });
       });
     }
-    if (filters.language && filters.languageMinLevel) {
-      const level = languageLevels.find((l: any) => l.value === filters.languageMinLevel);
-      chips.push({
-        key: 'language',
-        label: `${filters.language} ${filters.languageMinLevel}+`,
-        onRemove: () => { updateFilter('language', ''); updateFilter('languageMinLevel', ''); },
-      });
+    if (filters.language) {
+      if (filters.languageMinLevel) {
+        const level = languageLevels.find((l: any) => l.value === filters.languageMinLevel);
+        chips.push({
+          key: 'language',
+          label: `${filters.language} ${level?.label || filters.languageMinLevel}+`,
+          onRemove: () => { updateFilter('language', ''); updateFilter('languageMinLevel', ''); },
+        });
+      } else {
+        chips.push({
+          key: 'language',
+          label: `${filters.language} (any level)`,
+          onRemove: () => { updateFilter('language', ''); },
+        });
+      }
     }
     filters.employmentTypes.forEach((et) => {
       const etOpt = employmentTypeOptions.find((e: any) => e.value === et);
@@ -537,6 +550,7 @@ export default function WorkersSearch() {
                     setSelectedProvince(prov);
                     setSelectedCity("");
                     setLocationCities(prov ? getCities(prov, locationCountry) : []);
+                    setLocationError("");
                     if (prov) {
                       // Resolve province to a regionId for search
                       try {
@@ -552,6 +566,7 @@ export default function WorkersSearch() {
                         }
                       } catch (err) {
                         console.error("Failed to resolve province:", err);
+                        setLocationError("Failed to apply location filter. Please try again.");
                         updateFilter('regionId', '');
                       }
                     } else {
@@ -577,6 +592,7 @@ export default function WorkersSearch() {
                     onChange={async (e) => {
                       const cityId = e.target.value;
                       setSelectedCity(cityId);
+                      setLocationError("");
                       if (cityId) {
                         // Resolve city to a regionId for search
                         try {
@@ -595,6 +611,7 @@ export default function WorkersSearch() {
                           }
                         } catch (err) {
                           console.error("Failed to resolve city:", err);
+                          setLocationError("Failed to apply location filter. Please try again.");
                         }
                       } else {
                         // City cleared — fall back to province-level regionId
@@ -611,6 +628,7 @@ export default function WorkersSearch() {
                           }
                         } catch (err) {
                           console.error("Failed to resolve province:", err);
+                          setLocationError("Failed to apply location filter. Please try again.");
                           updateFilter('regionId', '');
                         }
                       }
@@ -622,6 +640,12 @@ export default function WorkersSearch() {
                       <option key={c.id} value={c.id}>{c.name}</option>
                     ))}
                   </select>
+                </div>
+              )}
+
+              {locationError && (
+                <div className="col-span-full text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">
+                  {locationError}
                 </div>
               )}
 
@@ -844,16 +868,25 @@ export default function WorkersSearch() {
                       <label className="block text-sm text-gray-600 mb-1">Language</label>
                       <select
                         value={filters.language}
-                        onChange={(e) => updateFilter('language', e.target.value)}
+                        onChange={(e) => {
+                          updateFilter('language', e.target.value);
+                          if (!e.target.value) updateFilter('languageMinLevel', '');
+                        }}
                         className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
                       >
                         <option value="">Any Language</option>
                         <option value="Dutch">Dutch</option>
                         <option value="English">English</option>
-                        <option value="Polish">Polish</option>
-                        <option value="Romanian">Romanian</option>
                         <option value="German">German</option>
+                        <option value="French">French</option>
+                        <option value="Spanish">Spanish</option>
+                        <option value="Italian">Italian</option>
+                        <option value="Polish">Polish</option>
+                        <option value="Turkish">Turkish</option>
+                        <option value="Arabic">Arabic</option>
+                        <option value="Russian">Russian</option>
                         <option value="Portuguese">Portuguese</option>
+                        <option value="Mandarin">Mandarin</option>
                       </select>
                     </div>
                     <div>
@@ -1006,7 +1039,22 @@ export default function WorkersSearch() {
                     {worker.region && (
                       <div className="flex items-center gap-2 text-sm text-gray-600">
                         <MapPin className="w-4 h-4" />
-                        {worker.region.name}
+                        {worker.region.name}{worker.region.province && worker.region.type === 'CITY' ? `, ${worker.region.province}` : ''}
+                      </div>
+                    )}
+                    {worker.languages && worker.languages.length > 0 && (
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <Globe className="w-4 h-4" />
+                        <div className="flex flex-wrap gap-1">
+                          {worker.languages.slice(0, 3).map((lang: any, idx: number) => (
+                            <span key={idx} className="px-1.5 py-0.5 bg-blue-50 text-blue-700 rounded text-xs">
+                              {lang.language} {lang.level}
+                            </span>
+                          ))}
+                          {worker.languages.length > 3 && (
+                            <span className="text-xs text-gray-400">+{worker.languages.length - 3}</span>
+                          )}
+                        </div>
                       </div>
                     )}
                     {worker.yearsOfExperience !== undefined && (

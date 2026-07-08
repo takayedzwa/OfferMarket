@@ -72,6 +72,7 @@ export class WorkersService {
     skillIds?: string[];
     certificationNames?: string[];
     languageMinLevel?: { language: string; level: string };
+    languageFilter?: { language: string };
     employmentTypes?: string[];
     page?: number;
     limit?: number;
@@ -88,6 +89,7 @@ export class WorkersService {
       skillIds,
       certificationNames,
       languageMinLevel,
+      languageFilter,
       employmentTypes,
       page = 1,
       limit = 20
@@ -103,11 +105,15 @@ export class WorkersService {
     }
 
     if (regionId) {
-      // Resolve hierarchical region: if regionId is a province or country,
-      // find all descendant city IDs and search across them
+      // Resolve hierarchical region: find workers in the region itself,
+      // its descendants (province → cities), and its ancestors (city → province → country).
+      // This ensures city-level searches find province-level workers and vice versa.
       const regionsService = new RegionsService(this.prisma);
-      const descendantIds = await regionsService.getDescendantIds(regionId);
-      where.regionId = { in: descendantIds };
+      const [descendantIds, ancestorIds] = await Promise.all([
+        regionsService.getDescendantIds(regionId),
+        regionsService.getAncestorIds(regionId),
+      ]);
+      where.regionId = { in: [...new Set([...descendantIds, ...ancestorIds])] };
     }
 
     if (availability) {
@@ -160,11 +166,18 @@ export class WorkersService {
         const qualifyingLevels = levelOrder.slice(minIdx);
         where.languages = {
           some: {
-            language: languageMinLevel.language,
+            language: { equals: languageMinLevel.language, mode: 'insensitive' },
             level: { in: qualifyingLevels }
           }
         };
       }
+    } else if (languageFilter) {
+      // Language-only filter: match workers who speak the language at any level
+      where.languages = {
+        some: {
+          language: { equals: languageFilter.language, mode: 'insensitive' },
+        }
+      };
     }
 
     if (employmentTypes && employmentTypes.length > 0) {

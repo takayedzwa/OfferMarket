@@ -97,8 +97,13 @@ export class WorkersController {
       searchFilters.certificationNames = certificationNames.split(',');
     }
 
-    if (language && languageMinLevel) {
-      searchFilters.languageMinLevel = { language, level: languageMinLevel };
+    if (language) {
+      if (languageMinLevel) {
+        searchFilters.languageMinLevel = { language, level: languageMinLevel };
+      } else {
+        // Language-only filter (any level)
+        searchFilters.languageFilter = { language };
+      }
     }
 
     if (employmentTypes) {
