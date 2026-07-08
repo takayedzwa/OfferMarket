@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Navbar from "../../components/Navbar";
 import { workersApi, enumsApi, regionsApi } from "../../lib/api";
+import { getProvinces, getCities, getDefaultCountryCode, type LocationOption, type CityOption } from "../../lib/location";
 import {
   Search, Filter, X, MapPin, Briefcase, Star, ArrowRight,
   ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Car,
@@ -119,6 +120,13 @@ export default function WorkersSearch() {
   // Enum data
   const [trades, setTrades] = useState<any[]>([]);
   const [regions, setRegions] = useState<any[]>([]);
+
+  // Location filter state (Province → City cascading)
+  const [locationCountry] = useState(getDefaultCountryCode());
+  const [locationProvinces] = useState<LocationOption[]>(getProvinces(getDefaultCountryCode()));
+  const [selectedProvince, setSelectedProvince] = useState("");
+  const [locationCities, setLocationCities] = useState<CityOption[]>([]);
+  const [selectedCity, setSelectedCity] = useState("");
   const [availabilityOptions, setAvailabilityOptions] = useState<any[]>([]);
   const [specializationOptions, setSpecializationOptions] = useState<any[]>([]);
   const [workAuthOptions, setWorkAuthOptions] = useState<any[]>([]);
@@ -255,9 +263,7 @@ export default function WorkersSearch() {
         { value: 'INTERNSHIP', label: 'Internship' },
       ]));
 
-    regionsApi.getRegions({ type: 'PROVINCE' })
-      .then((res) => setRegions(res.data || []))
-      .catch(() => {});
+    // Province data is now loaded from world-location-data (see locationProvinces state)
 
     // Initial search with no filters
     searchWorkers(1, defaultFilters);
@@ -272,6 +278,9 @@ export default function WorkersSearch() {
   const clearFilters = () => {
     const emptyFilters = { ...defaultFilters };
     setFilters(emptyFilters);
+    setSelectedProvince("");
+    setSelectedCity("");
+    setLocationCities([]);
     searchWorkers(1, emptyFilters);
     setShowFilters(false);
   };
@@ -316,8 +325,15 @@ export default function WorkersSearch() {
       chips.push({ key: 'trade', label: `Trade: ${t?.label || filters.trade}`, onRemove: () => updateFilter('trade', '') });
     }
     if (filters.regionId) {
-      const r = regions.find((reg: any) => reg.id === filters.regionId);
-      chips.push({ key: 'region', label: `Location: ${r?.name || filters.regionId}`, onRemove: () => updateFilter('regionId', '') });
+      const cityName = selectedCity ? locationCities.find((c: CityOption) => c.id === selectedCity)?.name : null;
+      const provinceName = selectedProvince ? locationProvinces.find((p: LocationOption) => p.code === selectedProvince)?.name : null;
+      const locationLabel = cityName ? `${cityName}, ${provinceName}` : provinceName || filters.regionId;
+      chips.push({ key: 'region', label: `Location: ${locationLabel}`, onRemove: () => {
+        updateFilter('regionId', '');
+        setSelectedProvince('');
+        setSelectedCity('');
+        setLocationCities([]);
+      }});
     }
     if (filters.availableImmediately) {
       chips.push({ key: 'immediate', label: 'Available Immediately', onRemove: () => updateFilter('availableImmediately', false) });
@@ -515,18 +531,99 @@ export default function WorkersSearch() {
                   Location (Province)
                 </label>
                 <select
-                  value={filters.regionId}
-                  onChange={(e) => updateFilter('regionId', e.target.value)}
+                  value={selectedProvince}
+                  onChange={async (e) => {
+                    const prov = e.target.value;
+                    setSelectedProvince(prov);
+                    setSelectedCity("");
+                    setLocationCities(prov ? getCities(prov, locationCountry) : []);
+                    if (prov) {
+                      // Resolve province to a regionId for search
+                      try {
+                        const provinceObj = locationProvinces.find((p: LocationOption) => p.code === prov);
+                        if (provinceObj) {
+                          const res = await regionsApi.resolveRegion({
+                            countryCode: locationCountry,
+                            provinceCode: prov,
+                            provinceName: provinceObj.name,
+                            cityName: provinceObj.name, // province-level search
+                          });
+                          updateFilter('regionId', res.data.id);
+                        }
+                      } catch (err) {
+                        console.error("Failed to resolve province:", err);
+                        updateFilter('regionId', '');
+                      }
+                    } else {
+                      updateFilter('regionId', '');
+                    }
+                  }}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
                 >
                   <option value="">All Locations</option>
-                  {regions.map((region: any) => (
-                    <option key={region.id} value={region.id}>
-                      {region.province ? `${region.name} (${region.province})` : region.name}
-                    </option>
+                  {locationProvinces.map((p: LocationOption) => (
+                    <option key={p.code} value={p.code}>{p.name}</option>
                   ))}
                 </select>
               </div>
+
+              {selectedProvince && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    City
+                  </label>
+                  <select
+                    value={selectedCity}
+                    onChange={async (e) => {
+                      const cityId = e.target.value;
+                      setSelectedCity(cityId);
+                      if (cityId) {
+                        // Resolve city to a regionId for search
+                        try {
+                          const cityObj = locationCities.find((c: CityOption) => c.id === cityId);
+                          const provinceObj = locationProvinces.find((p: LocationOption) => p.code === selectedProvince);
+                          if (cityObj && provinceObj) {
+                            const res = await regionsApi.resolveRegion({
+                              countryCode: locationCountry,
+                              provinceCode: selectedProvince,
+                              provinceName: provinceObj.name,
+                              cityName: cityObj.name,
+                              cityLatitude: cityObj.latitude,
+                              cityLongitude: cityObj.longitude,
+                            });
+                            updateFilter('regionId', res.data.id);
+                          }
+                        } catch (err) {
+                          console.error("Failed to resolve city:", err);
+                        }
+                      } else {
+                        // City cleared — fall back to province-level regionId
+                        try {
+                          const provinceObj = locationProvinces.find((p: LocationOption) => p.code === selectedProvince);
+                          if (provinceObj) {
+                            const res = await regionsApi.resolveRegion({
+                              countryCode: locationCountry,
+                              provinceCode: selectedProvince,
+                              provinceName: provinceObj.name,
+                              cityName: provinceObj.name,
+                            });
+                            updateFilter('regionId', res.data.id);
+                          }
+                        } catch (err) {
+                          console.error("Failed to resolve province:", err);
+                          updateFilter('regionId', '');
+                        }
+                      }
+                    }}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
+                  >
+                    <option value="">All Cities</option>
+                    {locationCities.map((c: CityOption) => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">

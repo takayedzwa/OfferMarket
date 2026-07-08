@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../../contexts/AuthContext";
 import { workersApi, enumsApi, regionsApi } from "../../../lib/api";
+import { getCountries, getProvinces, getCities, getDefaultCountryCode, type LocationOption, type CityOption } from "../../../lib/location";
 import {
   ArrowLeft, Save, ChevronDown, ChevronUp,
   Plus, X, Car, Shield, GraduationCap, Briefcase,
@@ -126,8 +127,14 @@ export default function EditWorkerProfile() {
   const [employmentTypeOptions, setEmploymentTypeOptions] = useState<EnumOption[]>([]);
   const [specializationOptions, setSpecializationOptions] = useState<EnumOption[]>([]);
   const [workAuthorizationOptions, setWorkAuthorizationOptions] = useState<EnumOption[]>([]);
-  const [regions, setRegions] = useState<any[]>([]);
   const [skillsCatalog, setSkillsCatalog] = useState<any[]>([]);
+
+  // Location state (Country → Province → City cascading dropdowns)
+  const [selectedCountry, setSelectedCountry] = useState(getDefaultCountryCode());
+  const [selectedProvince, setSelectedProvince] = useState("");
+  const [selectedCity, setSelectedCity] = useState("");
+  const [provinces, setProvinces] = useState<LocationOption[]>([]);
+  const [cities, setCities] = useState<CityOption[]>([]);
 
   // Collapsible sections
   const [openSections, setOpenSections] = useState<Set<SectionKey>>(
@@ -262,9 +269,8 @@ export default function EditWorkerProfile() {
         { value: "OTHER", label: "Other" },
       ]));
 
-    regionsApi.getRegions()
-      .then((res) => setRegions(res.data || []))
-      .catch(() => {});
+    // Load provinces for location dropdown
+    setProvinces(getProvinces(selectedCountry));
 
     workersApi.getSkillsCatalog()
       .then((res) => {
@@ -307,6 +313,36 @@ export default function EditWorkerProfile() {
         setLanguages(p.languages || []);
         setEducation(p.education || []);
         setProjectExperiences(p.projectExperiences || []);
+
+        // Reverse-resolve regionId to province and city dropdowns
+        if (p.regionId && p.region) {
+          const allProvinces = getProvinces(selectedCountry);
+          if (p.region.type === 'CITY' && p.region.province) {
+            // City record — match province by province code/name
+            const provinceMatch = allProvinces.find((prov: LocationOption) =>
+              prov.name === p.region.province || prov.code === p.region.province
+            );
+            if (provinceMatch) {
+              setSelectedProvince(provinceMatch.code);
+              const provinceCities = getCities(provinceMatch.code, selectedCountry);
+              setCities(provinceCities);
+              // Try to find the city in the province cities by name
+              const cityMatch = provinceCities.find((c: CityOption) => c.name === p.region.name);
+              if (cityMatch) {
+                setSelectedCity(cityMatch.id);
+              }
+            }
+          } else if (p.region.type === 'PROVINCE') {
+            // Province-level record — match by name
+            const provinceMatch = allProvinces.find((prov: LocationOption) =>
+              prov.name === p.region.name || prov.code === p.region.province
+            );
+            if (provinceMatch) {
+              setSelectedProvince(provinceMatch.code);
+              setCities(getCities(provinceMatch.code, selectedCountry));
+            }
+          }
+        }
       })
       .catch((err) => {
         console.error("Failed to load profile:", err);
@@ -322,7 +358,51 @@ export default function EditWorkerProfile() {
     setError("");
     setSuccess("");
     try {
-      await workersApi.updateProfile(formData);
+      const payload = { ...formData };
+
+      // Resolve location to a regionId via the backend
+      if (selectedProvince && selectedCity) {
+        const provinceObj = provinces.find((p: LocationOption) => p.code === selectedProvince);
+        const cityObj = cities.find((c: CityOption) => c.id === selectedCity);
+        if (provinceObj && cityObj) {
+          try {
+            const countryObj = getCountries().find((c: LocationOption) => c.code === selectedCountry);
+            const res = await regionsApi.resolveRegion({
+              countryCode: selectedCountry,
+              countryName: countryObj?.name || selectedCountry,
+              provinceCode: selectedProvince,
+              provinceName: provinceObj.name,
+              cityName: cityObj.name,
+              cityLatitude: cityObj.latitude,
+              cityLongitude: cityObj.longitude,
+            });
+            payload.regionId = res.data.id;
+          } catch (err) {
+            console.error("Failed to resolve region:", err);
+            // Fall back to saving without regionId change
+          }
+        }
+      } else if (selectedProvince && !selectedCity) {
+        // Only province selected — resolve at province level
+        const provinceObj = provinces.find((p: LocationOption) => p.code === selectedProvince);
+        if (provinceObj) {
+          try {
+            const countryObj = getCountries().find((c: LocationOption) => c.code === selectedCountry);
+            const res = await regionsApi.resolveRegion({
+              countryCode: selectedCountry,
+              countryName: countryObj?.name || selectedCountry,
+              provinceCode: selectedProvince,
+              provinceName: provinceObj.name,
+              cityName: provinceObj.name, // province-level region
+            });
+            payload.regionId = res.data.id;
+          } catch (err) {
+            console.error("Failed to resolve region:", err);
+          }
+        }
+      }
+
+      await workersApi.updateProfile(payload);
       setSuccess("Profile updated successfully!");
     } catch (err: any) {
       setError(err.response?.data?.message || "Failed to update profile");
@@ -662,6 +742,63 @@ export default function EditWorkerProfile() {
             <div className="px-6 pb-6 space-y-4 border-t">
               <div className="grid grid-cols-2 gap-4">
                 <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Country</label>
+                  <select
+                    value={selectedCountry}
+                    onChange={(e) => {
+                      const country = e.target.value;
+                      setSelectedCountry(country);
+                      setSelectedProvince("");
+                      setSelectedCity("");
+                      setProvinces(getProvinces(country));
+                      setCities([]);
+                    }}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
+                  >
+                    {getCountries().map((c: LocationOption) => (
+                      <option key={c.code} value={c.code}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Province</label>
+                  <select
+                    value={selectedProvince}
+                    onChange={(e) => {
+                      const prov = e.target.value;
+                      setSelectedProvince(prov);
+                      setSelectedCity("");
+                      if (prov) {
+                        setCities(getCities(prov, selectedCountry));
+                      } else {
+                        setCities([]);
+                      }
+                    }}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
+                  >
+                    <option value="">Select province...</option>
+                    {provinces.map((p: LocationOption) => (
+                      <option key={p.code} value={p.code}>{p.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
+                  <select
+                    value={selectedCity}
+                    onChange={(e) => setSelectedCity(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
+                    disabled={!selectedProvince}
+                  >
+                    <option value="">Select city...</option>
+                    {cities.map((c: CityOption) => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Postal Code</label>
                   <input
                     type="text"
@@ -671,21 +808,6 @@ export default function EditWorkerProfile() {
                     placeholder="1234 AB"
                     maxLength={10}
                   />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Region</label>
-                  <select
-                    value={formData.regionId}
-                    onChange={(e) => updateField("regionId", e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
-                  >
-                    <option value="">Select region...</option>
-                    {regions.map((region: any) => (
-                      <option key={region.id} value={region.id}>
-                        {region.province ? `${region.name} (${region.province})` : region.name}
-                      </option>
-                    ))}
-                  </select>
                 </div>
               </div>
               <div>

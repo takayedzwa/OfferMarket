@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../../contexts/AuthContext";
 import { workersApi, enumsApi, regionsApi } from "../../../lib/api";
+import { getCountries, getProvinces, getCities, getDefaultCountryCode, type LocationOption, type CityOption } from "../../../lib/location";
 import { ArrowLeft, ArrowRight, Plus, X } from "lucide-react";
 
 // Enums matching backend Prisma definitions
@@ -57,6 +58,13 @@ export default function SetupWorkerProfile() {
   const [employmentTypeOptions, setEmploymentTypeOptions] = useState<EnumOption[]>([]);
   const [regions, setRegions] = useState<any[]>([]);
   const [skillsCatalog, setSkillsCatalog] = useState<any[]>([]);
+
+  // Location state (Country → Province → City cascading dropdowns)
+  const [selectedCountry, setSelectedCountry] = useState(getDefaultCountryCode());
+  const [selectedProvince, setSelectedProvince] = useState("");
+  const [selectedCity, setSelectedCity] = useState("");
+  const [provinces, setProvinces] = useState<LocationOption[]>([]);
+  const [cities, setCities] = useState<CityOption[]>([]);
 
   // Add-form state for skills
   const [newSkillId, setNewSkillId] = useState("");
@@ -145,12 +153,8 @@ export default function SetupWorkerProfile() {
         ]);
       });
 
-    // Load regions for dropdown
-    regionsApi.getRegions()
-      .then((res) => setRegions(res.data || []))
-      .catch(() => {
-        setRegions([]);
-      });
+    // Load provinces for location dropdown
+    setProvinces(getProvinces(getDefaultCountryCode()));
 
     // Load skills catalog for dropdown
     workersApi.getSkillsCatalog()
@@ -182,6 +186,47 @@ export default function SetupWorkerProfile() {
     setError("");
 
     try {
+      // Resolve location to a regionId via the backend
+      let regionId = formData.regionId || undefined;
+      if (selectedProvince && selectedCity) {
+        const provinceObj = provinces.find((p: LocationOption) => p.code === selectedProvince);
+        const cityObj = cities.find((c: CityOption) => c.id === selectedCity);
+        if (provinceObj && cityObj) {
+          try {
+            const countryObj = getCountries().find((c: LocationOption) => c.code === selectedCountry);
+            const res = await regionsApi.resolveRegion({
+              countryCode: selectedCountry,
+              countryName: countryObj?.name || selectedCountry,
+              provinceCode: selectedProvince,
+              provinceName: provinceObj.name,
+              cityName: cityObj.name,
+              cityLatitude: cityObj.latitude,
+              cityLongitude: cityObj.longitude,
+            });
+            regionId = res.data.id;
+          } catch (err) {
+            console.error("Failed to resolve region:", err);
+          }
+        }
+      } else if (selectedProvince && !selectedCity) {
+        const provinceObj = provinces.find((p: LocationOption) => p.code === selectedProvince);
+        if (provinceObj) {
+          try {
+            const countryObj = getCountries().find((c: LocationOption) => c.code === selectedCountry);
+            const res = await regionsApi.resolveRegion({
+              countryCode: selectedCountry,
+              countryName: countryObj?.name || selectedCountry,
+              provinceCode: selectedProvince,
+              provinceName: provinceObj.name,
+              cityName: provinceObj.name,
+            });
+            regionId = res.data.id;
+          } catch (err) {
+            console.error("Failed to resolve region:", err);
+          }
+        }
+      }
+
       // Map frontend fields to backend DTO
       const profileData: any = {
         availability: formData.availability,
@@ -189,7 +234,7 @@ export default function SetupWorkerProfile() {
         primaryTrade: formData.primaryTrade,
         noticePeriodDays: formData.noticePeriodDays,
         postalCode: formData.postalCode || undefined,
-        regionId: formData.regionId || undefined,
+        regionId,
         desiredSalaryMin: formData.desiredSalaryMin,
         desiredSalaryMax: formData.desiredSalaryMax,
         employmentTypes: formData.employmentTypes,
@@ -406,6 +451,69 @@ export default function SetupWorkerProfile() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Country
+                </label>
+                <select
+                  value={selectedCountry}
+                  onChange={(e) => {
+                    const country = e.target.value;
+                    setSelectedCountry(country);
+                    setSelectedProvince("");
+                    setSelectedCity("");
+                    setProvinces(getProvinces(country));
+                    setCities([]);
+                  }}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
+                >
+                  {getCountries().map((c: LocationOption) => (
+                    <option key={c.code} value={c.code}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Province
+                </label>
+                <select
+                  value={selectedProvince}
+                  onChange={(e) => {
+                    const prov = e.target.value;
+                    setSelectedProvince(prov);
+                    setSelectedCity("");
+                    if (prov) {
+                      setCities(getCities(prov, selectedCountry));
+                    } else {
+                      setCities([]);
+                    }
+                  }}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
+                >
+                  <option value="">Select province...</option>
+                  {provinces.map((p: LocationOption) => (
+                    <option key={p.code} value={p.code}>{p.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  City
+                </label>
+                <select
+                  value={selectedCity}
+                  onChange={(e) => setSelectedCity(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
+                  disabled={!selectedProvince}
+                >
+                  <option value="">Select city...</option>
+                  {cities.map((c: CityOption) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Postal Code
                 </label>
                 <input
@@ -416,23 +524,6 @@ export default function SetupWorkerProfile() {
                   placeholder="1234 AB"
                   maxLength={10}
                 />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Region
-                </label>
-                <select
-                  value={formData.regionId}
-                  onChange={(e) => updateField("regionId", e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
-                >
-                  <option value="">Select region</option>
-                  {regions.map((region) => (
-                    <option key={region.id} value={region.id}>
-                      {region.nameEn || region.name}
-                    </option>
-                  ))}
-                </select>
               </div>
             </div>
 

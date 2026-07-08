@@ -98,8 +98,18 @@ export const enumsApi = {
 // ============================================================================
 
 export const regionsApi = {
-  getRegions: (params?: { type?: string; province?: string }) =>
+  getRegions: (params?: { type?: string; province?: string; parentId?: string }) =>
     api.get('/regions', { params }),
+
+  resolveRegion: (data: {
+    countryCode: string;
+    countryName?: string;
+    provinceCode: string;
+    provinceName: string;
+    cityName: string;
+    cityLatitude?: string;
+    cityLongitude?: string;
+  }) => api.post('/regions/resolve', data),
 };
 
 // ============================================================================

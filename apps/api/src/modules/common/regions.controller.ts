@@ -1,35 +1,44 @@
-import { Controller, Get, Query } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
+import { Controller, Get, Post, Query, Body } from '@nestjs/common';
+import { RegionsService } from './regions.service';
 
 /**
  * REGIONS CONTROLLER
  *
  * Provides region data for search filters and profile forms.
+ * Supports hierarchical navigation (Country → Province → City)
+ * and region resolution (find-or-create for worker profiles).
  */
 
 @Controller('regions')
 export class RegionsController {
-  constructor(private prisma: PrismaService) {}
+  constructor(private regionsService: RegionsService) {}
 
   @Get()
   async getRegions(
     @Query('type') type?: string,
     @Query('province') province?: string,
+    @Query('parentId') parentId?: string,
   ) {
-    const where: any = {};
-    if (type) where.type = type;
-    if (province) where.province = { contains: province, mode: 'insensitive' };
+    return this.regionsService.getRegions({ type, province, parentId });
+  }
 
-    return this.prisma.region.findMany({
-      where,
-      orderBy: [{ province: 'asc' }, { name: 'asc' }],
-      select: {
-        id: true,
-        name: true,
-        nameEn: true,
-        type: true,
-        province: true,
-      },
-    });
+  /**
+   * Resolve a location (country + province + city) to Region records.
+   * Finds or creates Country, Province, and City records linked via parentId.
+   * Returns the City record's ID for storing as worker.regionId.
+   */
+  @Post('resolve')
+  async resolveRegion(
+    @Body() body: {
+      countryCode: string;
+      countryName?: string;
+      provinceCode: string;
+      provinceName: string;
+      cityName: string;
+      cityLatitude?: string;
+      cityLongitude?: string;
+    },
+  ) {
+    return this.regionsService.resolveOrCreateRegion(body);
   }
 }

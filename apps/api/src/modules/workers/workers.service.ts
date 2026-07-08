@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { Availability, ProfileVisibility, SkillLevel, EmploymentType, WorkScheduleType, IndustryType, CareerPriority, Specialization, WorkAuthorization } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
+import { RegionsService } from '../common/regions.service';
 import { CreateWorkerDto, UpdateWorkerDto, CreateProfileSkillDto, UpdateProfileSkillDto, CreateCertificationDto, UpdateCertificationDto, CreateWorkerLanguageDto, UpdateWorkerLanguageDto, CreateEducationDto, UpdateEducationDto, CreateProjectExperienceDto, UpdateProjectExperienceDto } from './dto/worker.dto';
 
 /**
@@ -102,7 +103,11 @@ export class WorkersService {
     }
 
     if (regionId) {
-      where.regionId = regionId;
+      // Resolve hierarchical region: if regionId is a province or country,
+      // find all descendant city IDs and search across them
+      const regionsService = new RegionsService(this.prisma);
+      const descendantIds = await regionsService.getDescendantIds(regionId);
+      where.regionId = { in: descendantIds };
     }
 
     if (availability) {
