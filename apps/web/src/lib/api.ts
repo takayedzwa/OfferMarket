@@ -88,6 +88,28 @@ export const enumsApi = {
   getIndustry: () => api.get('/enums/industry'),
   getCareerPriority: () => api.get('/enums/career-priority'),
   getEmploymentType: () => api.get('/enums/employment-type'),
+  getSpecialization: () => api.get('/enums/specialization'),
+  getWorkAuthorization: () => api.get('/enums/work-authorization'),
+  getLanguageLevel: () => api.get('/enums/language-level'),
+};
+
+// ============================================================================
+// REGIONS API
+// ============================================================================
+
+export const regionsApi = {
+  getRegions: (params?: { type?: string; province?: string; parentId?: string }) =>
+    api.get('/regions', { params }),
+
+  resolveRegion: (data: {
+    countryCode: string;
+    countryName?: string;
+    provinceCode: string;
+    provinceName: string;
+    cityName: string;
+    cityLatitude?: string;
+    cityLongitude?: string;
+  }) => api.post('/regions/resolve', data),
 };
 
 // ============================================================================
@@ -97,6 +119,12 @@ export const enumsApi = {
 export const workersApi = {
   // Get available trades
   getTrades: () => api.get('/workers/trades'),
+
+  // Get available specializations
+  getSpecializations: () => api.get('/workers/specializations'),
+
+  // Get skills catalog
+  getSkillsCatalog: (category?: string) => api.get('/workers/skills', { params: { category } }),
 
   // Search workers (for employers)
   searchWorkers: (params?: any) => api.get('/workers/search', { params }),
@@ -122,6 +150,105 @@ export const workersApi = {
   // Get public profile (anonymous - for employers viewing)
   getPublicProfile: (publicId: string, employerId?: string) =>
     api.get(`/workers/${publicId}`, { params: { employerId } }),
+
+  // ============================================================================
+  // PROFILE SKILLS CRUD
+  // ============================================================================
+
+  addSkill: (data: any) => {
+    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
+    return api.post('/workers/me/skills', data, { params: { userId } });
+  },
+
+  updateSkill: (id: string, data: any) => {
+    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
+    return api.patch(`/workers/me/skills/${id}`, data, { params: { userId } });
+  },
+
+  removeSkill: (id: string) => {
+    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
+    return api.delete(`/workers/me/skills/${id}`, { params: { userId } });
+  },
+
+  // ============================================================================
+  // CERTIFICATIONS CRUD
+  // ============================================================================
+
+  addCertification: (data: any) => {
+    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
+    return api.post('/workers/me/certifications', data, { params: { userId } });
+  },
+
+  updateCertification: (id: string, data: any) => {
+    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
+    return api.patch(`/workers/me/certifications/${id}`, data, { params: { userId } });
+  },
+
+  removeCertification: (id: string) => {
+    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
+    return api.delete(`/workers/me/certifications/${id}`, { params: { userId } });
+  },
+
+  // ============================================================================
+  // LANGUAGES CRUD
+  // ============================================================================
+
+  addLanguage: (data: any) => {
+    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
+    return api.post('/workers/me/languages', data, { params: { userId } });
+  },
+
+  updateLanguage: (id: string, data: any) => {
+    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
+    return api.patch(`/workers/me/languages/${id}`, data, { params: { userId } });
+  },
+
+  removeLanguage: (id: string) => {
+    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
+    return api.delete(`/workers/me/languages/${id}`, { params: { userId } });
+  },
+
+  // ============================================================================
+  // EDUCATION CRUD
+  // ============================================================================
+
+  addEducation: (data: any) => {
+    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
+    return api.post('/workers/me/education', data, { params: { userId } });
+  },
+
+  updateEducation: (id: string, data: any) => {
+    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
+    return api.patch(`/workers/me/education/${id}`, data, { params: { userId } });
+  },
+
+  removeEducation: (id: string) => {
+    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
+    return api.delete(`/workers/me/education/${id}`, { params: { userId } });
+  },
+
+  // ============================================================================
+  // PROJECT EXPERIENCE CRUD
+  // ============================================================================
+
+  addProjectExperience: (data: any) => {
+    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
+    return api.post('/workers/me/projects', data, { params: { userId } });
+  },
+
+  updateProjectExperience: (id: string, data: any) => {
+    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
+    return api.patch(`/workers/me/projects/${id}`, data, { params: { userId } });
+  },
+
+  removeProjectExperience: (id: string) => {
+    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
+    return api.delete(`/workers/me/projects/${id}`, { params: { userId } });
+  },
+
+  // ============================================================================
+  // PRIVACY & VISIBILITY
+  // ============================================================================
 
   // Block a company
   blockCompany: (employerId: string, reason?: string) =>

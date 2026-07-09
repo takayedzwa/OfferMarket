@@ -6,13 +6,13 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "../../../contexts/AuthContext";
 import Navbar from "../../../components/Navbar";
 import { workersApi, offersApi } from "../../../lib/api";
-import { PublicWorkerProfile, Offer } from "../../../lib/types";
+import { PrivateWorkerProfile, Offer } from "../../../lib/types";
 import { User, MapPin, Briefcase, Euro, Calendar, Eye, MessageSquare } from "lucide-react";
 
 export default function WorkerDashboard() {
   const router = useRouter();
   const { user, logout } = useAuth();
-  const [profile, setProfile] = useState<PublicWorkerProfile | null>(null);
+  const [profile, setProfile] = useState<PrivateWorkerProfile | null>(null);
   const [offers, setOffers] = useState<Offer[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -128,7 +128,7 @@ export default function WorkerDashboard() {
                     </div>
                     <div>
                       <div className="font-medium text-gray-900">
-                        {profile.desiredSalaryRange?.min ? `€${profile.desiredSalaryRange.min.toLocaleString()} - €${profile.desiredSalaryRange.max?.toLocaleString() || '∞'}` : "Not set"}
+                        {profile.desiredSalaryMin ? `€${profile.desiredSalaryMin.toLocaleString()} - €${profile.desiredSalaryMax?.toLocaleString() || '∞'}` : "Not set"}
                       </div>
                       <div className="text-sm text-gray-500">Expected Salary</div>
                     </div>
