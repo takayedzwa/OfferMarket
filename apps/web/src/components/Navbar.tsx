@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "../contexts/AuthContext";
+import NotificationBell from "./notifications/NotificationBell";
 import {
   Home, Users, Briefcase, MessageSquare, FileText,
   Shield, Ticket, Building2, User, CreditCard
@@ -146,6 +147,9 @@ export default function Navbar({ variant = "default" }: NavbarProps) {
           <div className="flex items-center gap-4">
             {isAuthenticated ? (
               <>
+                {/* Notification bell */}
+                <NotificationBell userId={authInfo.userId} />
+
                 <div className="text-sm text-gray-600 hidden sm:block">
                   <span className="text-gray-500">Welcome, </span>
                   <span className="font-medium">{user?.email?.split("@")[0] || "User"}</span>
