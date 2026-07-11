@@ -12,7 +12,7 @@ export default function CookiePolicyPage() {
           <div className="px-8 py-6 border-b border-gray-200">
             <h1 className="text-3xl font-bold text-gray-900">Cookie Policy</h1>
             <p className="mt-2 text-sm text-gray-500">
-              Last updated: July 11, 2026 · Version 1.0
+              Last updated: July 12, 2026 · Version 1.1
             </p>
             <p className="mt-1 text-sm text-gray-500">
               <span lang="nl">Cookiebeleid</span> · OfferMarket B.V.
@@ -30,7 +30,36 @@ export default function CookiePolicyPage() {
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold text-gray-900 mb-3">2. Types of Cookies We Use</h2>
+              <h2 className="text-xl font-semibold text-gray-900 mb-3">2. Legal Basis</h2>
+              <p>
+                This cookie policy is made in accordance with <strong>Article 11.7a of the Dutch Telecommunicatiewet</strong> (Telecommunicatiewet),
+                which implements <strong>Article 5(3) of the ePrivacy Directive</strong> (Directive 2002/58/EC, as amended by Directive 2009/136/EC).
+              </p>
+              <p className="mt-2">
+                Under this law, we are required to obtain your <strong>informed and unambiguous consent</strong> before
+                storing or accessing non-essential cookies on your device. Essential cookies (strictly necessary for
+                the functioning of the website) are exempt from this requirement.
+              </p>
+              <p className="mt-2">
+                Your consent is <strong>freely given, specific, informed, and unambiguous</strong>. You may withdraw your
+                consent at any time through the cookie banner, the Cookie Settings link in the footer, or our{' '}
+                <a href="/privacy/dashboard" className="text-blue-600 hover:underline">Privacy Dashboard</a>.
+                Withdrawing consent is as easy as giving it.
+              </p>
+              <p className="mt-2">
+                Consent is valid for a maximum of <strong>13 months</strong>, after which you will be asked to renew it.
+                We store your consent preference with a timestamp so we can verify compliance.
+              </p>
+            </section>
+              <p>
+                Cookies are small text files stored on your device when you visit our website. They help us
+                provide you with a better experience by remembering your preferences, enabling essential
+                functionality, and helping us understand how you use our platform.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-xl font-semibold text-gray-900 mb-3">3. Types of Cookies We Use</h2>
 
               <div className="mt-4 space-y-6">
                 <div className="border rounded-lg p-4">
@@ -120,7 +149,7 @@ export default function CookiePolicyPage() {
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold text-gray-900 mb-3">3. How to Manage Cookies</h2>
+              <h2 className="text-xl font-semibold text-gray-900 mb-3">4. How to Manage Cookies</h2>
               <p>
                 You can manage your cookie preferences at any time:
               </p>
@@ -132,6 +161,9 @@ export default function CookiePolicyPage() {
                   By clicking the cookie banner that appears on your first visit
                 </li>
                 <li>
+                  Using the <strong>Cookie Settings</strong> link in the page footer
+                </li>
+                <li>
                   Through your browser settings — most browsers allow you to block or delete cookies
                 </li>
               </ul>
@@ -141,21 +173,23 @@ export default function CookiePolicyPage() {
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold text-gray-900 mb-3">4. PostHog Analytics</h2>
+              <h2 className="text-xl font-semibold text-gray-900 mb-3">5. PostHog Analytics</h2>
               <p>
-                We use PostHog for product analytics. When analytics cookies are enabled:
+                We use PostHog for product analytics. PostHog is only activated after you give explicit consent
+                per <strong>Article 11.7a of the Telecommunicatiewet</strong>. When analytics cookies are enabled:
               </p>
               <ul className="mt-2 space-y-1 list-disc pl-5">
                 <li>Page views and feature usage are tracked</li>
                 <li>IP addresses are collected but we configure PostHog to mask them</li>
                 <li>Data is stored on EU-based servers</li>
                 <li>We have a Data Processing Agreement with PostHog</li>
-                <li>You can opt out at any time through the cookie banner or Privacy Dashboard</li>
+                <li>You can withdraw your consent at any time through the cookie banner, Cookie Settings link, or <a href="/privacy/dashboard" className="text-blue-600 hover:underline">Privacy Dashboard</a></li>
+                <li>When consent is withdrawn, all tracking stops immediately</li>
               </ul>
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold text-gray-900 mb-3">5. Local Storage</h2>
+              <h2 className="text-xl font-semibold text-gray-900 mb-3">6. Local Storage</h2>
               <p>
                 In addition to cookies, we use browser local storage for:
               </p>
@@ -170,7 +204,7 @@ export default function CookiePolicyPage() {
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold text-gray-900 mb-3">6. Changes to This Policy</h2>
+              <h2 className="text-xl font-semibold text-gray-900 mb-3">7. Changes to This Policy</h2>
               <p>
                 We may update this cookie policy from time to time. Changes will be reflected in the
                 &quot;Last updated&quot; date at the top. If we introduce new non-essential cookies,
@@ -179,7 +213,7 @@ export default function CookiePolicyPage() {
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold text-gray-900 mb-3">7. Contact</h2>
+              <h2 className="text-xl font-semibold text-gray-900 mb-3">8. Contact</h2>
               <p>
                 For questions about our use of cookies, contact our Data Protection Officer at{' '}
                 <a href="mailto:dpo@offermarket.nl" className="text-blue-600 hover:underline">dpo@offermarket.nl</a>.

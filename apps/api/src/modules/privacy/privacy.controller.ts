@@ -74,6 +74,31 @@ export class PrivacyController {
     );
   }
 
+  /**
+   * Anonymous consent recording — no authentication required.
+   *
+   * Telecommunicatiewet Art. 11.7a requires that consent be logged even for
+   * unauthenticated visitors. This endpoint records consent using IP address
+   * and user-agent as the audit trail, since no userId is available.
+   */
+  @Post('consents/anonymous')
+  async recordAnonymousConsent(
+    @Body() dto: RecordConsentDto,
+    @Request() req: any,
+  ) {
+    const ipAddress = req?.ip || req?.headers?.['x-forwarded-for']?.split(',')[0];
+    const userAgent = req?.headers?.['user-agent'];
+
+    return this.privacyService.recordConsent(
+      'anonymous',
+      dto.consentType,
+      dto.legalBasis,
+      dto.version,
+      ipAddress,
+      userAgent,
+    );
+  }
+
   @Delete('consents/:consentType')
   @UseGuards(JwtAuthGuard)
   async withdrawConsent(

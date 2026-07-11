@@ -164,6 +164,8 @@ export function useConsent() {
 // Cookie consent hook (local storage based, works without auth)
 export function useCookieConsent() {
   const CONSENT_KEY = 'offermarket_cookie_consent';
+  // Telecommunicatiewet Art. 11.7a: consent must be re-obtained after 13 months maximum
+  const CONSENT_MAX_AGE_MS = 13 * 30 * 24 * 60 * 60 * 1000;
 
   const [cookieConsent, setCookieConsent] = useState<{
     functional: boolean;
@@ -178,6 +180,11 @@ export function useCookieConsent() {
     if (stored) {
       try {
         const parsed = JSON.parse(stored);
+        // Check if consent has expired (Telecommunicatiewet 13-month max)
+        if (parsed.timestamp && (Date.now() - new Date(parsed.timestamp).getTime()) > CONSENT_MAX_AGE_MS) {
+          localStorage.removeItem(CONSENT_KEY);
+          return;
+        }
         setCookieConsent(parsed.consent || parsed);
       } catch {
         // Invalid stored consent

@@ -159,6 +159,79 @@ describe('PrivacyController', () => {
     });
   });
 
+  describe('recordAnonymousConsent', () => {
+    it('should record consent without authentication using IP and user-agent', async () => {
+      const req = {
+        ip: '203.0.113.42',
+        headers: { 'user-agent': 'Mozilla/5.0 (Anonymous Visitor)' },
+      };
+      const dto = {
+        consentType: ConsentType.COOKIE_ANALYTICS,
+        legalBasis: LegalBasis.CONSENT,
+        version: '1.0',
+        granted: true,
+      };
+
+      await controller.recordAnonymousConsent(dto, req);
+
+      expect(privacyService.recordConsent).toHaveBeenCalledWith(
+        'anonymous',
+        ConsentType.COOKIE_ANALYTICS,
+        LegalBasis.CONSENT,
+        '1.0',
+        '203.0.113.42',
+        'Mozilla/5.0 (Anonymous Visitor)',
+      );
+    });
+
+    it('should use x-forwarded-for header as fallback for IP', async () => {
+      const req = {
+        headers: {
+          'x-forwarded-for': '198.51.100.7, 10.0.0.1',
+          'user-agent': 'Safari/17.0',
+        },
+      };
+      const dto = {
+        consentType: ConsentType.COOKIE_MARKETING,
+        legalBasis: LegalBasis.CONSENT,
+        version: '1.0',
+        granted: true,
+      };
+
+      await controller.recordAnonymousConsent(dto, req);
+
+      expect(privacyService.recordConsent).toHaveBeenCalledWith(
+        'anonymous',
+        ConsentType.COOKIE_MARKETING,
+        LegalBasis.CONSENT,
+        '1.0',
+        '198.51.100.7',
+        'Safari/17.0',
+      );
+    });
+
+    it('should pass undefined IP and user-agent when neither is available', async () => {
+      const req = { headers: {} };
+      const dto = {
+        consentType: ConsentType.COOKIE_ANALYTICS,
+        legalBasis: LegalBasis.CONSENT,
+        version: '1.0',
+        granted: true,
+      };
+
+      await controller.recordAnonymousConsent(dto, req);
+
+      expect(privacyService.recordConsent).toHaveBeenCalledWith(
+        'anonymous',
+        ConsentType.COOKIE_ANALYTICS,
+        LegalBasis.CONSENT,
+        '1.0',
+        undefined,
+        undefined,
+      );
+    });
+  });
+
   describe('withdrawConsent', () => {
     it('should use authenticated userId from JWT', async () => {
       const req = { user: { id: 'jwt-user-1' } };
