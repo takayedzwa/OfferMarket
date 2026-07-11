@@ -443,6 +443,44 @@ export const conversationsApi = {
 };
 
 // ============================================================================
+// NOTIFICATIONS API
+// ============================================================================
+
+export const notificationsApi = {
+  // Get notifications for current user
+  getNotifications: (params?: { unreadOnly?: boolean; page?: number; limit?: number }) => {
+    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
+    return api.get('/notifications', {
+      params: { userId, ...params },
+    });
+  },
+
+  // Get unread count
+  getUnreadCount: () => {
+    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
+    return api.get('/notifications/unread-count', {
+      params: { userId },
+    });
+  },
+
+  // Mark a single notification as read
+  markAsRead: (notificationId: string) => {
+    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
+    return api.patch(`/notifications/${notificationId}/read`, null, {
+      params: { userId },
+    });
+  },
+
+  // Mark all notifications as read
+  markAllAsRead: () => {
+    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
+    return api.patch('/notifications/read-all', null, {
+      params: { userId },
+    });
+  },
+};
+
+// ============================================================================
 // UTILITY FUNCTIONS
 // ============================================================================
 

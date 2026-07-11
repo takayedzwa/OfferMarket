@@ -1,8 +1,10 @@
 import { Injectable, NotFoundException, BadRequestException, UnauthorizedException, ForbiddenException } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../../prisma/prisma.service';
 import { BillingService } from '../billing/billing.service';
 import { CreateOfferDto } from './dto/create-offer.dto';
 import { CounterOfferDto } from './dto/counter-offer.dto';
+import { NotificationEventType } from '../notifications/notification.types';
 
 /**
  * OFFERS SERVICE
@@ -20,6 +22,7 @@ export class OffersService {
   constructor(
     private prisma: PrismaService,
     private billingService: BillingService,
+    private eventEmitter: EventEmitter2,
   ) {}
 
   // ============================================================================
@@ -172,18 +175,14 @@ export class OffersService {
         }
       });
 
-      // 10. Create notification for worker
-      await tx.notification.create({
-        data: {
-          userId: worker.userId,
-          notificationType: 'offer_received',
-          category: 'offer',
-          title: 'New offer received!',
-          body: `${employer.companyName || employer.companyTradeName || 'An employer'} has sent you an offer for ${createOfferDto.jobTitle}`,
-          actionUrl: `/offers/${offer.id}`,
-          channelEmail: true,
-          channelPush: true
-        }
+      // 10. Emit notification event for worker
+      this.eventEmitter.emit(NotificationEventType.OFFER_RECEIVED, {
+        recipientUserId: worker.userId,
+        workerUserId: worker.userId,
+        employerCompanyName: employer.companyName || employer.companyTradeName || 'An employer',
+        jobTitle: createOfferDto.jobTitle,
+        offerId: offer.id,
+        actionUrl: `/offers/${offer.id}`,
       });
 
       return updatedOffer;
@@ -455,18 +454,14 @@ export class OffersService {
         }
       });
 
-      // 6. Create notification for worker
-      await tx.notification.create({
-        data: {
-          userId: offer.worker.userId,
-          notificationType: 'offer_received',
-          category: 'offer',
-          title: 'New offer received!',
-          body: `${employer.companyName || employer.companyTradeName || 'An employer'} has sent you an offer for ${offer.jobTitle}`,
-          actionUrl: `/offers/${offer.id}`,
-          channelEmail: true,
-          channelPush: true
-        }
+      // 6. Emit notification event for worker
+      this.eventEmitter.emit(NotificationEventType.OFFER_RECEIVED, {
+        recipientUserId: offer.worker.userId,
+        workerUserId: offer.worker.userId,
+        employerCompanyName: employer.companyName || employer.companyTradeName || 'An employer',
+        jobTitle: offer.jobTitle,
+        offerId: offer.id,
+        actionUrl: `/offers/${offer.id}`,
       });
 
       // 7. Return updated offer
@@ -592,31 +587,27 @@ export class OffersService {
         }
       });
 
-      // 11. Notify employer (WITH REVEALED IDENTITY)
-      await tx.notification.create({
-        data: {
-          userId: offer.employer.userId,
-          notificationType: 'offer_accepted',
-          category: 'offer',
-          title: '🎉 Offer Accepted!',
-          body: `${workerIdentity.fullName} has accepted your offer for ${offer.jobTitle}. You can now contact them directly.`,
-          actionUrl: `/conversations/${conversation.id}`,
-          channelEmail: true,
-          channelSms: true
-        }
+      // 11. Emit notification: employer gets the big news (WITH REVEALED IDENTITY)
+      this.eventEmitter.emit(NotificationEventType.OFFER_ACCEPTED, {
+        recipientUserId: offer.employer.userId,
+        employerUserId: offer.employer.userId,
+        workerUserId: offer.worker.userId,
+        workerIdentity,
+        jobTitle: offer.jobTitle,
+        offerId: offer.id,
+        conversationId: conversation.id,
+        actionUrl: `/conversations/${conversation.id}`,
       });
 
-      // 12. Notify worker
-      await tx.notification.create({
-        data: {
-          userId: offer.worker.userId,
-          notificationType: 'offer_accepted_confirmation',
-          category: 'offer',
-          title: 'Offer Accepted',
-          body: `Your identity has been shared with ${offer.employer.companyName}. You can now message them directly.`,
-          actionUrl: `/conversations/${conversation.id}`,
-          channelEmail: true
-        }
+      // 12. Emit notification: worker gets confirmation
+      this.eventEmitter.emit(NotificationEventType.OFFER_ACCEPTED_CONFIRMATION, {
+        recipientUserId: offer.worker.userId,
+        workerUserId: offer.worker.userId,
+        employerCompanyName: offer.employer.companyName,
+        jobTitle: offer.jobTitle,
+        offerId: offer.id,
+        conversationId: conversation.id,
+        actionUrl: `/conversations/${conversation.id}`,
       });
 
       return {
@@ -676,15 +667,13 @@ export class OffersService {
       throw new NotFoundException('Employer not found');
     }
 
-    await this.prisma.notification.create({
-      data: {
-        userId: employer.userId,
-        notificationType: 'offer_rejected',
-        category: 'offer',
-        title: 'Offer Declined',
-        body: reason || 'The candidate has declined your offer.',
-        channelEmail: true
-      }
+    this.eventEmitter.emit(NotificationEventType.OFFER_REJECTED, {
+      recipientUserId: employer.userId,
+      employerUserId: employer.userId,
+      reason,
+      jobTitle: offer.jobTitle,
+      offerId: offer.id,
+      actionUrl: `/offers/${offer.id}`,
     });
 
     return { success: true };
@@ -841,16 +830,13 @@ export class OffersService {
         throw new NotFoundException('Employer not found');
       }
 
-      await tx.notification.create({
-        data: {
-          userId: employer.userId,
-          notificationType: 'offer_countered',
-          category: 'offer',
-          title: 'Counter-Offer Received',
-          body: `The candidate has submitted a counter-offer for ${offer.jobTitle}`,
-          actionUrl: `/offers/${counterOffer.id}`,
-          channelEmail: true
-        }
+      this.eventEmitter.emit(NotificationEventType.OFFER_COUNTERED, {
+        recipientUserId: employer.userId,
+        employerUserId: employer.userId,
+        jobTitle: offer.jobTitle,
+        counterOfferId: counterOffer.id,
+        originalOfferId: offer.id,
+        actionUrl: `/offers/${counterOffer.id}`,
       });
 
       return counterOffer;
@@ -896,15 +882,13 @@ export class OffersService {
       throw new NotFoundException('Worker not found');
     }
 
-    await this.prisma.notification.create({
-      data: {
-        userId: worker.userId,
-        notificationType: 'offer_withdrawn',
-        category: 'offer',
-        title: 'Offer Withdrawn',
-        body: reason || 'The employer has withdrawn this offer.',
-        channelEmail: true
-      }
+    this.eventEmitter.emit(NotificationEventType.OFFER_WITHDRAWN, {
+      recipientUserId: worker.userId,
+      workerUserId: worker.userId,
+      reason,
+      jobTitle: offer.jobTitle,
+      offerId: offer.id,
+      actionUrl: `/offers/${offer.id}`,
     });
 
     return { success: true };

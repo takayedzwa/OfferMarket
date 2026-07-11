@@ -1,5 +1,7 @@
 import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../../prisma/prisma.service';
+import { NotificationEventType } from '../notifications/notification.types';
 
 /**
  * MESSAGES SERVICE
@@ -10,7 +12,10 @@ import { PrismaService } from '../../prisma/prisma.service';
 
 @Injectable()
 export class MessagesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private eventEmitter: EventEmitter2,
+  ) {}
 
   // ============================================================================
   // GET CONVERSATIONS
@@ -49,7 +54,7 @@ export class MessagesService {
   }
 
   // ============================================================================
-  // GET CONversation WITH MESSAGES
+  // GET CONVERSATION WITH MESSAGES
   // ============================================================================
 
   async getConversation(conversationId: string, userId: string) {
@@ -87,7 +92,7 @@ export class MessagesService {
       throw new ForbiddenException('Not authorized to view this conversation');
     }
 
-    // Mark messages as read
+    // Mark messages as read (also updates conversation unread count)
     await this.markAsRead(conversationId, userId);
 
     return conversation;
@@ -128,28 +133,27 @@ export class MessagesService {
       }
     });
 
-    // Update conversation
+    // Update conversation — increment ONLY the recipient's unread count
+    const unreadUpdate = conversation.participant1Id === recipientId
+      ? { unreadCountWorker: { increment: 1 } }
+      : { unreadCountEmployer: { increment: 1 } };
+
     await this.prisma.conversation.update({
       where: { id: conversationId },
       data: {
         lastMessageAt: new Date(),
         lastMessagePreview: content.substring(0, 200),
-        unreadCountWorker: conversation.participant1Id === recipientId ? { increment: 1 } : 0,
-        unreadCountEmployer: conversation.participant2Id === recipientId ? { increment: 1 } : 0
+        ...unreadUpdate,
       }
     });
 
-    // Create notification for recipient
-    await this.prisma.notification.create({
-      data: {
-        userId: recipientId,
-        notificationType: 'message_received',
-        category: 'message',
-        title: 'New message',
-        body: content.substring(0, 100),
-        actionUrl: `/conversations/${conversationId}`,
-        channelEmail: true
-      }
+    // Emit notification event for the recipient
+    this.eventEmitter.emit(NotificationEventType.MESSAGE_RECEIVED, {
+      recipientUserId: recipientId,
+      senderId,
+      conversationId,
+      contentPreview: content.substring(0, 100),
+      actionUrl: `/conversations/${conversationId}`,
     });
 
     return message;
@@ -169,22 +173,28 @@ export class MessagesService {
     }
 
     // Determine which unread count to reset
-    const updateData = userId === conversation.participant1Id
+    const unreadReset = userId === conversation.participant1Id
       ? { unreadCountWorker: 0 }
       : { unreadCountEmployer: 0 };
 
-    // Mark messages as read
-    await this.prisma.message.updateMany({
-      where: {
-        conversationId,
-        recipientId: userId,
-        isRead: false
-      },
-      data: {
-        isRead: true,
-        readAt: new Date()
-      }
-    });
+    // Mark messages as read AND reset the conversation unread counter
+    await Promise.all([
+      this.prisma.message.updateMany({
+        where: {
+          conversationId,
+          recipientId: userId,
+          isRead: false
+        },
+        data: {
+          isRead: true,
+          readAt: new Date()
+        }
+      }),
+      this.prisma.conversation.update({
+        where: { id: conversationId },
+        data: unreadReset
+      })
+    ]);
 
     return { success: true };
   }

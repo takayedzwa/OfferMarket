@@ -691,6 +691,57 @@ export interface AcceptOfferResult {
   };
 }
 
+// ============================================================================
+// NOTIFICATIONS
+// ============================================================================
+
+export interface Notification {
+  id: string;
+  userId: string;
+  notificationType: string;
+  category: string | null;
+  title: string;
+  body: string;
+  actionUrl: string | null;
+  actionData?: any;
+  channelEmail: boolean;
+  channelPush: boolean;
+  channelSms: boolean;
+  isRead: boolean;
+  readAt: string | null;
+  deliveredAt: string | null;
+  createdAt: string;
+}
+
+export type NotificationCategory = 'offer' | 'message' | 'billing';
+
+export interface NotificationsResponse {
+  notifications: Notification[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export interface UnreadCountResponse {
+  count: number;
+}
+
+// WebSocket notification events
+export interface WebSocketNotificationEvent {
+  id: string;
+  type: string;
+  category: string | null;
+  title: string;
+  body: string;
+  actionUrl: string | null;
+  createdAt: string;
+}
+
+export interface WebSocketUnreadCountEvent {
+  count: number;
+}
+
 export interface ApiError {
   message: string;
   error: string;
