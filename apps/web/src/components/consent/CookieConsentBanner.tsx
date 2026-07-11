@@ -12,6 +12,8 @@ interface ConsentState {
 
 const CONSENT_KEY = 'offermarket_cookie_consent';
 const CONSENT_VERSION = '1.0';
+// Telecommunicatiewet Art. 11.7a: consent must be re-obtained after 13 months maximum
+const CONSENT_MAX_AGE_MS = 13 * 30 * 24 * 60 * 60 * 1000;
 
 export default function CookieConsentBanner() {
   const [visible, setVisible] = useState(false);
@@ -32,6 +34,10 @@ export default function CookieConsentBanner() {
         if (parsed.version !== CONSENT_VERSION) {
           // Version mismatch — re-ask for consent
           setVisible(true);
+        } else if (parsed.timestamp && (Date.now() - new Date(parsed.timestamp).getTime()) > CONSENT_MAX_AGE_MS) {
+          // Telecommunicatiewet: consent expires after 13 months — re-ask
+          localStorage.removeItem(CONSENT_KEY);
+          setVisible(true);
         } else {
           setConsent(parsed.consent);
           syncConsentToApi(parsed.consent);
@@ -40,6 +46,25 @@ export default function CookieConsentBanner() {
         setVisible(true);
       }
     }
+
+    // Listen for 'consent:show' event from CookieSettingsButton
+    const handleShowBanner = () => {
+      setShowDetails(false);
+      // Re-read current consent from localStorage
+      const current = localStorage.getItem(CONSENT_KEY);
+      if (current) {
+        try {
+          const parsed = JSON.parse(current);
+          setConsent(parsed.consent || { functional: true, analytics: false, marketing: false });
+        } catch {
+          setConsent({ functional: true, analytics: false, marketing: false });
+        }
+      }
+      setVisible(true);
+    };
+
+    window.addEventListener('consent:show', handleShowBanner);
+    return () => window.removeEventListener('consent:show', handleShowBanner);
   }, []);
 
   const handleAcceptAll = () => {
@@ -85,16 +110,24 @@ export default function CookieConsentBanner() {
   const syncConsentToApi = async (state: ConsentState) => {
     try {
       const token = localStorage.getItem('accessToken');
-      if (!token) return; // Not logged in — consent stored locally only
-
       const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
+
+      // Telecommunicatiewet Art. 11.7a: consent must be logged even for
+      // unauthenticated visitors. Use the anonymous endpoint when no token.
+      const endpoint = token
+        ? `${apiBaseUrl}/privacy/consents`
+        : `${apiBaseUrl}/privacy/consents/anonymous`;
+
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
       };
 
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+
       if (state.analytics) {
-        await fetch(`${apiBaseUrl}/privacy/consents`, {
+        await fetch(endpoint, {
           method: 'POST',
           headers,
           body: JSON.stringify({
@@ -107,7 +140,7 @@ export default function CookieConsentBanner() {
       }
 
       if (state.marketing) {
-        await fetch(`${apiBaseUrl}/privacy/consents`, {
+        await fetch(endpoint, {
           method: 'POST',
           headers,
           body: JSON.stringify({
@@ -142,8 +175,14 @@ export default function CookieConsentBanner() {
             </div>
             <div className="flex flex-wrap gap-2">
               <button
+                onClick={handleAcceptAll}
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700"
+              >
+                Accept All
+              </button>
+              <button
                 onClick={handleRejectAll}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+                className="px-4 py-2 text-sm font-semibold text-gray-800 bg-white border border-gray-400 rounded-lg hover:bg-gray-50"
               >
                 Reject Optional
               </button>
@@ -153,13 +192,10 @@ export default function CookieConsentBanner() {
               >
                 Customize
               </button>
-              <button
-                onClick={handleAcceptAll}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700"
-              >
-                Accept All
-              </button>
             </div>
+            <p className="mt-2 text-xs text-gray-500">
+              You can change your preferences at any time via Cookie Settings.
+            </p>
           </div>
         ) : (
           <div>
@@ -207,8 +243,14 @@ export default function CookieConsentBanner() {
 
             <div className="mt-4 flex flex-wrap gap-2">
               <button
+                onClick={handleAcceptAll}
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700"
+              >
+                Accept All
+              </button>
+              <button
                 onClick={handleRejectAll}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+                className="px-4 py-2 text-sm font-semibold text-gray-800 bg-white border border-gray-400 rounded-lg hover:bg-gray-50"
               >
                 Reject Optional
               </button>
@@ -218,13 +260,10 @@ export default function CookieConsentBanner() {
               >
                 Save Preferences
               </button>
-              <button
-                onClick={handleAcceptAll}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700"
-              >
-                Accept All
-              </button>
             </div>
+            <p className="mt-2 text-xs text-gray-500">
+              You can change your preferences at any time via Cookie Settings.
+            </p>
           </div>
         )}
       </div>

@@ -273,6 +273,144 @@ describe('PrivacyService', () => {
     });
   });
 
+  // ===========================================================================
+  // ANONYMOUS CONSENT (Telecommunicatiewet Art. 11.7a audit trail)
+  // ===========================================================================
+  describe('recordConsent — anonymous (no userId)', () => {
+    const anonymousUserId = 'anonymous';
+    const consentType = ConsentType.COOKIE_ANALYTICS;
+    const legalBasis = LegalBasis.CONSENT;
+    const version = '1.0';
+
+    it('should create an anonymous consent record with IP and user-agent for audit trail', async () => {
+      prisma.consent.findFirst.mockResolvedValue(null);
+      prisma.consent.create.mockResolvedValue({
+        id: 'consent-anon-1',
+        userId: anonymousUserId,
+        consentType,
+        status: ConsentStatus.GIVEN,
+        legalBasis,
+        version,
+        ipAddress: '203.0.113.42',
+        userAgent: 'Mozilla/5.0 (Anonymous Visitor)',
+        createdAt: mockDate,
+        updatedAt: mockDate,
+        withdrawnAt: null,
+        expiresAt: null,
+      });
+
+      const result = await service.recordConsent(
+        anonymousUserId,
+        consentType,
+        legalBasis,
+        version,
+        '203.0.113.42',
+        'Mozilla/5.0 (Anonymous Visitor)',
+      );
+
+      expect(result).toEqual({
+        id: 'consent-anon-1',
+        consentType,
+        granted: true,
+        status: ConsentStatus.GIVEN,
+        version,
+        legalBasis,
+        ipAddress: '203.0.113.42',
+        userAgent: 'Mozilla/5.0 (Anonymous Visitor)',
+        grantedAt: mockDate.toISOString(),
+        withdrawnAt: null,
+        expiresAt: null,
+        createdAt: mockDate.toISOString(),
+        updatedAt: mockDate.toISOString(),
+      });
+
+      expect(prisma.consent.create).toHaveBeenCalledWith({
+        data: {
+          userId: anonymousUserId,
+          consentType,
+          status: ConsentStatus.GIVEN,
+          legalBasis,
+          version,
+          ipAddress: '203.0.113.42',
+          userAgent: 'Mozilla/5.0 (Anonymous Visitor)',
+        },
+      });
+    });
+
+    it('should create an anonymous consent record even without IP or user-agent', async () => {
+      prisma.consent.findFirst.mockResolvedValue(null);
+      prisma.consent.create.mockResolvedValue({
+        id: 'consent-anon-2',
+        userId: anonymousUserId,
+        consentType: ConsentType.COOKIE_MARKETING,
+        status: ConsentStatus.GIVEN,
+        legalBasis,
+        version,
+        ipAddress: null,
+        userAgent: null,
+        createdAt: mockDate,
+        updatedAt: mockDate,
+        withdrawnAt: null,
+        expiresAt: null,
+      });
+
+      const result = await service.recordConsent(
+        anonymousUserId,
+        ConsentType.COOKIE_MARKETING,
+        legalBasis,
+        version,
+        undefined,
+        undefined,
+      );
+
+      expect(prisma.consent.create).toHaveBeenCalledWith({
+        data: {
+          userId: anonymousUserId,
+          consentType: ConsentType.COOKIE_MARKETING,
+          status: ConsentStatus.GIVEN,
+          legalBasis,
+          version,
+          ipAddress: undefined,
+          userAgent: undefined,
+        },
+      });
+
+      expect(result.id).toBe('consent-anon-2');
+      expect(result.granted).toBe(true);
+    });
+
+    it('should handle idempotent anonymous consent (same version already active)', async () => {
+      const existingAnonConsent = {
+        id: 'consent-anon-existing',
+        userId: anonymousUserId,
+        consentType,
+        status: ConsentStatus.GIVEN,
+        legalBasis,
+        version,
+        ipAddress: '192.168.1.1',
+        userAgent: 'Safari/17.0',
+        createdAt: new Date('2026-06-01'),
+        updatedAt: new Date('2026-06-01'),
+        withdrawnAt: null,
+        expiresAt: null,
+      };
+      prisma.consent.findFirst.mockResolvedValue(existingAnonConsent);
+
+      const result = await service.recordConsent(
+        anonymousUserId,
+        consentType,
+        legalBasis,
+        version,
+        '192.168.1.1',
+        'Safari/17.0',
+      );
+
+      // Should NOT create a new consent — idempotent
+      expect(prisma.consent.create).not.toHaveBeenCalled();
+      expect(result.id).toBe('consent-anon-existing');
+    });
+  });
+
   describe('withdrawConsent', () => {
     const userId = 'user-1';
 

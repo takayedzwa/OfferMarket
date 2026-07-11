@@ -339,4 +339,92 @@ describe('useCookieConsent', () => {
 
     expect(result.current.hasGivenConsent).toBe(true);
   });
+
+  // ===========================================================================
+  // 13-Month Consent Expiry (Telecommunicatiewet Art. 11.7a)
+  // ===========================================================================
+  describe('13-month consent expiry', () => {
+    it('should clear localStorage when stored consent is older than 13 months', async () => {
+      // Set consent timestamp to 14 months ago (> 13-month Telecommunicatiewet max)
+      const fourteenMonthsAgo = new Date(Date.now() - 14 * 30 * 24 * 60 * 60 * 1000).toISOString();
+      localStorageMock.setItem('offermarket_cookie_consent', JSON.stringify({
+        consent: { functional: true, analytics: true, marketing: false },
+        version: '1.0',
+        timestamp: fourteenMonthsAgo,
+      }));
+
+      const { result } = renderHook(() => useCookieConsent());
+
+      await waitFor(() => {
+        // Should have called removeItem to clear expired consent
+        expect(localStorageMock.removeItem).toHaveBeenCalledWith('offermarket_cookie_consent');
+      });
+
+      // hasGivenConsent should be false because expired consent was cleared
+      expect(result.current.hasGivenConsent).toBe(false);
+    });
+
+    it('should keep consent when stored consent is within 13 months', async () => {
+      // Set consent timestamp to 6 months ago (well within 13 months)
+      const sixMonthsAgo = new Date(Date.now() - 6 * 30 * 24 * 60 * 60 * 1000).toISOString();
+      localStorageMock.setItem('offermarket_cookie_consent', JSON.stringify({
+        consent: { functional: true, analytics: true, marketing: false },
+        version: '1.0',
+        timestamp: sixMonthsAgo,
+      }));
+
+      const { result } = renderHook(() => useCookieConsent());
+
+      await waitFor(() => {
+        // Should NOT have called removeItem — consent is still valid
+        expect(localStorageMock.removeItem).not.toHaveBeenCalledWith('offermarket_cookie_consent');
+      });
+
+      // hasGivenConsent should be true
+      expect(result.current.hasGivenConsent).toBe(true);
+      expect(result.current.hasAnalyticsConsent).toBe(true);
+    });
+
+    it('should clear consent exactly at the 13-month boundary', async () => {
+      // Set consent timestamp to 14 months ago (past the 13-month max)
+      const fourteenMonthsAgo = new Date(Date.now() - 14 * 30 * 24 * 60 * 60 * 1000).toISOString();
+      localStorageMock.setItem('offermarket_cookie_consent', JSON.stringify({
+        consent: { functional: true, analytics: true, marketing: true },
+        version: '1.0',
+        timestamp: fourteenMonthsAgo,
+      }));
+
+      const { result } = renderHook(() => useCookieConsent());
+
+      await waitFor(() => {
+        expect(localStorageMock.removeItem).toHaveBeenCalledWith('offermarket_cookie_consent');
+      });
+
+      // All consent should be cleared
+      expect(result.current.hasAnalyticsConsent).toBe(false);
+      expect(result.current.hasMarketingConsent).toBe(false);
+    });
+  });
+
+  // ===========================================================================
+  // saveCookieConsent structure
+  // ===========================================================================
+  describe('saveCookieConsent', () => {
+    it('should store consent with version and timestamp', async () => {
+      const { result } = renderHook(() => useCookieConsent());
+
+      await act(async () => {
+        result.current.saveCookieConsent(true, false);
+      });
+
+      const savedData = JSON.parse(localStorageMock.setItem.mock.calls[0][1]);
+      expect(savedData.version).toBe('1.0');
+      expect(savedData.consent.functional).toBe(true);
+      expect(savedData.consent.analytics).toBe(true);
+      expect(savedData.consent.marketing).toBe(false);
+      // Timestamp should be a valid ISO date
+      expect(savedData.consent.timestamp).toBeTruthy();
+      expect(new Date(savedData.consent.timestamp).toISOString()).toBe(savedData.consent.timestamp);
+    });
+  });
 });
