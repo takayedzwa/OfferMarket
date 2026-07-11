@@ -8,83 +8,100 @@ datasource db {
 }
 
 model User {
-  id                   String               @id @default(uuid())
-  email                String               @unique
-  passwordHash         String
-  role                 UserRole
-  emailVerified        Boolean              @default(false)
-  phone                String?             @unique
-  phoneVerified        Boolean              @default(false)
-  status               UserStatus           @default(ACTIVE)
-  twoFactorEnabled     Boolean              @default(false)
-  twoFactorSecret      String?
-  lastLoginAt          DateTime?
-  lastLoginIp          String?
-  createdAt            DateTime             @default(now())
-  updatedAt            DateTime             @updatedAt
-  deletedAt            DateTime?
-  conversations1       Conversation[]       @relation("ConversationParticipant1")
-  conversations2       Conversation[]       @relation("ConversationParticipant2")
+  id               String     @id @default(uuid())
+  email            String     @unique
+  passwordHash     String
+  role             UserRole
+  emailVerified    Boolean    @default(false)
+  phone            String?    @unique
+  phoneVerified    Boolean    @default(false)
+  status           UserStatus @default(ACTIVE)
+  twoFactorEnabled Boolean    @default(false)
+  twoFactorSecret  String?
+  lastLoginAt      DateTime?
+  lastLoginIp      String?
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+  deletedAt        DateTime?
+
+  // GDPR fields
+  privacyPolicyVersion     String?
+  privacyPolicyAcceptedAt  DateTime?
+  termsOfServiceVersion    String?
+  termsOfServiceAcceptedAt DateTime?
+  marketingConsent         Boolean   @default(false)
+  analyticsConsent         Boolean   @default(false)
+
+  // Relations
+  conversations1       Conversation[]        @relation("ConversationParticipant1")
+  conversations2       Conversation[]        @relation("ConversationParticipant2")
   employer             Employer?
-  receivedMessages     Message[]            @relation("MessageRecipient")
-  sentMessages         Message[]            @relation("MessageSender")
+  receivedMessages     Message[]             @relation("MessageRecipient")
+  sentMessages         Message[]             @relation("MessageSender")
   notifications        Notification[]
   ratings              Rating[]
   worker               Worker?
-  supportTickets       SupportTicket[]      @relation("UserSupportTickets")
-  assignedTickets      SupportTicket[]      @relation("AssignedSupportTickets")
-  resolvedTickets      SupportTicket[]      @relation("ResolvedSupportTickets")
+  supportTickets       SupportTicket[]       @relation("UserSupportTickets")
+  assignedTickets      SupportTicket[]       @relation("AssignedSupportTickets")
+  resolvedTickets      SupportTicket[]       @relation("ResolvedSupportTickets")
   suspiciousActivities SuspiciousActivity[]
-  blacklistEntries     BlacklistEntry[]     @relation("BlacklistedUser")
+  blacklistEntries     BlacklistEntry[]      @relation("BlacklistedUser")
+  consents             Consent[]
+  dataSubjectRequests  DataSubjectRequest[]
+  gdprFlags            UserGdprFlags?
+  DataExportRequest    DataExportRequest[]
+  DataDeletionRequest  DataDeletionRequest[]
 
   @@index([email])
   @@index([role])
 }
 
 model Worker {
-  id                     String              @id @default(uuid())
-  userId                 String              @unique
-  publicId               String              @unique
-  regionId               String?
-  postalCode             String?
-  country                String              @default("NL")
-  yearsOfExperience      Int?                @map("years_of_experience")
-  primaryTrade           String?             @map("primary_trade")
-  headline               String?             @map("headline")
-  summary                String?             @map("summary")
-  specializations        Specialization[]    @map("specializations")
-  availability           Availability        @default(NOT_AVAILABLE)
-  noticePeriodDays       Int?                @map("notice_period_days")
-  desiredSalaryMin       Int?                @map("desired_salary_min")
-  desiredSalaryMax       Int?                @map("desired_salary_max")
-  desiredHourlyRate      Int?                @map("desired_hourly_rate")
-  employmentTypes        EmploymentType[]    @map("employment_types")
-  travelDistanceKm       Int?                @default(30) @map("travel_distance_km")
-  hasDrivingLicense      Boolean             @default(false) @map("has_driving_license")
-  hasOwnVehicle          Boolean             @default(false) @map("has_own_vehicle")
-  workAuthorization      WorkAuthorization?  @map("work_authorization")
-  workSchedulePrefs      WorkScheduleType[]  @map("work_schedule_prefs")
-  industryPrefs          IndustryType[]      @map("industry_prefs")
-  careerPriorities       CareerPriority[]    @map("career_priorities")
-  profileVisibility      ProfileVisibility   @default(ALL_VERIFIED)
-  isProfileComplete      Boolean             @default(false) @map("is_profile_complete")
-  profileCompletenessPct Int                 @default(0) @map("profile_completeness_pct")
-  reputationScore        Int                 @default(50) @map("reputation_score")
-  safetyScore            Int                 @default(0) @map("safety_score")
-  createdAt              DateTime            @default(now())
-  updatedAt              DateTime            @updatedAt
-  deletedAt              DateTime?
-  blockedCompanies       BlockedCompany[]
-  certifications         Certification[]
-  offersReceived         Offer[]
-  skills                 ProfileSkill[]
-  languages              WorkerLanguage[]
-  education              Education[]
-  projectExperiences     ProjectExperience[]
-  region                 Region?             @relation(fields: [regionId], references: [id])
-  user                   User                @relation(fields: [userId], references: [id], onDelete: Cascade)
-  fraudIndicators        FraudIndicator[]    @relation("WorkerFraudIndicators")
-  blacklistEntries       BlacklistEntry[]    @relation("BlacklistedWorker")
+  id                      String              @id @default(uuid())
+  userId                  String              @unique
+  publicId                String              @unique
+  regionId                String?
+  postalCode              String?
+  country                 String              @default("NL")
+  yearsOfExperience       Int?                @map("years_of_experience")
+  primaryTrade            String?             @map("primary_trade")
+  headline                String?             @map("headline")
+  summary                 String?             @map("summary")
+  specializations         Specialization[]    @map("specializations")
+  availability            Availability        @default(NOT_AVAILABLE)
+  noticePeriodDays        Int?                @map("notice_period_days")
+  desiredSalaryMin        Int?                @map("desired_salary_min")
+  desiredSalaryMax        Int?                @map("desired_salary_max")
+  desiredHourlyRate       Int?                @map("desired_hourly_rate")
+  employmentTypes         EmploymentType[]    @map("employment_types")
+  travelDistanceKm        Int?                @default(30) @map("travel_distance_km")
+  hasDrivingLicense       Boolean             @default(false) @map("has_driving_license")
+  hasOwnVehicle           Boolean             @default(false) @map("has_own_vehicle")
+  workAuthorization       WorkAuthorization?  @map("work_authorization")
+  workSchedulePrefs       WorkScheduleType[]  @map("work_schedule_prefs")
+  industryPrefs           IndustryType[]      @map("industry_prefs")
+  careerPriorities        CareerPriority[]    @map("career_priorities")
+  profileVisibility       ProfileVisibility   @default(ALL_VERIFIED)
+  isProfileComplete       Boolean             @default(false) @map("is_profile_complete")
+  profileCompletenessPct  Int                 @default(0) @map("profile_completeness_pct")
+  reputationScore         Int                 @default(50) @map("reputation_score")
+  safetyScore             Int                 @default(0) @map("safety_score")
+  immigrationConsentGiven Boolean?            @default(false) @map("immigration_consent_given")
+  immigrationConsentAt    DateTime?           @map("immigration_consent_at")
+  createdAt               DateTime            @default(now())
+  updatedAt               DateTime            @updatedAt
+  deletedAt               DateTime?
+  blockedCompanies        BlockedCompany[]
+  certifications          Certification[]
+  offersReceived          Offer[]
+  skills                  ProfileSkill[]
+  languages               WorkerLanguage[]
+  education               Education[]
+  projectExperiences      ProjectExperience[]
+  region                  Region?             @relation(fields: [regionId], references: [id])
+  user                    User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fraudIndicators         FraudIndicator[]    @relation("WorkerFraudIndicators")
+  blacklistEntries        BlacklistEntry[]    @relation("BlacklistedWorker")
 
   @@index([userId])
   @@index([regionId])
@@ -374,27 +391,29 @@ model Conversation {
 }
 
 model Message {
-  id               String       @id @default(uuid())
-  conversationId   String
-  senderId         String
-  recipientId      String
-  content          String
-  contentEncrypted String?
-  messageType      MessageType  @default(TEXT)
-  attachments      Json[]
-  isRead           Boolean      @default(false)
-  readAt           DateTime?
-  isDeleted        Boolean      @default(false)
-  isSystemMessage  Boolean      @default(false)
-  createdAt        DateTime     @default(now())
-  conversation     Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  recipient        User         @relation("MessageRecipient", fields: [recipientId], references: [id])
-  sender           User         @relation("MessageSender", fields: [senderId], references: [id])
+  id                 String       @id @default(uuid())
+  conversationId     String
+  senderId           String
+  recipientId        String
+  content            String
+  contentEncrypted   String?
+  messageType        MessageType  @default(TEXT)
+  attachments        Json[]
+  isRead             Boolean      @default(false)
+  readAt             DateTime?
+  isDeleted          Boolean      @default(false)
+  isSystemMessage    Boolean      @default(false)
+  retentionExpiresAt DateTime?    @map("retention_expires_at")
+  createdAt          DateTime     @default(now())
+  conversation       Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  recipient          User         @relation("MessageRecipient", fields: [recipientId], references: [id])
+  sender             User         @relation("MessageSender", fields: [senderId], references: [id])
 
   @@index([conversationId])
   @@index([senderId])
   @@index([recipientId])
   @@index([recipientId, isRead])
+  @@index([retentionExpiresAt])
 }
 
 model BlockedCompany {
@@ -464,18 +483,20 @@ model Notification {
 }
 
 model AuditLog {
-  id         String   @id @default(uuid())
-  userId     String?
-  userEmail  String?
-  userRole   String?
-  action     String
-  entityType String
-  entityId   String?
-  changes    Json?
-  ipAddress  String?
-  userAgent  String?
-  requestId  String?
-  occurredAt DateTime @default(now())
+  id                    String   @id @default(uuid())
+  userId                String?
+  userEmail             String?
+  userRole              String?
+  action                String
+  entityType            String
+  entityId              String?
+  changes               Json?
+  ipAddress             String?
+  userAgent             String?
+  requestId             String?
+  legalBasis            String? // GDPR legal basis for the operation
+  dataSubjectRequestRef String? // Link to DataSubjectRequest if applicable
+  occurredAt            DateTime @default(now())
 
   @@index([userId])
   @@index([entityType, entityId])
@@ -1097,4 +1118,289 @@ model InvoiceLineItem {
   invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
 
   @@index([invoiceId])
+}
+
+// ============================================================================
+// GDPR / PRIVACY MODELS
+// ============================================================================
+
+model Consent {
+  id          String        @id @default(uuid())
+  userId      String
+  consentType ConsentType
+  status      ConsentStatus @default(GIVEN)
+  version     String // Policy version (e.g., "2026-07-v1")
+  legalBasis  LegalBasis
+  ipAddress   String?
+  userAgent   String?
+  withdrawnAt DateTime?
+  expiresAt   DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([consentType, status])
+  @@index([createdAt])
+}
+
+enum ConsentType {
+  PRIVACY_POLICY
+  TERMS_OF_SERVICE
+  COOKIE_ANALYTICS
+  COOKIE_MARKETING
+  DATA_PROCESSING
+  SPECIAL_CATEGORY // For workAuthorization, documents
+  EMAIL_NOTIFICATIONS
+  PROFILE_VISIBLE
+  MARKETING
+  ID_VERIFICATION
+  KVK_PROCESSING
+}
+
+enum ConsentStatus {
+  GIVEN
+  WITHDRAWN
+  EXPIRED
+  REVOKED
+}
+
+enum LegalBasis {
+  CONSENT // Article 6(1)(a)
+  CONTRACT_PERFORMANCE // Article 6(1)(b)
+  LEGAL_OBLIGATION // Article 6(1)(c)
+  VITAL_INTEREST // Article 6(1)(d)
+  PUBLIC_TASK // Article 6(1)(e)
+  LEGITIMATE_INTEREST // Article 6(1)(f)
+  EXPLICIT_CONSENT // Article 9(2)(a) - special category
+}
+
+model UserGdprFlags {
+  id                     String    @id @default(uuid())
+  userId                 String    @unique
+  processingRestricted   Boolean   @default(false)
+  processingRestrictedAt DateTime?
+  dataExportRequestedAt  DateTime?
+  deletionRequestedAt    DateTime?
+  deletionScheduledAt    DateTime?
+  lastConsentReviewAt    DateTime?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([processingRestricted])
+}
+
+model DataSubjectRequest {
+  id              String                   @id @default(uuid())
+  userId          String
+  requestType     DataSubjectRequestType
+  status          DataSubjectRequestStatus @default(PENDING)
+  description     String? // User-provided description
+  adminNotes      String? // Internal notes
+  processedBy     String? // Admin who processed it
+  processedAt     DateTime?
+  completedAt     DateTime?
+  resultData      Json? // For access requests: export location
+  rejectionReason String?
+  dueDate         DateTime // GDPR 30-day deadline
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([requestType])
+  @@index([status])
+  @@index([dueDate])
+}
+
+enum DataSubjectRequestType {
+  ACCESS // Article 15
+  RECTIFICATION // Article 16
+  ERASURE // Article 17
+  RESTRICT // Article 18
+  PORTABILITY // Article 20
+  OBJECT // Article 21
+  WITHDRAW_CONSENT // Article 7(3)
+}
+
+enum DataSubjectRequestStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  REJECTED
+  EXPIRED
+}
+
+model DataExportRequest {
+  id             String       @id @default(uuid())
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status         ExportStatus @default(PENDING)
+  format         ExportFormat @default(JSON)
+  filePath       String? // S3 path when complete
+  fileSize       Int? // In bytes
+  dataCategories String[] // Which categories to include
+  completedAt    DateTime?
+  expiresAt      DateTime? // Download link expiration (48 hours)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([userId])
+  @@index([status])
+}
+
+enum ExportStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  EXPIRED
+}
+
+enum ExportFormat {
+  JSON
+  CSV
+}
+
+model DataDeletionRequest {
+  id                  String         @id @default(uuid())
+  userId              String
+  user                User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status              DeletionStatus @default(PENDING)
+  reason              String?
+  confirmedAt         DateTime?
+  scheduledDeletionAt DateTime? // Grace period before actual deletion (30 days)
+  completedAt         DateTime?
+  dataCategories      String[] // Which data to delete
+  retentionOverrides  String[] // Data kept due to legal obligation
+  adminReviewedBy     String?
+  adminReviewedAt     DateTime?
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@index([scheduledDeletionAt])
+}
+
+enum DeletionStatus {
+  PENDING
+  CONFIRMED
+  PROCESSING
+  COMPLETED
+  CANCELLED
+}
+
+model ProcessingActivity {
+  id                           String     @id @default(uuid())
+  name                         String     @unique
+  description                  String
+  purpose                      String
+  legalBasis                   LegalBasis
+  dataCategories               String[] // Categories of personal data
+  dataSubjects                 String[] // Categories of data subjects
+  recipients                   String[] // Who receives the data
+  retentionPeriod              String // e.g., "7-years", "until-account-deletion"
+  specialCategoryJustification String? // Only for Article 9 data
+  technicalMeasures            String? // Encryption, pseudonymization, etc.
+  dpoContact                   String?
+  isActive                     Boolean    @default(true)
+  createdAt                    DateTime   @default(now())
+  updatedAt                    DateTime   @updatedAt
+
+  @@index([legalBasis])
+  @@index([isActive])
+}
+
+model DataRetentionPolicy {
+  id                  String   @id @default(uuid())
+  dataType            String   @unique // e.g., "user_account", "messages", "audit_logs"
+  description         String
+  retentionPeriodDays Int // How long to keep in days
+  legalBasis          String // Why this retention period
+  autoDelete          Boolean  @default(false)
+  isActive            Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([dataType])
+  @@index([isActive])
+}
+
+model DataBreach {
+  id                     String         @id @default(uuid())
+  title                  String
+  description            String
+  severity               BreachSeverity
+  affectedDataCategories String[]
+  estimatedAffectedUsers Int            @default(0)
+  discoveredAt           DateTime       @default(now())
+  containedAt            DateTime?
+  reportedToAuthorityAt  DateTime? // Must be within 72 hours
+  reportedToUsersAt      DateTime?
+  authorityReference     String? // Reference from Autoriteit Persoonsgegevens
+  rootCause              String?
+  remediationSteps       String?
+  status                 BreachStatus   @default(INVESTIGATING)
+  resolvedAt             DateTime?
+  createdById            String?
+  createdAt              DateTime       @default(now())
+  updatedAt              DateTime       @updatedAt
+
+  @@index([severity])
+  @@index([status])
+  @@index([discoveredAt])
+}
+
+enum BreachSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum BreachStatus {
+  INVESTIGATING
+  CONTAINED
+  REPORTED_AUTHORITY
+  NOTIFIED_USERS
+  REMEDIATED
+  CLOSED
+}
+
+model DataProcessingAgreement {
+  id             String    @id @default(uuid())
+  processorName  String // e.g., "Amazon Web Services", "Stripe"
+  processorType  String // e.g., "cloud_infrastructure", "payment_processor"
+  agreementUrl   String? // Link to DPA document
+  agreementDate  DateTime
+  expiryDate     DateTime?
+  dataCategories String[] // What data the processor handles
+  isActive       Boolean   @default(true)
+  reviewedAt     DateTime?
+  reviewedBy     String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([processorName])
+  @@index([isActive])
+}
+
+model PrivacyPolicyVersion {
+  id            String   @id @default(uuid())
+  version       String
+  content       String // Markdown content
+  documentType  String   @default("privacy_policy") // or "terms_of_service", "cookie_policy"
+  effectiveDate DateTime
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([documentType])
+  @@index([isActive])
 }

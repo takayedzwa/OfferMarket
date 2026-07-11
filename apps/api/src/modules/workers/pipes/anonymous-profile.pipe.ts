@@ -26,7 +26,8 @@ interface SafeProfile {
   hasDrivingLicense: boolean;
   hasOwnVehicle: boolean;
   travelDistanceKm: number | null;
-  workAuthorization: string | null;
+  workAuthorization: string | null;  // GDPR Article 9: Only shown with explicit consent
+  hasWorkAuthorization: boolean;      // Binary flag: does the worker have any work authorization?
   desiredSalaryRange: any;
   employmentTypes: string[];
   workSchedulePrefs: string[];
@@ -64,7 +65,8 @@ export class AnonymousProfilePipe implements PipeTransform {
     'hasDrivingLicense',
     'hasOwnVehicle',
     'travelDistanceKm',
-    'workAuthorization',
+    'workAuthorization',  // GDPR: Only populated when worker has given explicit immigration consent
+    'hasWorkAuthorization', // GDPR: Binary flag — safe to show without consent
     'desiredSalaryRange',
     'employmentTypes',
     'workSchedulePrefs',
@@ -90,7 +92,9 @@ export class AnonymousProfilePipe implements PipeTransform {
     'currentEmployer',
     'profilePhoto',
     'deletedAt',
-    'id'  // Internal ID, not publicId
+    'id',  // Internal ID, not publicId
+    'immigrationConsentGiven',  // GDPR: Never expose consent status
+    'immigrationConsentAt',     // GDPR: Never expose consent timestamps
   ]);
 
   transform(value: any): SafeProfile {
@@ -133,7 +137,8 @@ export class AnonymousProfilePipe implements PipeTransform {
           email: 'REDACTED',
           phone: 'REDACTED',
           exactAddress: 'REDACTED',
-          currentEmployer: 'REDACTED'
+          currentEmployer: 'REDACTED',
+          workAuthorizationDetail: 'REDACTED'
         }
       };
     }

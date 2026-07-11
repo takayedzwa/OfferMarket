@@ -14,6 +14,7 @@ import { RatingsModule } from './modules/ratings/ratings.module';
 import { TrustModule } from './modules/trust/trust.module';
 import { BillingModule } from './modules/billing/billing.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
+import { PrivacyModule } from './modules/privacy/privacy.module';
 
 @Module({
   imports: [
@@ -46,6 +47,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
     TrustModule,
     BillingModule,
     NotificationsModule,
+    PrivacyModule,
   ],
 })
 export class AppModule {}

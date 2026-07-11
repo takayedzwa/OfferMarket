@@ -21,6 +21,14 @@ function RegisterContent() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  // GDPR consent checkboxes
+  const [privacyPolicyConsent, setPrivacyPolicyConsent] = useState(false);
+  const [termsConsent, setTermsConsent] = useState(false);
+  const [dataProcessingConsent, setDataProcessingConsent] = useState(false);
+  const [analyticsConsent, setAnalyticsConsent] = useState(false);
+  const [marketingConsent, setMarketingConsent] = useState(false);
+  const [immigrationConsent, setImmigrationConsent] = useState(false);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -32,6 +40,21 @@ function RegisterContent() {
 
     if (password.length < 8) {
       setError("Password must be at least 8 characters");
+      return;
+    }
+
+    if (!privacyPolicyConsent) {
+      setError("You must accept the Privacy Policy to continue");
+      return;
+    }
+
+    if (!termsConsent) {
+      setError("You must accept the Terms of Service to continue");
+      return;
+    }
+
+    if (!dataProcessingConsent) {
+      setError("You must consent to data processing to use OfferMarket");
       return;
     }
 
@@ -51,6 +74,40 @@ function RegisterContent() {
         localStorage.setItem("userRole", user.role);
         localStorage.setItem("userEmail", user.email);
         localStorage.setItem("userPhone", phone || '');
+
+        // Record GDPR consents
+        const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
+        const consentHeaders = {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${tokens.accessToken}`,
+        };
+
+        const consentsToRecord = [
+          { consentType: 'PRIVACY_POLICY', legalBasis: 'CONSENT', version: '1.0', granted: true },
+          { consentType: 'TERMS_OF_SERVICE', legalBasis: 'CONSENT', version: '1.0', granted: true },
+          { consentType: 'DATA_PROCESSING', legalBasis: 'CONSENT', version: '1.0', granted: true },
+        ];
+
+        if (immigrationConsent) {
+          consentsToRecord.push({ consentType: 'SPECIAL_CATEGORY', legalBasis: 'EXPLICIT_CONSENT', version: '1.0', granted: true });
+        }
+
+        if (analyticsConsent) {
+          consentsToRecord.push({ consentType: 'COOKIE_ANALYTICS', legalBasis: 'CONSENT', version: '1.0', granted: true });
+        }
+
+        if (marketingConsent) {
+          consentsToRecord.push({ consentType: 'MARKETING', legalBasis: 'CONSENT', version: '1.0', granted: true });
+        }
+
+        // Fire and forget — don't block registration on consent recording
+        consentsToRecord.forEach(consent => {
+          fetch(`${apiBase}/privacy/consents`, {
+            method: 'POST',
+            headers: consentHeaders,
+            body: JSON.stringify(consent),
+          }).catch(() => {/* silently fail */});
+        });
 
         // Redirect to create worker profile
         router.push("/profile/setup");
@@ -80,6 +137,37 @@ function RegisterContent() {
         localStorage.setItem("employerCompanyName", companyName);
         localStorage.setItem("employerKvkNumber", kvkNumber);
         localStorage.setItem("employerWebsite", website || '');
+
+        // Record GDPR consents
+        const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
+        const consentHeaders = {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${tokens.accessToken}`,
+        };
+
+        const consentsToRecord = [
+          { consentType: 'PRIVACY_POLICY', legalBasis: 'CONSENT', version: '1.0', granted: true },
+          { consentType: 'TERMS_OF_SERVICE', legalBasis: 'CONSENT', version: '1.0', granted: true },
+          { consentType: 'DATA_PROCESSING', legalBasis: 'CONSENT', version: '1.0', granted: true },
+          { consentType: 'KVK_PROCESSING', legalBasis: 'LEGAL_OBLIGATION', version: '1.0', granted: true },
+        ];
+
+        if (analyticsConsent) {
+          consentsToRecord.push({ consentType: 'COOKIE_ANALYTICS', legalBasis: 'CONSENT', version: '1.0', granted: true });
+        }
+
+        if (marketingConsent) {
+          consentsToRecord.push({ consentType: 'MARKETING', legalBasis: 'CONSENT', version: '1.0', granted: true });
+        }
+
+        // Fire and forget — don't block registration on consent recording
+        consentsToRecord.forEach(consent => {
+          fetch(`${apiBase}/privacy/consents`, {
+            method: 'POST',
+            headers: consentHeaders,
+            body: JSON.stringify(consent),
+          }).catch(() => {/* silently fail */});
+        });
 
         // Redirect to create employer profile
         router.push("/profile/setup-employer");
@@ -269,6 +357,104 @@ function RegisterContent() {
                   </div>
                 </>
               )}
+
+              {/* GDPR Consent Section */}
+              <div className="border-t pt-4 mt-4 space-y-3">
+                <h3 className="font-semibold text-gray-900 text-sm">Privacy & Consent</h3>
+
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={privacyPolicyConsent}
+                    onChange={(e) => setPrivacyPolicyConsent(e.target.checked)}
+                    className="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    required
+                  />
+                  <span className="text-sm text-gray-700">
+                    I have read and accept the{' '}
+                    <Link href="/privacy" className="text-blue-600 hover:underline" target="_blank">
+                      Privacy Policy
+                    </Link>{' '}
+                    <span className="text-red-500">*</span>
+                  </span>
+                </label>
+
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={termsConsent}
+                    onChange={(e) => setTermsConsent(e.target.checked)}
+                    className="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    required
+                  />
+                  <span className="text-sm text-gray-700">
+                    I have read and accept the{' '}
+                    <Link href="/terms" className="text-blue-600 hover:underline" target="_blank">
+                      Terms of Service
+                    </Link>{' '}
+                    <span className="text-red-500">*</span>
+                  </span>
+                </label>
+
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={dataProcessingConsent}
+                    onChange={(e) => setDataProcessingConsent(e.target.checked)}
+                    className="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    required
+                  />
+                  <span className="text-sm text-gray-700">
+                    I consent to the processing of my personal data for the purpose of providing OfferMarket services{' '}
+                    <span className="text-red-500">*</span>
+                  </span>
+                </label>
+
+                {role === "worker" && (
+                  <label className="flex items-start gap-3 cursor-pointer bg-amber-50 p-3 rounded-lg border border-amber-200">
+                    <input
+                      type="checkbox"
+                      checked={immigrationConsent}
+                      onChange={(e) => setImmigrationConsent(e.target.checked)}
+                      className="mt-1 h-4 w-4 rounded border-gray-300 text-amber-600 focus:ring-amber-500"
+                    />
+                    <span className="text-sm text-amber-900">
+                      <strong>Optional — Special Category Data (AVG Article 9):</strong> I consent to the processing
+                      of my work authorization status (which may reveal immigration status) for matching with
+                      employers. This can be withdrawn at any time in your{' '}
+                      <Link href="/privacy/dashboard" className="text-amber-700 hover:underline font-medium" target="_blank">
+                        Privacy Dashboard
+                      </Link>.
+                    </span>
+                  </label>
+                )}
+
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={analyticsConsent}
+                    onChange={(e) => setAnalyticsConsent(e.target.checked)}
+                    className="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="text-sm text-gray-600">
+                    <strong>Optional:</strong> I consent to the use of analytics cookies to help improve OfferMarket
+                    (PostHog, anonymized).
+                  </span>
+                </label>
+
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={marketingConsent}
+                    onChange={(e) => setMarketingConsent(e.target.checked)}
+                    className="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="text-sm text-gray-600">
+                    <strong>Optional:</strong> I consent to receiving marketing communications about new features
+                    and updates.
+                  </span>
+                </label>
+              </div>
 
               <button
                 type="submit"

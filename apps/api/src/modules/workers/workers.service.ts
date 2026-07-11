@@ -957,7 +957,11 @@ export class WorkersService {
       hasDrivingLicense: publicProfile.hasDrivingLicense,
       hasOwnVehicle: publicProfile.hasOwnVehicle,
       travelDistanceKm: publicProfile.travelDistanceKm,
-      workAuthorization: publicProfile.workAuthorization,
+      // GDPR Article 9: workAuthorization reveals immigration status (special category data).
+      // Only exposed if worker has given explicit consent (immigrationConsentGiven === true).
+      // Employers can filter by a binary "hasWorkAuthorization" boolean instead.
+      workAuthorization: worker.immigrationConsentGiven ? publicProfile.workAuthorization : null,
+      hasWorkAuthorization: !!publicProfile.workAuthorization,
       desiredSalaryRange: {
         min: publicProfile.desiredSalaryMin,
         max: publicProfile.desiredSalaryMax
@@ -979,7 +983,8 @@ export class WorkersService {
           email: 'REDACTED',
           phone: 'REDACTED',
           exactAddress: 'REDACTED',
-          currentEmployer: 'REDACTED'
+          currentEmployer: 'REDACTED',
+          workAuthorizationDetail: 'REDACTED'
         }
       }
     };
