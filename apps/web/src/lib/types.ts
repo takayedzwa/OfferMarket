@@ -89,7 +89,8 @@ export interface PublicWorkerProfile {
   hasDrivingLicense: boolean;
   hasOwnVehicle: boolean;
   travelDistanceKm: number;
-  workAuthorization?: string;
+  workAuthorization?: string;  // GDPR: Only shown with explicit consent
+  hasWorkAuthorization?: boolean; // GDPR: Binary flag safe without consent
   desiredSalaryRange: {
     min?: number;
     max?: number;
@@ -112,6 +113,7 @@ export interface PublicWorkerProfile {
       phone: 'REDACTED';
       exactAddress: 'REDACTED';
       currentEmployer: 'REDACTED';
+      workAuthorizationDetail: 'REDACTED';
     };
   };
 }

@@ -7,7 +7,7 @@ import { useAuth } from "../contexts/AuthContext";
 import NotificationBell from "./notifications/NotificationBell";
 import {
   Home, Users, Briefcase, MessageSquare, FileText,
-  Shield, Ticket, Building2, User, CreditCard
+  Shield, Ticket, Building2, User, CreditCard, Lock
 } from "lucide-react";
 
 interface NavbarProps {
@@ -164,6 +164,14 @@ export default function Navbar({ variant = "default" }: NavbarProps) {
                     </span>
                   )}
                 </div>
+                <Link
+                  href="/privacy/dashboard"
+                  className="text-sm text-gray-600 hover:text-gray-900 px-2 py-1 rounded transition-colors flex items-center gap-1"
+                  title="Privacy & Data"
+                >
+                  <Lock className="w-4 h-4" />
+                  <span className="hidden sm:inline">Privacy</span>
+                </Link>
                 <button
                   onClick={logout}
                   className="text-sm text-gray-600 hover:text-gray-900 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors"
@@ -173,6 +181,12 @@ export default function Navbar({ variant = "default" }: NavbarProps) {
               </>
             ) : (
               <>
+                <Link
+                  href="/privacy"
+                  className="text-gray-500 hover:text-gray-900 px-3 py-2 text-sm font-medium"
+                >
+                  Privacy
+                </Link>
                 <Link
                   href="/login"
                   className="text-gray-600 hover:text-gray-900 px-4 py-2 text-sm font-medium"
