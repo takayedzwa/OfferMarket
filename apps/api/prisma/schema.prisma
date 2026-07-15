@@ -52,6 +52,13 @@ model User {
   DataExportRequest    DataExportRequest[]
   DataDeletionRequest  DataDeletionRequest[]
 
+  // DSA (Digital Services Act) relations
+  contentReportsFiled     ContentReport[]       @relation("UserContentReportsFiled")
+  contentReportsAssigned  ContentReport[]       @relation("UserContentReportsAssigned")
+  dsaComplaintsFiled      DSAComplaint[]        @relation("UserDSAComplaintsFiled")
+  dsaComplaintsAssigned   DSAComplaint[]        @relation("UserDSAComplaintsAssigned")
+  noticeMisuseRecords     NoticeMisuseRecord[]  @relation("UserNoticeMisuseRecords")
+
   @@index([email])
   @@index([role])
 }
@@ -1403,4 +1410,456 @@ model PrivacyPolicyVersion {
 
   @@index([documentType])
   @@index([isActive])
+}
+
+// ============================================================================
+// DSA (Digital Services Act) COMPLIANCE
+// Regulation EU 2022/2065 — applicable to OfferMarket as an online platform
+// and online marketplace established in the Netherlands.
+// ============================================================================
+
+// ---------------------------------------------------------------------------
+// Content Report — DSA Art. 16: Notice-and-Action Mechanism
+// ---------------------------------------------------------------------------
+model ContentReport {
+  id                   String                @id @default(uuid())
+  publicId             String                @unique @default(cuid()) // human-friendly reference (e.g., "RPT-ABC123")
+
+  // Who is reporting (null = anonymous report, permitted by DSA Art. 16)
+  reporterId           String?               @map("reporter_id")
+  reporterEmail        String?               @map("reporter_email")    // required for anonymous reporters
+  reporterIp           String?               @map("reporter_ip")      // audit trail
+  reporterUserAgent    String?               @map("reporter_user_agent")
+
+  // What is being reported
+  targetType           ContentReportTarget   @map("target_type")
+  targetId             String                @map("target_id")
+  targetUrl            String                @map("target_url")         // URL of the reported content
+  targetSnapshot       Json?                 @map("target_snapshot")     // stored copy at time of report
+
+  // Why it's being reported — DSA Art. 16(3)
+  category             ContentReportCategory
+  illegalContentType   String?               @map("illegal_content_type") // specific type (fraud, harassment, etc.)
+  explanation          String                // DSA Art. 16(3)(a): sufficiently detailed explanation
+  goodFaithDeclaration Boolean               @default(false) @map("good_faith_declaration") // DSA Art. 16(3)(d)
+  evidence             Json?                 // screenshots, URLs, additional evidence
+
+  // Processing workflow
+  status               ContentReportStatus   @default(RECEIVED)
+  priority             ContentReportPriority @default(MEDIUM)
+  assignedToId         String?               @map("assigned_to_id")
+
+  // Assessment
+  assessmentResult    ContentReportAssessment? @map("assessment_result")
+  assessmentNotes     String?                @map("assessment_notes")
+  assessedAt          DateTime?             @map("assessed_at")
+  assessedBy          String?                @map("assessed_by")
+
+  // Action taken
+  actionTaken         ContentReportAction?   @map("action_taken")
+  actionDetails       Json?                  @map("action_details")
+  actionTakenAt       DateTime?              @map("action_taken_at")
+  actionTakenBy       String?                @map("action_taken_by")
+
+  // Resolution
+  resolution          ContentReportResolution?
+  resolutionNotes    String?                 @map("resolution_notes")
+  resolvedAt         DateTime?               @map("resolved_at")
+  resolvedBy         String?                  @map("resolved_by")
+
+  // DSA-mandated notifications
+  acknowledgedAt      DateTime?              @map("acknowledged_at")    // Art. 16(4): without undue delay
+  notifierNotifiedAt  DateTime?              @map("notifier_notified_at")
+  affectedUserNotifiedAt DateTime?           @map("affected_user_notified_at")
+
+  // Counter-notice (Art. 17(4))
+  counterNoticeReceivedAt DateTime?           @map("counter_notice_received_at")
+  counterNoticeContent    String?            @map("counter_notice_content")
+
+  // Statement of reasons (DSA Art. 17)
+  statementOfReasonsId String?                @map("statement_of_reasons_id")
+  automatedMeans      Boolean                @default(false) @map("automated_means") // Art. 17(3)(e)
+
+  // Misuse tracking (DSA Art. 23)
+  isFrivolous         Boolean                @default(false) @map("is_frivolous") // manifestly unfounded
+
+  // Criminal referral (DSA Art. 18)
+  referredToAuthorities Boolean               @default(false) @map("referred_to_authorities")
+  authorityReferralNotes String?             @map("authority_referral_notes")
+
+  createdAt           DateTime               @default(now()) @map("created_at")
+  updatedAt           DateTime               @updatedAt @map("updated_at")
+
+  // Relations
+  reporter            User?                  @relation("UserContentReportsFiled", fields: [reporterId], references: [id])
+  assignedTo          User?                  @relation("UserContentReportsAssigned", fields: [assignedToId], references: [id])
+  statementOfReasons  StatementOfReasons?
+  dsaComplaints       DSAComplaint[]
+  misuseRecords       NoticeMisuseRecord[]
+
+  @@index([targetType, targetId])
+  @@index([status])
+  @@index([priority])
+  @@index([category])
+  @@index([reporterId])
+  @@index([createdAt])
+  @@index([resolvedAt])
+  @@map("content_reports")
+}
+
+// ---------------------------------------------------------------------------
+// Statement of Reasons — DSA Art. 17
+// When a hosting service restricts content, it must provide the affected user
+// with a clear and specific statement of reasons.
+// ---------------------------------------------------------------------------
+model StatementOfReasons {
+  id                      String                  @id @default(uuid())
+  contentReportId         String                  @unique @map("content_report_id")
+
+  // Restriction details
+  restrictionType         ContentRestrictionType  @map("restriction_type")
+  restrictedContentId     String?                 @map("restricted_content_id")
+  restrictedContentType  String?                 @map("restricted_content_type") // "offer", "profile", "message"
+
+  // The reasons (DSA Art. 17(3))
+  reasons                 String[]               // DSA-compliant reason categories
+  detailedExplanation     String                  @map("detailed_explanation") // human-readable explanation
+
+  // Source of the decision
+  decisionSource          DecisionSource          @map("decision_source") // USER_REPORT, OWN_INVESTIGATION, AUTHORITY_ORDER, TRUSTED_FLAGGER
+
+  // Legal/contractual ground
+  legalBasis             String?                 @map("legal_basis")      // e.g., "DSA Art. 16", "Nl Wetboek Strafrecht Art. 137c"
+  contractualBasis       String?                 @map("contractual_basis") // e.g., "ToS Section 5.3"
+
+  // Territorial scope (DSA Art. 17(3)(b))
+  territorialScope       String?                 @map("territorial_scope") // e.g., "NL", "EU", "global"
+
+  // Duration of restriction
+  restrictionDuration    String?                 @map("restriction_duration") // e.g., "permanent", "30 days"
+
+  // Notification tracking
+  notifiedAt             DateTime?               @map("notified_at")
+  notificationMethod     String?                  @map("notification_method") // "email", "in_app", "both"
+
+  // Appeal tracking (DSA Art. 20)
+  appealDeadline         DateTime?               @map("appeal_deadline")
+  appealFiledAt          DateTime?               @map("appeal_filed_at")
+  appealStatus           AppealStatus?          @map("appeal_status")
+
+  createdAt              DateTime                @default(now()) @map("created_at")
+  updatedAt              DateTime                @updatedAt @map("updated_at")
+
+  // Relations
+  contentReport          ContentReport           @relation(fields: [contentReportId], references: [id], onDelete: Cascade)
+
+  @@index([restrictionType])
+  @@index([appealStatus])
+  @@index([notifiedAt])
+  @@map("statement_of_reasons")
+}
+
+// ---------------------------------------------------------------------------
+// DSA Complaint — DSA Art. 20: Internal Complaint-Handling System
+// ---------------------------------------------------------------------------
+model DSAComplaint {
+  id                    String                @id @default(uuid())
+  complaintNumber       String                @unique @default(cuid()) // e.g., "CMP-ABC123"
+
+  // Complainant
+  complainantId         String                @map("complainant_id")
+  complainantEmail      String                @map("complainant_email")
+
+  // Related content
+  contentReportId      String?               @map("content_report_id") // links to ContentReport if applicable
+  relatedEntityType    String?               @map("related_entity_type") // "offer", "employer", "worker"
+  relatedEntityId      String?               @map("related_entity_id")
+
+  // Complaint details
+  complaintType        DSAComplaintType       @map("complaint_type")
+  description          String
+  resolutionSought    String?                @map("resolution_sought") // what the complainant wants
+
+  // Processing
+  assignedToId         String?                @map("assigned_to_id")
+  status               DSAComplaintStatus     @default(SUBMITTED)
+  priority             TicketPriority        @default(MEDIUM)
+
+  // Timeline tracking (DSA Art. 20(3): timely, non-discriminatory, diligent handling)
+  submittedAt          DateTime              @default(now()) @map("submitted_at")
+  acknowledgedAt       DateTime?             @map("acknowledged_at") // must be within 24 hours
+  targetResponseAt     DateTime?             @map("target_response_at") // computed deadline
+  respondedAt         DateTime?              @map("responded_at")
+  resolvedAt          DateTime?              @map("resolved_at")
+  resolutionOutcome   String?                @map("resolution_outcome")
+
+  // Out-of-court dispute resolution (DSA Art. 21)
+  odrReference         String?                @map("odr_reference")
+  odrStatus            ODRStatus?             @map("odr_status")
+
+  // Appeal tracking
+  isAppealed           Boolean               @default(false) @map("is_appealed")
+  appealDeadline       DateTime?             @map("appeal_deadline")
+  appealDecision       String?               @map("appeal_decision")
+  appealDecidedAt      DateTime?             @map("appeal_decided_at")
+  appealDecidedBy      String?                @map("appeal_decided_by")
+
+  createdAt            DateTime              @default(now()) @map("created_at")
+  updatedAt            DateTime              @updatedAt @map("updated_at")
+
+  // Relations
+  complainant          User                  @relation("UserDSAComplaintsFiled", fields: [complainantId], references: [id])
+  assignedTo          User?                  @relation("UserDSAComplaintsAssigned", fields: [assignedToId], references: [id])
+  contentReport       ContentReport?         @relation(fields: [contentReportId], references: [id])
+  messages            ComplaintMessage[]
+
+  @@index([complainantId])
+  @@index([assignedToId])
+  @@index([status])
+  @@index([complaintType])
+  @@index([submittedAt])
+  @@index([targetResponseAt])
+  @@map("dsa_complaints")
+}
+
+model ComplaintMessage {
+  id            String        @id @default(uuid())
+  complaintId   String        @map("complaint_id")
+  senderId      String        @map("sender_id")
+  content       String
+  isInternal    Boolean       @default(false) @map("is_internal") // internal staff notes vs. visible to complainant
+  attachments   Json?
+  createdAt     DateTime      @default(now()) @map("created_at")
+
+  complaint     DSAComplaint  @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+
+  @@index([complaintId])
+  @@index([senderId])
+  @@map("complaint_messages")
+}
+
+// ---------------------------------------------------------------------------
+// Notice Misuse — DSA Art. 23: Measures Against Misuse
+// Track users who submit manifestly unfounded notices or manifestly illegal content
+// ---------------------------------------------------------------------------
+model NoticeMisuseRecord {
+  id                String        @id @default(uuid())
+  userId            String        @map("user_id")
+  contentReportId   String?       @map("content_report_id")
+
+  misuseType        MisuseType
+  description       String
+  warningLevel      WarningLevel  @default(FIRST_WARNING)
+
+  actionTaken       String?       @map("action_taken") // "warning", "temporary_suspension", "permanent_ban"
+  actionDetails     Json?         @map("action_details")
+
+  isLifted          Boolean       @default(false) @map("is_lifted")
+  liftedAt         DateTime?     @map("lifted_at")
+  liftedBy         String?        @map("lifted_by")
+
+  createdAt        DateTime      @default(now()) @map("created_at")
+  updatedAt        DateTime      @updatedAt @map("updated_at")
+
+  user              User          @relation("UserNoticeMisuseRecords", fields: [userId], references: [id])
+  contentReport     ContentReport? @relation(fields: [contentReportId], references: [id])
+
+  @@index([userId])
+  @@index([warningLevel])
+  @@index([createdAt])
+  @@map("notice_misuse_records")
+}
+
+// ---------------------------------------------------------------------------
+// Transparency Report — DSA Arts. 15, 24
+// ---------------------------------------------------------------------------
+model TransparencyReport {
+  id                          String    @id @default(uuid())
+  periodStart                 DateTime  @map("period_start")
+  periodEnd                   DateTime  @map("period_end")
+  publishedAt                 DateTime? @map("published_at")
+  isPublished                 Boolean   @default(false) @map("is_published")
+
+  // Content moderation statistics (DSA Art. 15)
+  totalReportsReceived        Int       @default(0) @map("total_reports_received")
+  reportsFromAuthorities     Int       @default(0) @map("reports_from_authorities")
+  reportsFromTrustedFlaggers  Int       @default(0) @map("reports_from_trusted_flaggers")
+  reportsFromOwnInvestigation Int       @default(0) @map("reports_from_own_investigation")
+  reportsByCategory          Json?      @map("reports_by_category") // { "FRAUD_SCAM": 120, "HARASSMENT": 45, ... }
+
+  // Actions taken
+  contentRemoved             Int       @default(0) @map("content_removed")
+  accessDisabled             Int       @default(0) @map("content_access_disabled")
+  accountsSuspended          Int       @default(0) @map("accounts_suspended")
+  accountsTerminated         Int       @default(0) @map("accounts_terminated")
+  noActionTaken              Int       @default(0) @map("no_action_taken")
+
+  // Processing time
+  avgResponseTimeHours       Float     @default(0) @map("avg_response_time_hours")
+  medianResponseTimeHours    Float     @default(0) @map("median_response_time_hours")
+
+  // Automation (DSA Art. 15(1)(c))
+  automatedDetectionCount   Int       @default(0) @map("automated_detection_count")
+  automatedActionCount      Int       @default(0) @map("automated_action_count")
+  automatedActionReversedCount Int     @default(0) @map("automated_action_reversed_count")
+
+  // Complaints (DSA Art. 24)
+  complaintsReceived         Int       @default(0) @map("complaints_received")
+  complaintsResolved         Int       @default(0) @map("complaints_resolved")
+  complaintsByOutcome       Json?      @map("complaints_by_outcome")
+
+  // Misuse (DSA Art. 23)
+  misuseNoticesIssued       Int       @default(0) @map("misuse_notices_issued")
+  accountsSuspendedForMisuse Int       @default(0) @map("accounts_suspended_for_misuse")
+
+  // Orders from authorities (DSA Art. 15(1)(a))
+  ordersReceived            Int       @default(0) @map("orders_received")
+  ordersComplied            Int       @default(0) @map("orders_complied")
+
+  createdAt                  DateTime  @default(now()) @map("created_at")
+  updatedAt                  DateTime  @updatedAt @map("updated_at")
+
+  @@index([periodStart])
+  @@index([isPublished])
+  @@map("transparency_reports")
+}
+
+// ============================================================================
+// DSA ENUMS
+// ============================================================================
+
+enum ContentReportTarget {
+  USER_PROFILE
+  WORKER_PROFILE
+  EMPLOYER_PROFILE
+  OFFER
+  CONVERSATION
+  MESSAGE
+  REVIEW
+  OTHER
+}
+
+enum ContentReportCategory {
+  ILLEGAL_CONTENT
+  FRAUD_SCAM
+  HARASSMENT
+  HATE_SPEECH
+  COPYRIGHT_VIOLATION
+  PRIVACY_VIOLATION
+  MISLEADING_INFORMATION
+  CHILD_SAFETY
+  TERRORISM
+  DRUGS_WEAPONS
+  IMPERSONATION
+  SPAM
+  OTHER
+}
+
+enum ContentReportStatus {
+  RECEIVED
+  ASSESSMENT
+  ACTION_TAKEN
+  NOTIFIED
+  RESOLVED
+  DISMISSED
+  ESCALATED
+}
+
+enum ContentReportPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT // Art. 18: criminal offence involving threat to life
+}
+
+enum ContentReportAssessment {
+  ILLEGAL_CONTENT_FOUND
+  VIOLATES_TERMS
+  NOT_VIOLATION
+  UNCLEAR_NEEDS_REVIEW
+}
+
+enum ContentReportAction {
+  CONTENT_REMOVED
+  CONTENT_HIDDEN
+  ACCOUNT_SUSPENDED
+  ACCOUNT_BANNED
+  WARNING_ISSUED
+  NO_ACTION
+  ESCALATED_TO_AUTHORITIES
+  REFERRED_TO_OUT_OF_COURT
+}
+
+enum ContentReportResolution {
+  CONTENT_TAKEN_DOWN
+  ACCESS_RESTRICTED
+  ACCOUNT_TERMINATED
+  REPORT_DISMISSED
+  WITHDRAWN_BY_REPORTER
+}
+
+enum ContentRestrictionType {
+  REMOVAL
+  VISIBILITY_LIMIT
+  GEO_BLOCKING
+  AGE_RESTRICTION
+  ACCOUNT_SUSPENSION
+  ACCOUNT_TERMINATION
+}
+
+enum DecisionSource {
+  USER_REPORT
+  OWN_INVESTIGATION
+  AUTHORITY_ORDER
+  TRUSTED_FLAGGER
+  AUTOMATED_DETECTION
+}
+
+enum AppealStatus {
+  PENDING
+  UNDER_REVIEW
+  UPHELD
+  OVERTURNED
+  WITHDRAWN
+}
+
+enum DSAComplaintType {
+  CONTENT_MODERATION_DECISION
+  ILLEGAL_CONTENT_RESPONSE
+  PLATFORM_POLICY_VIOLATION
+  TRADER_INFORMATION
+  OTHER
+}
+
+enum DSAComplaintStatus {
+  SUBMITTED
+  ACKNOWLEDGED
+  INVESTIGATING
+  RESPONSE_PREPARED
+  RESOLVED
+  ESCALATED_ODR
+  CLOSED
+}
+
+enum ODRStatus {
+  NOT_APPLICABLE
+  PENDING
+  IN_PROGRESS
+  RESOLVED
+  FAILED
+}
+
+enum MisuseType {
+  FRIVOLOUS_REPORTS
+  ABUSIVE_REPORTS
+  AUTOMATED_ABUSE
+  REPEATED_SAME_REPORT
+  MANIFESTLY_ILLEGAL_CONTENT
+}
+
+enum WarningLevel {
+  FIRST_WARNING
+  SECOND_WARNING
+  TEMPORARY_REPORTING_SUSPENSION
+  PERMANENT_REPORTING_BAN
 }

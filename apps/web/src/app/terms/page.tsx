@@ -12,7 +12,7 @@ export default function TermsOfServicePage() {
           <div className="px-8 py-6 border-b border-gray-200">
             <h1 className="text-3xl font-bold text-gray-900">Terms of Service</h1>
             <p className="mt-2 text-sm text-gray-500">
-              Last updated: July 11, 2026 · Version 1.0
+              Last updated: July 12, 2026 · Version 2.0
             </p>
             <p className="mt-1 text-sm text-gray-500">
               <span lang="nl">Algemene Voorwaarden</span> · OfferMarket B.V.
@@ -168,8 +168,165 @@ export default function TermsOfServicePage() {
               </p>
             </section>
 
+            {/* DSA Compliance Sections — Digital Services Act (Regulation EU 2022/2065) */}
             <section>
-              <h2 className="text-xl font-semibold text-gray-900 mb-3">12. Contact</h2>
+              <h2 className="text-xl font-semibold text-gray-900 mb-3">12. Illegal Content Reporting (DSA Art. 16)</h2>
+              <p>
+                Under the <strong>Digital Services Act</strong> (Regulation EU 2022/2065), you have the right
+                to notify us of content on OfferMarket that you believe to be illegal. Our notice-and-action
+                mechanism is available at:
+              </p>
+              <div className="mt-3 bg-blue-50 border border-blue-200 rounded-md p-4">
+                <p className="font-medium text-blue-900">
+                  <a href="/dsa/report" className="text-blue-600 hover:underline text-lg">
+                    Report Illegal Content →
+                  </a>
+                </p>
+                <p className="text-sm text-blue-700 mt-1">
+                  You can also check the status of a report at{' '}
+                  <a href="/dsa/status" className="text-blue-600 hover:underline">Report Status</a>.
+                </p>
+              </div>
+              <ul className="mt-3 space-y-1 list-disc pl-5">
+                <li>You may report content anonymously by providing an email address for acknowledgment.</li>
+                <li>You must provide a sufficiently detailed explanation of why you believe the content is illegal (DSA Art. 16(3)(a)).</li>
+                <li>You must confirm that your notice is submitted in good faith (DSA Art. 16(3)(d)).</li>
+                <li>We will acknowledge your report without undue delay and inform you of the decision.</li>
+              </ul>
+            </section>
+
+            <section>
+              <h2 className="text-xl font-semibold text-gray-900 mb-3">13. Content Moderation (DSA Art. 14)</h2>
+              <p>
+                OfferMarket uses a combination of human review and automated systems to moderate content
+                on the platform. Our content moderation policies and procedures include:
+              </p>
+              <ul className="mt-2 space-y-1 list-disc pl-5">
+                <li><strong>Human review</strong> — All content reports are assessed by trained staff members.</li>
+                <li><strong>Automated detection</strong> — We use automated systems to detect potentially illegal content (e.g., known illegal patterns, spam detection). Automated actions are reviewed by a human within 24 hours.</li>
+                <li><strong>Notice-and-action procedure</strong> — We follow the procedure described in Section 12 when processing illegal content reports.</li>
+                <li><strong>Statement of reasons</strong> — When we restrict content, we provide the affected user with a clear statement of reasons (DSA Art. 17).</li>
+              </ul>
+            </section>
+
+            <section>
+              <h2 className="text-xl font-semibold text-gray-900 mb-3">14. Statement of Reasons (DSA Art. 17)</h2>
+              <p>
+                When we restrict content on the platform (removal, visibility limitation, account suspension,
+                etc.), we will provide the affected user with a statement of reasons that includes:
+              </p>
+              <ul className="mt-2 space-y-1 list-disc pl-5">
+                <li>The type of restriction applied (removal, visibility limitation, geo-blocking, etc.)</li>
+                <li>The factual circumstances and reasons for the decision</li>
+                <li>The source of the decision (user report, own investigation, authority order, trusted flagger)</li>
+                <li>Whether automated means were used in the decision</li>
+                <li>The legal or contractual ground for the restriction</li>
+                <li>The territorial scope of the restriction</li>
+                <li>Information on how to submit a complaint (see Section 16)</li>
+              </ul>
+            </section>
+
+            <section>
+              <h2 className="text-xl font-semibold text-gray-900 mb-3">15. Referral to Authorities (DSA Art. 18)</h2>
+              <p>
+                Where we have reasonable grounds to believe that a report concerns an offence involving
+                a threat to the life or safety of persons, we will promptly refer the matter to the
+                relevant law enforcement authorities in the Netherlands.
+              </p>
+              <p className="mt-2">
+                Reports involving suspected child safety concerns or terrorism-related content are
+                escalated as a matter of priority.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-xl font-semibold text-gray-900 mb-3">16. Complaint-Handling (DSA Art. 20)</h2>
+              <p>
+                If you disagree with a content moderation decision, you may submit a complaint through
+                our internal complaint-handling system. Complaints are:
+              </p>
+              <ul className="mt-2 space-y-1 list-disc pl-5">
+                <li>Free of charge</li>
+                <li>Handled by qualified staff who were not involved in the original decision</li>
+                <li>Acknowledged within 24 hours</li>
+                <li>Resolved within a reasonable timeframe</li>
+              </ul>
+              <p className="mt-2">
+                You may also seek out-of-court dispute settlement through certified bodies as provided
+                for under DSA Art. 21, once such bodies are available.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-xl font-semibold text-gray-900 mb-3">17. Misuse of Notice-and-Action (DSA Art. 23)</h2>
+              <p>
+                Submitting manifestly unfounded notices or notices containing manifestly illegal content
+                may result in:
+              </p>
+              <ul className="mt-2 space-y-1 list-disc pl-5">
+                <li>A first warning</li>
+                <li>A second warning</li>
+                <li>Temporary suspension of your ability to submit reports</li>
+                <li>Permanent ban from the notice-and-action mechanism</li>
+              </ul>
+              <p className="mt-2">
+                Misuse warnings are lifted after a reasonable period, provided no further misuse occurs.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-xl font-semibold text-gray-900 mb-3">18. Trader Traceability (DSA Art. 30)</h2>
+              <p>
+                As an online marketplace, OfferMarket collects and verifies information about employers
+                (traders) who use the platform. Before an employer can publish offers, we collect:
+              </p>
+              <ul className="mt-2 space-y-1 list-disc pl-5">
+                <li>Full name or company name</li>
+                <li>KvK (Chamber of Commerce) number</li>
+                <li>Physical address</li>
+                <li>Contact email and phone number</li>
+                <li>VAT identification number (where applicable)</li>
+                <li>Self-certification that the trader complies with applicable EU rules</li>
+              </ul>
+              <p className="mt-2">
+                This information is displayed on employer profiles and is stored for 6 months after
+                the end of the contractual relationship, in accordance with DSA Art. 30(4).
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-xl font-semibold text-gray-900 mb-3">19. Transparency Reporting (DSA Arts. 15, 24)</h2>
+              <p>
+                OfferMarket publishes transparency reports on content moderation activities, available at:
+              </p>
+              <div className="mt-3 bg-blue-50 border border-blue-200 rounded-md p-4">
+                <a href="/dsa/transparency" className="text-blue-600 hover:underline font-medium">
+                  Transparency Report →
+                </a>
+              </div>
+              <p className="mt-2">
+                These reports include information on the number of notices received, content removed,
+                accounts suspended, response times, and the use of automated means for content moderation.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-xl font-semibold text-gray-900 mb-3">20. Single Point of Contact</h2>
+              <p>
+                For all matters related to the Digital Services Act, you may contact:
+              </p>
+              <div className="mt-2 bg-gray-50 rounded-md p-4">
+                <p><strong>OfferMarket B.V.</strong> — DSA Single Point of Contact</p>
+                <p>Email: <a href="mailto:legal@offermarket.nl" className="text-blue-600 hover:underline">legal@offermarket.nl</a></p>
+                <p className="mt-1 text-sm text-gray-500">
+                  For urgent matters involving threats to life or safety, contact the relevant
+                  law enforcement authorities directly.
+                </p>
+              </div>
+            </section>
+
+            <section>
+              <h2 className="text-xl font-semibold text-gray-900 mb-3">21. Contact</h2>
               <div className="bg-gray-50 rounded-md p-4">
                 <p><strong>OfferMarket B.V.</strong></p>
                 <p>[Address], [City], Netherlands</p>
@@ -184,7 +341,8 @@ export default function TermsOfServicePage() {
               © {new Date().getFullYear()} OfferMarket B.V. ·{' '}
               <a href="/privacy" className="text-blue-600 hover:underline">Privacy Policy</a> ·{' '}
               <a href="/terms" className="text-blue-600 hover:underline">Terms of Service</a> ·{' '}
-              <a href="/cookies" className="text-blue-600 hover:underline">Cookie Policy</a>
+              <a href="/cookies" className="text-blue-600 hover:underline">Cookie Policy</a> ·{' '}
+              <a href="/dsa/report" className="text-blue-600 hover:underline">Report Illegal Content</a>
             </p>
           </div>
         </div>
