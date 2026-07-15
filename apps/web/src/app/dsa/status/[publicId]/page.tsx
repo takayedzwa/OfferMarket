@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Navbar from '@/components/Navbar';
+import Footer from '@/components/Footer';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
 
@@ -173,6 +174,7 @@ export default function ReportStatusDetailPage() {
           <a href="/dsa/status" className="text-blue-600 hover:underline">Check another report →</a>
         </div>
       </div>
+      <Footer />
     </div>
   );
 }

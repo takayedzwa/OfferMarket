@@ -97,9 +97,9 @@ export class DsaService {
     });
 
     // DSA Art. 16(4): acknowledge receipt without undue delay
-    await this.acknowledgeReport(report.id);
+    const acknowledged = await this.acknowledgeReport(report.id);
 
-    return this.serializeReport(report);
+    return this.serializeReport(acknowledged);
   }
 
   /**
@@ -107,7 +107,7 @@ export class DsaService {
    * DSA Art. 16(4): acknowledge without undue delay.
    */
   private async acknowledgeReport(reportId: string) {
-    await this.prisma.contentReport.update({
+    return this.prisma.contentReport.update({
       where: { id: reportId },
       data: { acknowledgedAt: new Date() },
     });

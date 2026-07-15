@@ -7,7 +7,7 @@ import { useAuth } from "../contexts/AuthContext";
 import NotificationBell from "./notifications/NotificationBell";
 import {
   Home, Users, Briefcase, MessageSquare, FileText,
-  Shield, Ticket, Building2, User, CreditCard, Lock
+  Shield, Ticket, Building2, User, CreditCard, Lock, Flag
 } from "lucide-react";
 
 interface NavbarProps {
@@ -172,6 +172,14 @@ export default function Navbar({ variant = "default" }: NavbarProps) {
                   <Lock className="w-4 h-4" />
                   <span className="hidden sm:inline">Privacy</span>
                 </Link>
+                <Link
+                  href="/dsa/report"
+                  className="text-sm text-red-600 hover:text-red-700 px-2 py-1 rounded transition-colors flex items-center gap-1"
+                  title="Report Illegal Content (DSA Art. 16)"
+                >
+                  <Flag className="w-4 h-4" />
+                  <span className="hidden sm:inline">Report</span>
+                </Link>
                 <button
                   onClick={logout}
                   className="text-sm text-gray-600 hover:text-gray-900 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors"
@@ -181,6 +189,13 @@ export default function Navbar({ variant = "default" }: NavbarProps) {
               </>
             ) : (
               <>
+                <Link
+                  href="/dsa/report"
+                  className="text-red-600 hover:text-red-700 px-3 py-2 text-sm font-medium flex items-center gap-1"
+                >
+                  <Flag className="w-4 h-4" />
+                  Report
+                </Link>
                 <Link
                   href="/privacy"
                   className="text-gray-500 hover:text-gray-900 px-3 py-2 text-sm font-medium"

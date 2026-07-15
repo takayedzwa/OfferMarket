@@ -1,4 +1,5 @@
 import Navbar from '@/components/Navbar';
+import Footer from '@/components/Footer';
 import ReportContentForm from '@/components/dsa/ReportContentForm';
 
 /**
@@ -43,6 +44,7 @@ export default function ReportContentPage() {
           </p>
         </div>
       </div>
+      <Footer />
     </div>
   );
 }

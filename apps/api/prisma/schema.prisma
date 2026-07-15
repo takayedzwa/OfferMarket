@@ -1481,7 +1481,7 @@ model ContentReport {
   automatedMeans      Boolean                @default(false) @map("automated_means") // Art. 17(3)(e)
 
   // Misuse tracking (DSA Art. 23)
-  isFrivolous         Boolean                @default(false) // manifestly unfounded
+  isFrivolous         Boolean                @default(false) @map("is_frivolous") // manifestly unfounded
 
   // Criminal referral (DSA Art. 18)
   referredToAuthorities Boolean               @default(false) @map("referred_to_authorities")
@@ -1545,7 +1545,7 @@ model StatementOfReasons {
   // Appeal tracking (DSA Art. 20)
   appealDeadline         DateTime?               @map("appeal_deadline")
   appealFiledAt          DateTime?               @map("appeal_filed_at")
-  appealStatus           AppealStatus?
+  appealStatus           AppealStatus?          @map("appeal_status")
 
   createdAt              DateTime                @default(now()) @map("created_at")
   updatedAt              DateTime                @updatedAt @map("updated_at")
@@ -1629,7 +1629,7 @@ model ComplaintMessage {
   content       String
   isInternal    Boolean       @default(false) @map("is_internal") // internal staff notes vs. visible to complainant
   attachments   Json?
-  createdAt     DateTime      @default(now())
+  createdAt     DateTime      @default(now()) @map("created_at")
 
   complaint     DSAComplaint  @relation(fields: [complaintId], references: [id], onDelete: Cascade)
 
@@ -1658,8 +1658,8 @@ model NoticeMisuseRecord {
   liftedAt         DateTime?     @map("lifted_at")
   liftedBy         String?        @map("lifted_by")
 
-  createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
+  createdAt        DateTime      @default(now()) @map("created_at")
+  updatedAt        DateTime      @updatedAt @map("updated_at")
 
   user              User          @relation("UserNoticeMisuseRecords", fields: [userId], references: [id])
   contentReport     ContentReport? @relation(fields: [contentReportId], references: [id])

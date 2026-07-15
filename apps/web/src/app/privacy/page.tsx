@@ -331,7 +331,8 @@ export default function PrivacyPolicyPage() {
               <a href="/privacy" className="text-blue-600 hover:underline">Privacy Policy</a> ·{' '}
               <a href="/terms" className="text-blue-600 hover:underline">Terms of Service</a> ·{' '}
               <a href="/cookies" className="text-blue-600 hover:underline">Cookie Policy</a> ·{' '}
-              <a href="/privacy/dashboard" className="text-blue-600 hover:underline">Privacy Dashboard</a>
+              <a href="/privacy/dashboard" className="text-blue-600 hover:underline">Privacy Dashboard</a> ·{' '}
+              <a href="/dsa/report" className="text-red-600 hover:underline">Report Illegal Content</a>
             </p>
           </div>
         </div>

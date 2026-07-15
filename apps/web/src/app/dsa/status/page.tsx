@@ -1,4 +1,5 @@
 import Navbar from '@/components/Navbar';
+import Footer from '@/components/Footer';
 import ReportStatusChecker from '@/components/dsa/ReportStatusChecker';
 
 /**
@@ -31,6 +32,7 @@ export default function ReportStatusPage() {
           </p>
         </div>
       </div>
+      <Footer />
     </div>
   );
 }
