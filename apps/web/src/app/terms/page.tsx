@@ -40,8 +40,8 @@ export default function TermsOfServicePage() {
                 If you do not agree, you must not use the platform.
               </p>
               <p className="mt-2">
-                These terms are governed by Dutch law. Any disputes will be resolved by the competent courts
-                in the Netherlands.
+                These terms are governed by Dutch law. For dispute resolution, see{' '}
+                <a href="#dispute-resolution" className="text-blue-600 hover:underline">Section 23 (Dispute Resolution and Governing Law)</a>.
               </p>
             </section>
 
@@ -368,8 +368,70 @@ export default function TermsOfServicePage() {
               </p>
             </section>
 
+            <section id="dispute-resolution">
+              <h2 className="text-xl font-semibold text-gray-900 mb-3">23. Dispute Resolution and Governing Law</h2>
+
+              <h3 className="font-medium text-gray-900 mt-4 mb-2">23.1 Governing Law</h3>
+              <p>
+                These terms are governed by and construed in accordance with the laws of the Netherlands,
+                without regard to its conflict of law provisions.
+              </p>
+
+              <h3 className="font-medium text-gray-900 mt-4 mb-2">23.2 Consumer Disputes (B2C)</h3>
+              <p>
+                If you are a consumer as defined in Dutch law (BW 6:248c), the following applies to you:
+              </p>
+              <ul className="mt-2 space-y-1 list-disc pl-5">
+                <li>
+                  <strong>Out-of-court dispute resolution</strong> — Before initiating court proceedings, you
+                  may submit a complaint to the Geschillencommissie (Disputes Committee) via{' '}
+                  <a href="https://www.degeschillencommissie.nl/" className="text-blue-600 hover:underline" target="_blank" rel="noopener noreferrer">
+                    degeschillencommissie.nl
+                  </a>. The Geschillencommissie issues a binding ruling on disputes concerning the
+                  interpretation or performance of these terms.
+                </li>
+                <li>
+                  <strong>EU Online Dispute Resolution</strong> — The European Commission provides an online
+                  dispute resolution (ODR) platform at{' '}
+                  <a href="https://ec.europa.eu/consumers/odr" className="text-blue-600 hover:underline" target="_blank" rel="noopener noreferrer">
+                    ec.europa.eu/consumers/odr
+                  </a>, which consumers may use to resolve disputes arising from online services without
+                  recourse to court (EU Directive 2013/11/EU).
+                </li>
+                <li>
+                  <strong>Mandatory consumer rights</strong> — Nothing in these terms deprives you of the
+                  protection afforded by mandatory provisions of Dutch law or the law of your habitual
+                  residence as a consumer. Where mandatory consumer protection laws in your country of
+                  residence provide greater protection than Dutch law, those laws shall prevail.
+                </li>
+              </ul>
+
+              <h3 className="font-medium text-gray-900 mt-4 mb-2">23.3 Business Disputes (B2B)</h3>
+              <p>
+                If you are a business user (employer), disputes arising out of or in connection with these
+                terms shall be submitted to the competent court in Amsterdam, the Netherlands
+                (Rechtbank Amsterdam).
+              </p>
+
+              <h3 className="font-medium text-gray-900 mt-4 mb-2">23.4 Internal Complaint Procedure</h3>
+              <p>
+                Before initiating formal dispute resolution, you may file a complaint with OfferMarket via{' '}
+                <a href="mailto:legal@offermarket.nl" className="text-blue-600 hover:underline">legal@offermarket.nl</a>.
+                We will acknowledge your complaint within 5 business days and provide a substantive response
+                within 30 calendar days.
+              </p>
+
+              <h3 className="font-medium text-gray-900 mt-4 mb-2">23.5 Limitation Period</h3>
+              <p>
+                Claims arising from these terms must be brought within the statutory limitation period
+                under Dutch law (generally 5 years from the date the claim becomes due and the creditor is
+                aware of the relevant facts, per BW 3:306), unless a shorter period is provided by
+                mandatory law.
+              </p>
+            </section>
+
             <section>
-              <h2 className="text-xl font-semibold text-gray-900 mb-3">23. Contact</h2>
+              <h2 className="text-xl font-semibold text-gray-900 mb-3">24. Contact</h2>
               <div className="bg-gray-50 rounded-md p-4">
                 <p><strong>OfferMarket B.V.</strong></p>
                 <p>Herengracht 420, 1017 Amsterdam, Netherlands</p>

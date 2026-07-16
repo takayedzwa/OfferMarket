@@ -59,6 +59,7 @@ model User {
   dsaComplaintsAssigned   DSAComplaint[]        @relation("UserDSAComplaintsAssigned")
   noticeMisuseRecords     NoticeMisuseRecord[]  @relation("UserNoticeMisuseRecords")
   refreshTokens          RefreshToken[]
+  passwordResetTokens    PasswordResetToken[]
 
   @@index([email])
   @@index([role])
@@ -79,6 +80,22 @@ model RefreshToken {
   @@index([userId])
   @@index([tokenHash])
   @@index([familyId])
+}
+
+// Password reset token for forgot-password flow
+model PasswordResetToken {
+  id        String    @id @default(uuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tokenHash])
+  @@index([userId])
+  @@index([expiresAt])
 }
 
 model Worker {

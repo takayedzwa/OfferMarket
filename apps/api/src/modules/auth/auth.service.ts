@@ -605,4 +605,104 @@ export class AuthService {
       where: { userId },
     });
   }
+
+  // ============================================================================
+  // PASSWORD RESET
+  // ============================================================================
+
+  /**
+   * Initiate a password reset by generating a time-limited token.
+   * Returns the raw token (in production, this would be emailed to the user).
+   * Always returns success to avoid revealing whether an email exists.
+   */
+  async forgotPassword(email: string): Promise<{ message: string; token?: string }> {
+    const user = await this.prisma.user.findUnique({ where: { email } });
+
+    // Always return success to avoid revealing whether the email exists
+    if (!user || user.status === 'DELETED') {
+      return { message: 'If an account with that email exists, a password reset token has been generated.' };
+    }
+
+    // Delete any existing reset tokens for this user
+    await this.prisma.passwordResetToken.deleteMany({
+      where: { userId: user.id },
+    });
+
+    // Generate a cryptographically secure token
+    const rawToken = crypto.randomBytes(32).toString('hex');
+    const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+    await this.prisma.passwordResetToken.create({
+      data: {
+        userId: user.id,
+        tokenHash,
+        expiresAt,
+      },
+    });
+
+    // In production, send this token via email. For now, return it for frontend integration.
+    // TODO: Integrate with email service (e.g., AWS SES, SendGrid)
+    return {
+      message: 'If an account with that email exists, a password reset token has been generated.',
+      token: rawToken,
+    };
+  }
+
+  /**
+   * Reset a user's password using a valid reset token.
+   * Validates the token, updates the password, invalidates the token,
+   * and revokes all refresh tokens to force re-login.
+   */
+  async resetPassword(token: string, newPassword: string): Promise<{ message: string }> {
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+
+    const resetToken = await this.prisma.passwordResetToken.findUnique({
+      where: { tokenHash },
+    });
+
+    if (!resetToken) {
+      throw new BadRequestException('Invalid or expired reset token');
+    }
+
+    // Check if token has expired
+    if (new Date() > resetToken.expiresAt) {
+      // Clean up expired token
+      await this.prisma.passwordResetToken.delete({ where: { id: resetToken.id } });
+      throw new BadRequestException('Reset token has expired. Please request a new one.');
+    }
+
+    // Check if token has already been used (one-time use)
+    if (resetToken.usedAt) {
+      throw new BadRequestException('Reset token has already been used. Please request a new one.');
+    }
+
+    // Hash the new password
+    const passwordHash = await bcrypt.hash(newPassword, 12);
+
+    // Update password and mark token as used in a transaction
+    await this.prisma.$transaction(async (tx) => {
+      // Update user password
+      await tx.user.update({
+        where: { id: resetToken.userId },
+        data: { passwordHash },
+      });
+
+      // Mark token as used
+      await tx.passwordResetToken.update({
+        where: { id: resetToken.id },
+        data: { usedAt: new Date() },
+      });
+
+      // Delete all other reset tokens for this user
+      await tx.passwordResetToken.deleteMany({
+        where: { userId: resetToken.userId, id: { not: resetToken.id } },
+      });
+    });
+
+    // Revoke all refresh tokens to force re-login on all devices
+    await this.revokeAllRefreshTokens(resetToken.userId);
+
+    return { message: 'Password has been reset successfully' };
+  }
 }

@@ -1,22 +1,8 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards, BadRequestException, Request } from '@nestjs/common';
+import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
 import { WorkersService } from './workers.service';
 import { AnonymousProfilePipe } from './pipes/anonymous-profile.pipe';
 import { CreateWorkerDto, UpdateWorkerDto, BlockCompanyDto, CreateProfileSkillDto, UpdateProfileSkillDto, CreateCertificationDto, UpdateCertificationDto, CreateWorkerLanguageDto, UpdateWorkerLanguageDto, CreateEducationDto, UpdateEducationDto, CreateProjectExperienceDto, UpdateProjectExperienceDto } from './dto/worker.dto';
-
-class SimpleAuthGuard {
-  canActivate(context: any): boolean {
-    const request = context.switchToHttp().getRequest();
-    const userId = request.headers['x-user-id'];
-    const userRole = request.headers['x-user-role'];
-
-    if (!userId || !userRole) {
-      throw new BadRequestException('User authentication required');
-    }
-
-    request.user = { id: userId, role: userRole };
-    return true;
-  }
-}
 
 @Controller('workers')
 export class WorkersController {
@@ -46,7 +32,7 @@ export class WorkersController {
   // ===========================================================================
 
   @Get('search')
-  @UseGuards(SimpleAuthGuard)
+  @UseGuards(JwtAuthGuard)
   async searchWorkers(
     @Query('trade') trade?: string,
     @Query('regionId') regionId?: string,
@@ -118,13 +104,9 @@ export class WorkersController {
   // ===========================================================================
 
   @Get('me')
-  @UseGuards(SimpleAuthGuard)
-  async getMyProfile(@Query('userId') userId: string) {
-    if (!userId) {
-      throw new BadRequestException('userId is required');
-    }
-
-    return this.workersService.getPrivateProfile(userId);
+  @UseGuards(JwtAuthGuard)
+  async getMyProfile(@Request() req: any) {
+    return this.workersService.getPrivateProfile(req.user.id);
   }
 
   // ===========================================================================
@@ -132,16 +114,12 @@ export class WorkersController {
   // ===========================================================================
 
   @Post()
-  @UseGuards(SimpleAuthGuard)
+  @UseGuards(JwtAuthGuard)
   async createProfile(
     @Body() createDto: CreateWorkerDto,
-    @Query('userId') userId: string
+    @Request() req: any
   ) {
-    if (!userId) {
-      throw new BadRequestException('userId is required');
-    }
-
-    return this.workersService.createWorkerProfile(userId, createDto);
+    return this.workersService.createWorkerProfile(req.user.id, createDto);
   }
 
   // ===========================================================================
@@ -149,16 +127,12 @@ export class WorkersController {
   // ===========================================================================
 
   @Patch('me')
-  @UseGuards(SimpleAuthGuard)
+  @UseGuards(JwtAuthGuard)
   async updateProfile(
     @Body() updateDto: UpdateWorkerDto,
-    @Query('userId') userId: string
+    @Request() req: any
   ) {
-    if (!userId) {
-      throw new BadRequestException('userId is required');
-    }
-
-    return this.workersService.updateWorkerProfile(userId, updateDto);
+    return this.workersService.updateWorkerProfile(req.user.id, updateDto);
   }
 
   // ===========================================================================
@@ -166,40 +140,31 @@ export class WorkersController {
   // ===========================================================================
 
   @Post('me/skills')
-  @UseGuards(SimpleAuthGuard)
+  @UseGuards(JwtAuthGuard)
   async addProfileSkill(
     @Body() dto: CreateProfileSkillDto,
-    @Query('userId') userId: string
+    @Request() req: any
   ) {
-    if (!userId) {
-      throw new BadRequestException('userId is required');
-    }
-    return this.workersService.addProfileSkill(userId, dto);
+    return this.workersService.addProfileSkill(req.user.id, dto);
   }
 
   @Patch('me/skills/:id')
-  @UseGuards(SimpleAuthGuard)
+  @UseGuards(JwtAuthGuard)
   async updateProfileSkill(
     @Param('id') id: string,
     @Body() dto: UpdateProfileSkillDto,
-    @Query('userId') userId: string
+    @Request() req: any
   ) {
-    if (!userId) {
-      throw new BadRequestException('userId is required');
-    }
-    return this.workersService.updateProfileSkill(userId, id, dto);
+    return this.workersService.updateProfileSkill(req.user.id, id, dto);
   }
 
   @Delete('me/skills/:id')
-  @UseGuards(SimpleAuthGuard)
+  @UseGuards(JwtAuthGuard)
   async removeProfileSkill(
     @Param('id') id: string,
-    @Query('userId') userId: string
+    @Request() req: any
   ) {
-    if (!userId) {
-      throw new BadRequestException('userId is required');
-    }
-    return this.workersService.removeProfileSkill(userId, id);
+    return this.workersService.removeProfileSkill(req.user.id, id);
   }
 
   // ===========================================================================
@@ -207,40 +172,31 @@ export class WorkersController {
   // ===========================================================================
 
   @Post('me/certifications')
-  @UseGuards(SimpleAuthGuard)
+  @UseGuards(JwtAuthGuard)
   async addCertification(
     @Body() dto: CreateCertificationDto,
-    @Query('userId') userId: string
+    @Request() req: any
   ) {
-    if (!userId) {
-      throw new BadRequestException('userId is required');
-    }
-    return this.workersService.addCertification(userId, dto);
+    return this.workersService.addCertification(req.user.id, dto);
   }
 
   @Patch('me/certifications/:id')
-  @UseGuards(SimpleAuthGuard)
+  @UseGuards(JwtAuthGuard)
   async updateCertification(
     @Param('id') id: string,
     @Body() dto: UpdateCertificationDto,
-    @Query('userId') userId: string
+    @Request() req: any
   ) {
-    if (!userId) {
-      throw new BadRequestException('userId is required');
-    }
-    return this.workersService.updateCertification(userId, id, dto);
+    return this.workersService.updateCertification(req.user.id, id, dto);
   }
 
   @Delete('me/certifications/:id')
-  @UseGuards(SimpleAuthGuard)
+  @UseGuards(JwtAuthGuard)
   async removeCertification(
     @Param('id') id: string,
-    @Query('userId') userId: string
+    @Request() req: any
   ) {
-    if (!userId) {
-      throw new BadRequestException('userId is required');
-    }
-    return this.workersService.removeCertification(userId, id);
+    return this.workersService.removeCertification(req.user.id, id);
   }
 
   // ===========================================================================
@@ -248,40 +204,31 @@ export class WorkersController {
   // ===========================================================================
 
   @Post('me/languages')
-  @UseGuards(SimpleAuthGuard)
+  @UseGuards(JwtAuthGuard)
   async addLanguage(
     @Body() dto: CreateWorkerLanguageDto,
-    @Query('userId') userId: string
+    @Request() req: any
   ) {
-    if (!userId) {
-      throw new BadRequestException('userId is required');
-    }
-    return this.workersService.addLanguage(userId, dto);
+    return this.workersService.addLanguage(req.user.id, dto);
   }
 
   @Patch('me/languages/:id')
-  @UseGuards(SimpleAuthGuard)
+  @UseGuards(JwtAuthGuard)
   async updateLanguage(
     @Param('id') id: string,
     @Body() dto: UpdateWorkerLanguageDto,
-    @Query('userId') userId: string
+    @Request() req: any
   ) {
-    if (!userId) {
-      throw new BadRequestException('userId is required');
-    }
-    return this.workersService.updateLanguage(userId, id, dto);
+    return this.workersService.updateLanguage(req.user.id, id, dto);
   }
 
   @Delete('me/languages/:id')
-  @UseGuards(SimpleAuthGuard)
+  @UseGuards(JwtAuthGuard)
   async removeLanguage(
     @Param('id') id: string,
-    @Query('userId') userId: string
+    @Request() req: any
   ) {
-    if (!userId) {
-      throw new BadRequestException('userId is required');
-    }
-    return this.workersService.removeLanguage(userId, id);
+    return this.workersService.removeLanguage(req.user.id, id);
   }
 
   // ===========================================================================
@@ -289,40 +236,31 @@ export class WorkersController {
   // ===========================================================================
 
   @Post('me/education')
-  @UseGuards(SimpleAuthGuard)
+  @UseGuards(JwtAuthGuard)
   async addEducation(
     @Body() dto: CreateEducationDto,
-    @Query('userId') userId: string
+    @Request() req: any
   ) {
-    if (!userId) {
-      throw new BadRequestException('userId is required');
-    }
-    return this.workersService.addEducation(userId, dto);
+    return this.workersService.addEducation(req.user.id, dto);
   }
 
   @Patch('me/education/:id')
-  @UseGuards(SimpleAuthGuard)
+  @UseGuards(JwtAuthGuard)
   async updateEducation(
     @Param('id') id: string,
     @Body() dto: UpdateEducationDto,
-    @Query('userId') userId: string
+    @Request() req: any
   ) {
-    if (!userId) {
-      throw new BadRequestException('userId is required');
-    }
-    return this.workersService.updateEducation(userId, id, dto);
+    return this.workersService.updateEducation(req.user.id, id, dto);
   }
 
   @Delete('me/education/:id')
-  @UseGuards(SimpleAuthGuard)
+  @UseGuards(JwtAuthGuard)
   async removeEducation(
     @Param('id') id: string,
-    @Query('userId') userId: string
+    @Request() req: any
   ) {
-    if (!userId) {
-      throw new BadRequestException('userId is required');
-    }
-    return this.workersService.removeEducation(userId, id);
+    return this.workersService.removeEducation(req.user.id, id);
   }
 
   // ===========================================================================
@@ -330,40 +268,31 @@ export class WorkersController {
   // ===========================================================================
 
   @Post('me/projects')
-  @UseGuards(SimpleAuthGuard)
+  @UseGuards(JwtAuthGuard)
   async addProjectExperience(
     @Body() dto: CreateProjectExperienceDto,
-    @Query('userId') userId: string
+    @Request() req: any
   ) {
-    if (!userId) {
-      throw new BadRequestException('userId is required');
-    }
-    return this.workersService.addProjectExperience(userId, dto);
+    return this.workersService.addProjectExperience(req.user.id, dto);
   }
 
   @Patch('me/projects/:id')
-  @UseGuards(SimpleAuthGuard)
+  @UseGuards(JwtAuthGuard)
   async updateProjectExperience(
     @Param('id') id: string,
     @Body() dto: UpdateProjectExperienceDto,
-    @Query('userId') userId: string
+    @Request() req: any
   ) {
-    if (!userId) {
-      throw new BadRequestException('userId is required');
-    }
-    return this.workersService.updateProjectExperience(userId, id, dto);
+    return this.workersService.updateProjectExperience(req.user.id, id, dto);
   }
 
   @Delete('me/projects/:id')
-  @UseGuards(SimpleAuthGuard)
+  @UseGuards(JwtAuthGuard)
   async removeProjectExperience(
     @Param('id') id: string,
-    @Query('userId') userId: string
+    @Request() req: any
   ) {
-    if (!userId) {
-      throw new BadRequestException('userId is required');
-    }
-    return this.workersService.removeProjectExperience(userId, id);
+    return this.workersService.removeProjectExperience(req.user.id, id);
   }
 
   // ===========================================================================
@@ -383,39 +312,27 @@ export class WorkersController {
   // ===========================================================================
 
   @Post('me/block')
-  @UseGuards(SimpleAuthGuard)
+  @UseGuards(JwtAuthGuard)
   async blockCompany(
     @Body() blockDto: BlockCompanyDto,
-    @Query('workerId') workerId: string
+    @Request() req: any
   ) {
-    if (!workerId) {
-      throw new BadRequestException('workerId is required');
-    }
-
-    return this.workersService.blockCompany(workerId, blockDto.employerId, blockDto.reason);
+    return this.workersService.blockCompany(req.user.id, blockDto.employerId, blockDto.reason);
   }
 
   @Delete('me/block/:employerId')
-  @UseGuards(SimpleAuthGuard)
+  @UseGuards(JwtAuthGuard)
   async unblockCompany(
     @Param('employerId') employerId: string,
-    @Query('workerId') workerId: string
+    @Request() req: any
   ) {
-    if (!workerId) {
-      throw new BadRequestException('workerId is required');
-    }
-
-    return this.workersService.unblockCompany(workerId, employerId);
+    return this.workersService.unblockCompany(req.user.id, employerId);
   }
 
   @Get('me/blocked')
-  @UseGuards(SimpleAuthGuard)
-  async getBlockedCompanies(@Query('workerId') workerId: string) {
-    if (!workerId) {
-      throw new BadRequestException('workerId is required');
-    }
-
-    return this.workersService.getBlockedCompanies(workerId);
+  @UseGuards(JwtAuthGuard)
+  async getBlockedCompanies(@Request() req: any) {
+    return this.workersService.getBlockedCompanies(req.user.id);
   }
 
   // ===========================================================================
@@ -423,16 +340,12 @@ export class WorkersController {
   // ===========================================================================
 
   @Patch('me/visibility')
-  @UseGuards(SimpleAuthGuard)
+  @UseGuards(JwtAuthGuard)
   async updateVisibility(
     @Body('visibility') visibility: 'ALL_VERIFIED' | 'SELECTED_COMPANIES' | 'HIDDEN',
-    @Query('workerId') workerId: string
+    @Request() req: any
   ) {
-    if (!workerId) {
-      throw new BadRequestException('workerId is required');
-    }
-
-    return this.workersService.updateVisibility(workerId, visibility);
+    return this.workersService.updateVisibility(req.user.id, visibility);
   }
 
   // ===========================================================================
@@ -440,12 +353,8 @@ export class WorkersController {
   // ===========================================================================
 
   @Delete('me')
-  @UseGuards(SimpleAuthGuard)
-  async deleteProfile(@Query('workerId') workerId: string) {
-    if (!workerId) {
-      throw new BadRequestException('workerId is required');
-    }
-
-    return this.workersService.deleteWorkerProfile(workerId);
+  @UseGuards(JwtAuthGuard)
+  async deleteProfile(@Request() req: any) {
+    return this.workersService.deleteWorkerProfile(req.user.id);
   }
 }

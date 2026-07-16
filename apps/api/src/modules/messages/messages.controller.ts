@@ -1,97 +1,71 @@
-import { Controller, Get, Post, Body, Param, Query, UseGuards, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Query, UseGuards, BadRequestException, Request } from '@nestjs/common';
 import { MessagesService } from './messages.service';
-
-class SimpleAuthGuard {
-  canActivate(context: any): boolean {
-    const request = context.switchToHttp().getRequest();
-    const userId = request.headers['x-user-id'];
-    const userRole = request.headers['x-user-role'];
-
-    if (!userId) {
-      throw new BadRequestException('User authentication required');
-    }
-
-    request.user = { id: userId, role: userRole };
-    return true;
-  }
-}
+import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
 
 @Controller('conversations')
 export class MessagesController {
   constructor(private readonly messagesService: MessagesService) {}
 
   @Get()
-  @UseGuards(SimpleAuthGuard)
+  @UseGuards(JwtAuthGuard)
   async getConversations(
-    @Query('userId') userId: string,
+    @Request() req: any,
     @Query('userType') userType: 'worker' | 'employer'
   ) {
-    if (!userId || !userType) {
-      throw new BadRequestException('userId and userType are required');
+    if (!userType) {
+      throw new BadRequestException('userType is required');
     }
-    return this.messagesService.getConversations(userId, userType);
+    return this.messagesService.getConversations(req.user.id, userType);
   }
 
   @Get(':id')
-  @UseGuards(SimpleAuthGuard)
+  @UseGuards(JwtAuthGuard)
   async getConversation(
     @Param('id') id: string,
-    @Query('userId') userId: string
+    @Request() req: any
   ) {
-    if (!userId) {
-      throw new BadRequestException('userId is required');
-    }
-    return this.messagesService.getConversation(id, userId);
+    return this.messagesService.getConversation(id, req.user.id);
   }
 
   @Get(':id/messages')
-  @UseGuards(SimpleAuthGuard)
+  @UseGuards(JwtAuthGuard)
   async getMessages(
     @Param('id') id: string,
-    @Query('userId') userId: string
+    @Request() req: any
   ) {
-    if (!userId) {
-      throw new BadRequestException('userId is required');
-    }
-    const conversation = await this.messagesService.getConversation(id, userId);
+    const conversation = await this.messagesService.getConversation(id, req.user.id);
     return conversation.messages || [];
   }
 
   @Post(':id/messages')
-  @UseGuards(SimpleAuthGuard)
+  @UseGuards(JwtAuthGuard)
   async sendMessage(
     @Param('id') id: string,
-    @Query('userId') userId: string,
+    @Request() req: any,
     @Body('content') content: string,
     @Body('attachments') attachments?: any[]
   ) {
-    if (!userId || !content) {
-      throw new BadRequestException('userId and content are required');
+    if (!content) {
+      throw new BadRequestException('content is required');
     }
-    return this.messagesService.sendMessage(id, userId, content, attachments);
+    return this.messagesService.sendMessage(id, req.user.id, content, attachments);
   }
 
   @Post(':id/read')
-  @UseGuards(SimpleAuthGuard)
+  @UseGuards(JwtAuthGuard)
   async markAsRead(
     @Param('id') id: string,
-    @Query('userId') userId: string
+    @Request() req: any
   ) {
-    if (!userId) {
-      throw new BadRequestException('userId is required');
-    }
-    return this.messagesService.markAsRead(id, userId);
+    return this.messagesService.markAsRead(id, req.user.id);
   }
 
   @Post(':id/archive')
-  @UseGuards(SimpleAuthGuard)
+  @UseGuards(JwtAuthGuard)
   async archiveConversation(
     @Param('id') id: string,
-    @Query('userId') userId: string
+    @Request() req: any
   ) {
-    if (!userId) {
-      throw new BadRequestException('userId is required');
-    }
-    return this.messagesService.archiveConversation(id, userId);
+    return this.messagesService.archiveConversation(id, req.user.id);
   }
 }
