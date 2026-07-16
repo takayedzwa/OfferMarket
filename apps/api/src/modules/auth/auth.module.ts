@@ -11,8 +11,8 @@ import { TrustModule } from '../trust/trust.module';
   imports: [
     PassportModule,
     JwtModule.register({
-      secret: process.env.JWT_SECRET || 'dev-secret-key-change-in-production',
-      signOptions: { expiresIn: '1h' },
+      secret: process.env.JWT_SECRET || (process.env.NODE_ENV === 'production' ? (() => { throw new Error('JWT_SECRET environment variable is required in production'); })() : 'dev-secret-key-not-for-production'),
+      signOptions: { expiresIn: '1h', algorithm: 'HS256' as const },
     }),
     PrismaModule,
     TrustModule,

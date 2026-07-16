@@ -1,5 +1,9 @@
-import { Controller, Post, Body, BadRequestException, Get, Query, Headers, Request } from '@nestjs/common';
+import { Controller, Post, Body, BadRequestException, Get, Query, Headers, Request, UseGuards } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
+import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
 import { AuthService } from './auth.service';
+import { RegisterWorkerDto, RegisterEmployerDto, RegisterAdminDto, RegisterSupportDto } from './dto/auth.dto';
+import { ForgotPasswordDto, ResetPasswordDto } from './dto/reset-password.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -44,18 +48,10 @@ export class AuthController {
   // ============================================================================
 
   @Post('register/worker')
-  async registerWorker(
-    @Body('email') email: string,
-    @Body('password') password: string,
-    @Body('phone') phone?: string,
-    @Request() req?: any,
-  ) {
-    if (!email || !password) {
-      throw new BadRequestException('Email and password are required');
-    }
-
+  @Throttle({ short: { ttl: 60000, limit: 5 } })
+  async registerWorker(@Body() dto: RegisterWorkerDto, @Request() req?: any) {
     const ipAddress = this.getClientIp(req);
-    return this.authService.registerWorker(email, password, phone, ipAddress);
+    return this.authService.registerWorker(dto.email, dto.password, dto.phone, ipAddress);
   }
 
   // ============================================================================
@@ -63,16 +59,9 @@ export class AuthController {
   // ============================================================================
 
   @Post('register/admin')
-  async registerAdmin(
-    @Body('email') email: string,
-    @Body('password') password: string,
-    @Body('adminCode') adminCode: string
-  ) {
-    if (!email || !password || !adminCode) {
-      throw new BadRequestException('Email, password, and admin code are required');
-    }
-
-    return this.authService.registerAdmin(email, password, adminCode);
+  @Throttle({ short: { ttl: 60000, limit: 5 } })
+  async registerAdmin(@Body() dto: RegisterAdminDto) {
+    return this.authService.registerAdmin(dto.email, dto.password, dto.adminCode);
   }
 
   // ============================================================================
@@ -80,16 +69,9 @@ export class AuthController {
   // ============================================================================
 
   @Post('register/support')
-  async registerSupport(
-    @Body('email') email: string,
-    @Body('password') password: string,
-    @Body('adminUserId') adminUserId: string
-  ) {
-    if (!email || !password || !adminUserId) {
-      throw new BadRequestException('Email, password, and admin user ID are required');
-    }
-
-    return this.authService.registerSupport(email, password, adminUserId);
+  @Throttle({ short: { ttl: 60000, limit: 5 } })
+  async registerSupport(@Body() dto: RegisterSupportDto) {
+    return this.authService.registerSupport(dto.email, dto.password, dto.adminUserId);
   }
 
   // ============================================================================
@@ -97,19 +79,10 @@ export class AuthController {
   // ============================================================================
 
   @Post('register/employer')
-  async registerEmployer(
-    @Body('email') email: string,
-    @Body('password') password: string,
-    @Body('phone') phone: string,
-    @Body('company') company: { name: string; kvkNumber: string; website?: string },
-    @Request() req?: any,
-  ) {
-    if (!email || !password || !phone || !company) {
-      throw new BadRequestException('All fields are required');
-    }
-
+  @Throttle({ short: { ttl: 60000, limit: 5 } })
+  async registerEmployer(@Body() dto: RegisterEmployerDto, @Request() req?: any) {
     const ipAddress = this.getClientIp(req);
-    return this.authService.registerEmployer(email, password, phone, company, ipAddress);
+    return this.authService.registerEmployer(dto.email, dto.password, dto.phone, dto.company, ipAddress);
   }
 
   // ============================================================================
@@ -117,6 +90,7 @@ export class AuthController {
   // ============================================================================
 
   @Post('login')
+  @Throttle({ short: { ttl: 60000, limit: 5 } })
   async login(
     @Body('email') email: string,
     @Body('password') password: string,
@@ -136,6 +110,7 @@ export class AuthController {
   // ============================================================================
 
   @Post('verify-email')
+  @Throttle({ short: { ttl: 60000, limit: 10 } })
   async verifyEmail(
     @Body('userId') userId: string,
     @Body('code') code: string
@@ -148,6 +123,7 @@ export class AuthController {
   // ============================================================================
 
   @Post('verify-phone')
+  @Throttle({ short: { ttl: 60000, limit: 10 } })
   async verifyPhone(
     @Body('userId') userId: string,
     @Body('phone') phone: string,
@@ -161,8 +137,43 @@ export class AuthController {
   // ============================================================================
 
   @Post('refresh')
+  @Throttle({ short: { ttl: 60000, limit: 20 } })
   async refreshToken(@Body('refreshToken') refreshToken: string) {
-    // TODO: Implement token refresh
-    return { message: 'Not implemented yet' };
+    if (!refreshToken) {
+      throw new BadRequestException('Refresh token is required');
+    }
+    return this.authService.refreshToken(refreshToken);
+  }
+
+  // ============================================================================
+  // LOGOUT (revoke all refresh tokens)
+  // ============================================================================
+
+  @Post('logout')
+  @UseGuards(JwtAuthGuard)
+  async logout(@Request() req: any) {
+    const userId = req.user?.id || req.user?.sub || req.user?.userId;
+    await this.authService.revokeAllRefreshTokens(userId);
+    return { message: 'Logged out successfully' };
+  }
+
+  // ============================================================================
+  // FORGOT PASSWORD
+  // ============================================================================
+
+  @Post('forgot-password')
+  @Throttle({ short: { ttl: 60000, limit: 3 } })
+  async forgotPassword(@Body() dto: ForgotPasswordDto) {
+    return this.authService.forgotPassword(dto.email);
+  }
+
+  // ============================================================================
+  // RESET PASSWORD
+  // ============================================================================
+
+  @Post('reset-password')
+  @Throttle({ short: { ttl: 60000, limit: 5 } })
+  async resetPassword(@Body() dto: ResetPasswordDto) {
+    return this.authService.resetPassword(dto.token, dto.newPassword);
   }
 }

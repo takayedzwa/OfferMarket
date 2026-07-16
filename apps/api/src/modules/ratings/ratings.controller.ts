@@ -15,46 +15,8 @@ import {
 import { RatingsService } from './ratings.service';
 import { CreateRatingDto } from './dto/create-rating.dto';
 import { UpdateRatingDto } from './dto/update-rating.dto';
-
-/**
- * SimpleAuthGuard - extracts userId from header
- * In production, this would be replaced with proper JWT authentication
- */
-class SimpleAuthGuard {
-  canActivate(context: any): boolean {
-    const request = context.switchToHttp().getRequest();
-    const userId = request.headers['x-user-id'];
-
-    if (!userId) {
-      throw new BadRequestException('User authentication required');
-    }
-
-    request.user = { id: userId };
-    return true;
-  }
-}
-
-/**
- * AdminAuthGuard - validates admin user
- */
-class AdminAuthGuard {
-  canActivate(context: any): boolean {
-    const request = context.switchToHttp().getRequest();
-    const userId = request.headers['x-user-id'];
-    const userRole = request.headers['x-user-role'];
-
-    if (!userId) {
-      throw new BadRequestException('User authentication required');
-    }
-
-    if (userRole !== 'ADMIN' && userRole !== 'SUPPORT') {
-      throw new BadRequestException('Admin or Support role required');
-    }
-
-    request.user = { id: userId, role: userRole };
-    return true;
-  }
-}
+import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
+import { AdminGuard } from '../../guards/admin.guard';
 
 @Controller('ratings')
 export class RatingsController {
@@ -77,7 +39,7 @@ export class RatingsController {
    * - Would work there again (boolean)
    */
   @Post()
-  @UseGuards(SimpleAuthGuard)
+  @UseGuards(JwtAuthGuard)
   async createRating(
     @Body() createRatingDto: CreateRatingDto,
     @Request() req: any
@@ -95,7 +57,7 @@ export class RatingsController {
    * Update an existing rating (only by original rater)
    */
   @Patch(':id')
-  @UseGuards(SimpleAuthGuard)
+  @UseGuards(JwtAuthGuard)
   async updateRating(
     @Param('id') ratingId: string,
     @Body() updateRatingDto: UpdateRatingDto,
@@ -151,7 +113,7 @@ export class RatingsController {
    * Get all ratings submitted by the current user
    */
   @Get('my')
-  @UseGuards(SimpleAuthGuard)
+  @UseGuards(JwtAuthGuard)
   async getMyRatings(@Request() req: any) {
     const userId = req.user.id;
     return this.ratingsService.getMyRatings(userId);
@@ -178,7 +140,7 @@ export class RatingsController {
    * Flag a rating for review (admin only)
    */
   @Post(':id/flag')
-  @UseGuards(AdminAuthGuard)
+  @UseGuards(JwtAuthGuard, AdminGuard)
   async flagRating(
     @Param('id') ratingId: string,
     @Query('userId') adminUserId: string
@@ -194,7 +156,7 @@ export class RatingsController {
    * Remove flag from a rating (admin only)
    */
   @Post(':id/unflag')
-  @UseGuards(AdminAuthGuard)
+  @UseGuards(JwtAuthGuard, AdminGuard)
   async unflagRating(@Param('id') ratingId: string) {
     return this.ratingsService.unflagRating(ratingId);
   }
@@ -204,7 +166,7 @@ export class RatingsController {
    * Toggle rating publication status (admin only)
    */
   @Patch(':id/publish')
-  @UseGuards(AdminAuthGuard)
+  @UseGuards(JwtAuthGuard, AdminGuard)
   async toggleRatingPublication(
     @Param('id') ratingId: string,
     @Body() body: { isPublished: boolean }

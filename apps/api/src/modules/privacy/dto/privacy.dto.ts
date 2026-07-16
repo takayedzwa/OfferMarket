@@ -1,5 +1,5 @@
-import { IsString, IsEnum, IsOptional, IsBoolean, IsArray, ValidateIf } from 'class-validator';
-import { ConsentType, LegalBasis, DataSubjectRequestType, ExportFormat } from '@prisma/client';
+import { IsString, IsEnum, IsOptional, IsBoolean, IsArray, ValidateIf, IsIn } from 'class-validator';
+import { ConsentType, LegalBasis, DataSubjectRequestType, ExportFormat, BreachSeverity, BreachStatus } from '@prisma/client';
 
 // ============================================================================
 // CONSENT DTOs
@@ -92,6 +92,7 @@ export class SetProcessingRestrictionDto {
 
 export class RectificationRequestDto {
   @IsString()
+  @IsIn(['email', 'phone', 'headline', 'summary', 'postalCode', 'companyName', 'website'])
   field!: string;
 
   @IsString()
@@ -118,8 +119,8 @@ export class CreateBreachNotificationDto {
   affectedDataCategories!: string[];
 
   @IsOptional()
-  @IsString()
-  severity?: string;
+  @IsEnum(BreachSeverity)
+  severity?: BreachSeverity;
 
   @IsOptional()
   @IsString()
@@ -132,8 +133,8 @@ export class CreateBreachNotificationDto {
 
 export class UpdateBreachNotificationDto {
   @IsOptional()
-  @IsString()
-  status?: string;
+  @IsEnum(BreachStatus)
+  status?: BreachStatus;
 
   @IsOptional()
   @IsString()
@@ -158,4 +159,20 @@ export class UpdateBreachNotificationDto {
   @IsOptional()
   @IsString()
   remediationSteps?: string;
+}
+
+// ============================================================================
+// AUTOMATED DECISION OBJECTION DTO (GDPR Article 22)
+// ============================================================================
+
+export class AutomatedDecisionObjectionDto {
+  @IsString()
+  decisionType!: string;
+
+  @IsString()
+  reason!: string;
+
+  @IsOptional()
+  @IsBoolean()
+  requestHumanReview?: boolean;
 }

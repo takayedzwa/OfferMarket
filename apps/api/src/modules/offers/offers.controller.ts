@@ -1,26 +1,9 @@
 import { Controller, Get, Post, Patch, Delete, Body, Param, Query, BadRequestException, UseGuards, Request } from '@nestjs/common';
+import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
 import { OffersService } from './offers.service';
 import { OfferValidationPipe } from './pipes/offer-validation.pipe';
 import { CreateOfferDto } from './dto/create-offer.dto';
 import { CounterOfferDto } from './dto/counter-offer.dto';
-
-/**
- * Simple auth guard - in production, integrate with Clerk/Auth0
- */
-class SimpleAuthGuard {
-  canActivate(context: any): boolean {
-    const request = context.switchToHttp().getRequest();
-    const userId = request.headers['x-user-id'];
-    const userRole = request.headers['x-user-role'];
-
-    if (!userId || !userRole) {
-      throw new BadRequestException('User authentication required');
-    }
-
-    request.user = { id: userId, role: userRole };
-    return true;
-  }
-}
 
 @Controller('offers')
 export class OffersController {
@@ -41,7 +24,7 @@ export class OffersController {
    * - No "competitive salary" allowed
    */
   @Post()
-  @UseGuards(SimpleAuthGuard)
+  @UseGuards(JwtAuthGuard)
   async createOffer(
     @Body(new OfferValidationPipe()) createOfferDto: any,
     @Query('employerId') employerId: string
@@ -63,7 +46,7 @@ export class OffersController {
    * View offer details (worker perspective)
    */
   @Get(':id')
-  @UseGuards(SimpleAuthGuard)
+  @UseGuards(JwtAuthGuard)
   async getOffer(
     @Param('id') id: string,
     @Request() req: any
@@ -85,7 +68,7 @@ export class OffersController {
    * - Invoice generated
    */
   @Post(':id/accept')
-  @UseGuards(SimpleAuthGuard)
+  @UseGuards(JwtAuthGuard)
   async acceptOffer(
     @Param('id') id: string,
     @Request() req: any
@@ -102,7 +85,7 @@ export class OffersController {
    * POST /offers/:id/reject
    */
   @Post(':id/reject')
-  @UseGuards(SimpleAuthGuard)
+  @UseGuards(JwtAuthGuard)
   async rejectOffer(
     @Param('id') id: string,
     @Request() req: any,
@@ -121,7 +104,7 @@ export class OffersController {
    * POST /offers/:id/shortlist
    */
   @Post(':id/shortlist')
-  @UseGuards(SimpleAuthGuard)
+  @UseGuards(JwtAuthGuard)
   async shortlistOffer(
     @Param('id') id: string,
     @Request() req: any
@@ -138,7 +121,7 @@ export class OffersController {
    * POST /offers/:id/counter
    */
   @Post(':id/counter')
-  @UseGuards(SimpleAuthGuard)
+  @UseGuards(JwtAuthGuard)
   async counterOffer(
     @Param('id') id: string,
     @Request() req: any,
@@ -156,7 +139,7 @@ export class OffersController {
    * POST /offers/:id/withdraw
    */
   @Post(':id/withdraw')
-  @UseGuards(SimpleAuthGuard)
+  @UseGuards(JwtAuthGuard)
   async withdrawOffer(
     @Param('id') id: string,
     @Query('employerId') employerId: string,
@@ -179,7 +162,7 @@ export class OffersController {
    * List offers based on user role
    */
   @Get()
-  @UseGuards(SimpleAuthGuard)
+  @UseGuards(JwtAuthGuard)
   async listOffers(
     @Query('workerId') workerId: string,
     @Query('employerId') employerId: string,
@@ -204,7 +187,7 @@ export class OffersController {
    * List offers for the authenticated worker
    */
   @Get('worker/me')
-  @UseGuards(SimpleAuthGuard)
+  @UseGuards(JwtAuthGuard)
   async listOffersForWorkerMe(
     @Request() req: any,
     @Query('status') status?: string
@@ -220,7 +203,7 @@ export class OffersController {
    * View offer details (employer perspective)
    */
   @Get(':id/detail')
-  @UseGuards(SimpleAuthGuard)
+  @UseGuards(JwtAuthGuard)
   async getOfferDetail(
     @Param('id') id: string,
     @Query('employerId') employerId: string
@@ -238,7 +221,7 @@ export class OffersController {
    * Update an offer (employer only - creates new version)
    */
   @Patch(':id')
-  @UseGuards(SimpleAuthGuard)
+  @UseGuards(JwtAuthGuard)
   async updateOffer(
     @Param('id') id: string,
     @Query('employerId') employerId: string,
@@ -257,7 +240,7 @@ export class OffersController {
    * Submit a DRAFT offer to the worker (employer only)
    */
   @Post(':id/submit')
-  @UseGuards(SimpleAuthGuard)
+  @UseGuards(JwtAuthGuard)
   async submitOffer(
     @Param('id') id: string,
     @Query('employerId') employerId: string

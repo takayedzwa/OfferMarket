@@ -105,10 +105,10 @@ describe('SecurityHeadersMiddleware', () => {
 
   it('should set all expected headers (total count)', () => {
     middleware.use(mockRequest as Request, mockResponse as Response, mockNext);
-    // 10 headers: X-Content-Type-Options, X-Frame-Options, X-XSS-Protection,
+    // 11 headers: X-Content-Type-Options, X-Frame-Options, X-XSS-Protection,
     // Referrer-Policy, Strict-Transport-Security, Permissions-Policy,
-    // Content-Security-Policy, Cross-Origin-Opener-Policy,
+    // X-CSP-Nonce, Content-Security-Policy, Cross-Origin-Opener-Policy,
     // Cross-Origin-Resource-Policy, Cross-Origin-Embedder-Policy
-    expect(mockResponse.setHeader).toHaveBeenCalledTimes(10);
+    expect(mockResponse.setHeader).toHaveBeenCalledTimes(11);
   });
 });

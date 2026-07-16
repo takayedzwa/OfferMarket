@@ -9,7 +9,7 @@ import { Request, Response, NextFunction } from 'express';
  * - X-Frame-Options: Prevents clickjacking
  * - X-XSS-Protection: Enables browser XSS filter
  * - Referrer-Policy: Limits referrer data leakage
- * - Content-Security-Policy: Prevents injection attacks
+ * - Content-Security-Policy: Prevents injection attacks (nonce-based)
  * - Strict-Transport-Security: Forces HTTPS
  * - Permissions-Policy: Restricts browser features
  *
@@ -46,18 +46,29 @@ export class SecurityHeadersMiddleware implements NestMiddleware {
       'camera=(), microphone=(), geolocation=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=()',
     );
 
+    // Generate a nonce for this request to use in CSP and inline scripts
+    const nonce = Buffer.from(require('crypto').randomBytes(16)).toString('base64');
+
+    // Make the nonce available to the frontend via a response header
+    // The frontend can read this and add it to inline script/style tags
+    res.setHeader('X-CSP-Nonce', nonce);
+
     // Content Security Policy — restrict resource loading to prevent XSS
-    // Allows scripts from self and inline styles, blocks everything else by default
+    // Uses nonce-based CSP instead of unsafe-inline/unsafe-eval where possible.
+    // NOTE: 'unsafe-eval' is still required for Next.js runtime chunks.
+    // In production, consider moving all inline scripts to external files
+    // to remove 'unsafe-eval' entirely.
     res.setHeader(
       'Content-Security-Policy',
       [
         "default-src 'self'",
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval'", // unsafe-inline/eval needed for some frameworks
+        `script-src 'self' 'nonce-${nonce}' 'unsafe-eval' https://eu.posthog.com https://*.posthog.com`,
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
         "font-src 'self' https://fonts.gstatic.com",
         "img-src 'self' data: https:",
         "connect-src 'self' https://*.posthog.com wss://*.posthog.com https://api.stripe.com",
-        "frame-ancestors 'none'", // Equivalent to X-Frame-Options: DENY
+        "object-src 'none'",
+        "frame-ancestors 'none'",
         "form-action 'self'",
         "base-uri 'self'",
       ].join('; '),

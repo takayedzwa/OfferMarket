@@ -9,11 +9,11 @@ global.fetch = mockFetch;
 
 // Mock localStorage
 const localStorageMock = (() => {
-  let store: Record<string, string> = {};
+  let store = {};
   return {
-    getItem: jest.fn((key: string) => store[key] ?? null),
-    setItem: jest.fn((key: string, value: string) => { store[key] = value; }),
-    removeItem: jest.fn((key: string) => { delete store[key]; }),
+    getItem: jest.fn((key) => store[key] ?? null),
+    setItem: jest.fn((key, value) => { store[key] = value; }),
+    removeItem: jest.fn((key) => { delete store[key]; }),
     clear: jest.fn(() => { store = {}; }),
   };
 })();
@@ -45,14 +45,23 @@ describe('DeletionCard', () => {
     });
 
     it('should POST to /privacy/request/erasure with reason', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          id: 'del-1',
-          status: 'PENDING',
-          scheduledDeletionAt: '2026-08-10T12:00:00.000Z',
-        }),
-      });
+      // Mock: request deletion returns PENDING, then confirm returns CONFIRMED
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            id: 'del-1',
+            status: 'PENDING',
+            scheduledDeletionAt: '2026-08-10T12:00:00.000Z',
+          }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            id: 'del-1',
+            status: 'CONFIRMED',
+          }),
+        });
 
       render(<DeletionCard />);
       fireEvent.click(screen.getByText('Request Account Deletion'));
@@ -72,15 +81,101 @@ describe('DeletionCard', () => {
       });
     });
 
-    it('should store deletionRequestId from response for cancellation', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          id: 'del-abc-123',
-          status: 'PENDING',
-          scheduledDeletionAt: '2026-08-10T12:00:00.000Z',
-        }),
+    it('should confirm deletion request after creating it', async () => {
+      // Step 1: Request deletion (returns PENDING)
+      // Step 2: Confirm deletion (returns CONFIRMED)
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            id: 'del-confirm-1',
+            status: 'PENDING',
+            scheduledDeletionAt: '2026-08-10T12:00:00.000Z',
+          }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            id: 'del-confirm-1',
+            status: 'CONFIRMED',
+          }),
+        });
+
+      render(<DeletionCard />);
+      fireEvent.click(screen.getByText('Request Account Deletion'));
+      fireEvent.click(screen.getByText('Yes, delete my account'));
+
+      await waitFor(() => {
+        // First call: create deletion request
+        expect(mockFetch).toHaveBeenCalledWith(
+          `${API_BASE}/privacy/request/erasure`,
+          expect.objectContaining({ method: 'POST' }),
+        );
       });
+
+      await waitFor(() => {
+        // Second call: confirm deletion request
+        expect(mockFetch).toHaveBeenCalledWith(
+          `${API_BASE}/privacy/request/erasure/del-confirm-1/confirm`,
+          expect.objectContaining({ method: 'POST' }),
+        );
+      });
+    });
+
+    it('should still show grace period even if confirm call fails', async () => {
+      // Step 1: Request deletion succeeds
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            id: 'del-confirm-fail',
+            status: 'PENDING',
+            scheduledDeletionAt: '2026-08-10T12:00:00.000Z',
+          }),
+        })
+        // Step 2: Confirm call fails
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 500,
+          json: async () => ({ message: 'Internal server error' }),
+        });
+
+      // Suppress console.error for this test
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+      render(<DeletionCard />);
+      fireEvent.click(screen.getByText('Request Account Deletion'));
+      fireEvent.click(screen.getByText('Yes, delete my account'));
+
+      await waitFor(() => {
+        expect(screen.getByText(/Deletion Request Submitted/i)).toBeInTheDocument();
+      });
+
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Failed to confirm deletion request'),
+        expect.anything(),
+      );
+
+      consoleSpy.mockRestore();
+    });
+
+    it('should store deletionRequestId from response for cancellation', async () => {
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            id: 'del-abc-123',
+            status: 'PENDING',
+            scheduledDeletionAt: '2026-08-10T12:00:00.000Z',
+          }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            id: 'del-abc-123',
+            status: 'CONFIRMED',
+          }),
+        });
 
       render(<DeletionCard />);
       fireEvent.click(screen.getByText('Request Account Deletion'));
@@ -107,14 +202,22 @@ describe('DeletionCard', () => {
     });
 
     it('should display scheduled deletion date from API response', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          id: 'del-1',
-          status: 'PENDING',
-          scheduledDeletionAt: '2026-08-10T12:00:00.000Z',
-        }),
-      });
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            id: 'del-1',
+            status: 'PENDING',
+            scheduledDeletionAt: '2026-08-10T12:00:00.000Z',
+          }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            id: 'del-1',
+            status: 'CONFIRMED',
+          }),
+        });
 
       render(<DeletionCard />);
       fireEvent.click(screen.getByText('Request Account Deletion'));
@@ -148,14 +251,22 @@ describe('DeletionCard', () => {
   describe('cancellation flow', () => {
     it('should POST to /privacy/request/erasure/:id/cancel', async () => {
       // Step 1: Request deletion
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          id: 'del-cancel-1',
-          status: 'PENDING',
-          scheduledDeletionAt: '2026-08-10T12:00:00.000Z',
-        }),
-      });
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            id: 'del-cancel-1',
+            status: 'PENDING',
+            scheduledDeletionAt: '2026-08-10T12:00:00.000Z',
+          }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            id: 'del-cancel-1',
+            status: 'CONFIRMED',
+          }),
+        });
 
       render(<DeletionCard />);
       fireEvent.click(screen.getByText('Request Account Deletion'));
@@ -182,14 +293,22 @@ describe('DeletionCard', () => {
     });
 
     it('should show "Deletion Cancelled" state after successful cancel', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          id: 'del-1',
-          status: 'PENDING',
-          scheduledDeletionAt: '2026-08-10T12:00:00.000Z',
-        }),
-      });
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            id: 'del-1',
+            status: 'PENDING',
+            scheduledDeletionAt: '2026-08-10T12:00:00.000Z',
+          }),
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({
+            id: 'del-1',
+            status: 'CONFIRMED',
+          }),
+        });
 
       render(<DeletionCard />);
       fireEvent.click(screen.getByText('Request Account Deletion'));

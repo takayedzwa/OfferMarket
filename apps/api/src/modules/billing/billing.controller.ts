@@ -2,21 +2,8 @@ import { Controller, Get, Post, Patch, Param, Query, Body, Request, UseGuards } 
 import { BillingService } from './billing.service';
 import { ListInvoicesQueryDto, AdminListInvoicesQueryDto } from './dto/list-invoices-query.dto';
 import { MarkInvoicePaidDto } from './dto/mark-invoice-paid.dto';
+import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
 import { AdminGuard } from '../../guards/admin.guard';
-
-// Simple auth guard (consistent with existing controllers)
-class SimpleAuthGuard {
-  canActivate(context: any): boolean {
-    const request = context.switchToHttp().getRequest();
-    const userId = request.headers['x-user-id'];
-    const userRole = request.headers['x-user-role'];
-    if (!userId || !userRole) {
-      return false;
-    }
-    request.user = { id: userId, role: userRole };
-    return true;
-  }
-}
 
 @Controller('billing')
 export class BillingController {
@@ -27,7 +14,7 @@ export class BillingController {
   // ---------------------------------------------------------------------------
 
   @Get('invoices')
-  @UseGuards(SimpleAuthGuard)
+  @UseGuards(JwtAuthGuard)
   async getMyInvoices(
     @Request() req: any,
     @Query() query: ListInvoicesQueryDto,
@@ -42,7 +29,7 @@ export class BillingController {
   }
 
   @Get('invoices/summary')
-  @UseGuards(SimpleAuthGuard)
+  @UseGuards(JwtAuthGuard)
   async getMyInvoiceSummary(@Request() req: any) {
     const employer = await this.billingService.getEmployerByUserId(req.user.id);
     if (!employer) {
@@ -53,7 +40,7 @@ export class BillingController {
   }
 
   @Get('invoices/:id')
-  @UseGuards(SimpleAuthGuard)
+  @UseGuards(JwtAuthGuard)
   async getInvoiceDetail(@Param('id') id: string, @Request() req: any) {
     const employer = await this.billingService.getEmployerByUserId(req.user.id);
     const employerId = employer?.id;
@@ -65,19 +52,19 @@ export class BillingController {
   // ---------------------------------------------------------------------------
 
   @Get('admin/invoices')
-  @UseGuards(AdminGuard)
+  @UseGuards(JwtAuthGuard, AdminGuard)
   async adminGetInvoices(@Query() query: AdminListInvoicesQueryDto) {
     return this.billingService.adminGetInvoices(query);
   }
 
   @Get('admin/invoices/:id')
-  @UseGuards(AdminGuard)
+  @UseGuards(JwtAuthGuard, AdminGuard)
   async adminGetInvoiceDetail(@Param('id') id: string) {
     return this.billingService.getInvoiceDetail(id);
   }
 
   @Post('admin/invoices/:id/mark-paid')
-  @UseGuards(AdminGuard)
+  @UseGuards(JwtAuthGuard, AdminGuard)
   async markInvoicePaid(
     @Param('id') id: string,
     @Body() dto: MarkInvoicePaidDto,
@@ -87,7 +74,7 @@ export class BillingController {
   }
 
   @Post('admin/invoices/:id/cancel')
-  @UseGuards(AdminGuard)
+  @UseGuards(JwtAuthGuard, AdminGuard)
   async cancelInvoice(
     @Param('id') id: string,
     @Body() body: { reason?: string },
@@ -97,26 +84,26 @@ export class BillingController {
   }
 
   @Post('admin/check-overdue')
-  @UseGuards(AdminGuard)
+  @UseGuards(JwtAuthGuard, AdminGuard)
   async checkOverdue() {
     const count = await this.billingService.checkOverdueInvoices();
     return { overdueCount: count };
   }
 
   @Get('admin/stats')
-  @UseGuards(AdminGuard)
+  @UseGuards(JwtAuthGuard, AdminGuard)
   async getBillingStats() {
     return this.billingService.getBillingStats();
   }
 
   @Get('admin/settings')
-  @UseGuards(AdminGuard)
+  @UseGuards(JwtAuthGuard, AdminGuard)
   async getBillingSettings() {
     return this.billingService.getBillingSettings();
   }
 
   @Patch('admin/settings')
-  @UseGuards(AdminGuard)
+  @UseGuards(JwtAuthGuard, AdminGuard)
   async updateBillingSetting(
     @Body() body: { key: string; value: any },
     @Request() req: any,

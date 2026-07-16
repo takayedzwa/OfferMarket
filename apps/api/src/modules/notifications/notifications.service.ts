@@ -14,6 +14,7 @@ import {
   MessageReceivedPayload,
   InvoiceCreatedPayload,
   InvoiceOverduePayload,
+  BreachNotificationPayload,
 } from './notification.types';
 
 // ============================================================================
@@ -53,6 +54,7 @@ export class NotificationsService {
     this.eventEmitter.on(NotificationEventType.MESSAGE_RECEIVED, this.handleMessageReceived.bind(this));
     this.eventEmitter.on(NotificationEventType.INVOICE_CREATED, this.handleInvoiceCreated.bind(this));
     this.eventEmitter.on(NotificationEventType.INVOICE_OVERDUE, this.handleInvoiceOverdue.bind(this));
+    this.eventEmitter.on(NotificationEventType.BREACH_NOTIFICATION, this.handleBreachNotification.bind(this));
   }
 
   // ============================================================================
@@ -363,5 +365,23 @@ export class NotificationsService {
 
     this.logger.log(`Deleted ${result.count} old notifications (older than ${olderThanDays} days)`);
     return result;
+  }
+
+  // ============================================================================
+  // BREACH NOTIFICATION HANDLER
+  // ============================================================================
+
+  private async handleBreachNotification(payload: BreachNotificationPayload) {
+    await this.createAndDeliver({
+      userId: payload.recipientUserId,
+      notificationType: NotificationEventType.BREACH_NOTIFICATION,
+      category: 'privacy',
+      title: `Data Breach Notification: ${payload.breachTitle}`,
+      body: `A data breach has been reported: "${payload.breachTitle}". Severity: ${payload.severity}. Please check the privacy dashboard for details.`,
+      actionUrl: `/privacy/dashboard`,
+      channelEmail: true,
+      channelPush: true,
+      channelSms: false,
+    });
   }
 }

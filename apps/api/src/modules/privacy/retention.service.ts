@@ -1,6 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../../prisma/prisma.service';
+import { BreachStatus, BreachSeverity, ConsentStatus, DeletionStatus, Prisma } from '@prisma/client';
+import { NotificationEventType } from '../notifications/notification.types';
 
 /**
  * RETENTION SERVICE
@@ -13,7 +16,10 @@ import { PrismaService } from '../../prisma/prisma.service';
 export class RetentionService {
   private readonly logger = new Logger(RetentionService.name);
 
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private eventEmitter: EventEmitter2,
+  ) {}
 
   // ============================================================================
   // SCHEDULED TASKS
@@ -142,79 +148,151 @@ export class RetentionService {
 
   /**
    * Perform the actual user data deletion/anonymization.
+   * This is the single authoritative method for GDPR Art. 17 erasure.
    * Retains data that must be kept by law (invoices, KvK, audit logs).
+   *
+   * Called by:
+   *  - RetentionService.executeScheduledDeletions() (cron-triggered)
+   *  - PrivacyService.executeDeletion() (user-initiated)
    */
-  private async executeUserDeletion(userId: string, deletionRequestId: string): Promise<void> {
+  async executeUserDeletion(userId: string, deletionRequestId: string): Promise<void> {
     await this.prisma.$transaction(async (tx) => {
-      // 1. Anonymize user record
-      const anonymousEmail = `deleted-${userId}@offermarket.nl`;
+      // 1. Anonymize user record — merge both previous implementations
+      const anonymizedEmail = `deleted-${userId}@offermarket.nl`;
       await tx.user.update({
         where: { id: userId },
         data: {
-          email: anonymousEmail,
-          passwordHash: '$DELETED$' + Math.random().toString(36).slice(2, 15),
+          email: anonymizedEmail,
+          passwordHash: '$2b$10$deletedAccountHashPlaceholderXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX',
           phone: null,
           lastLoginIp: null,
+          twoFactorSecret: null,
           emailVerified: false,
           phoneVerified: false,
+          status: 'DELETED',
+          deletedAt: new Date(),
+          // Clear privacy/TOS consent fields
+          privacyPolicyVersion: null,
+          privacyPolicyAcceptedAt: null,
+          termsOfServiceVersion: null,
+          termsOfServiceAcceptedAt: null,
+          marketingConsent: false,
+          analyticsConsent: false,
         },
       });
 
-      // 2. Soft-delete worker profile if exists
+      // 2. Anonymize worker profile if exists
       const worker = await tx.worker.findFirst({ where: { userId } });
       if (worker) {
         await tx.worker.update({
           where: { id: worker.id },
           data: {
+            summary: null,
+            headline: null,
+            postalCode: null,
+            workAuthorization: null,
+            immigrationConsentGiven: false,
+            immigrationConsentAt: null,
+            profileVisibility: 'HIDDEN',
             deletedAt: new Date(),
           },
         });
+
+        // 2a. Delete BlockedCompany records for this worker
+        await tx.blockedCompany.deleteMany({
+          where: { workerId: worker.id },
+        });
       }
 
-      // 3. Anonymize employer profile personal contact info if exists
+      // 3. Anonymize employer profile PII if exists (keep KvK for legal obligation)
       const employer = await tx.employer.findFirst({ where: { userId } });
       if (employer) {
         await tx.employer.update({
           where: { id: employer.id },
           data: {
-            // Keep KvK number (legal obligation) and billing email
-            // Remove personal contact info
             phone: null,
+            billingEmail: null,
+            website: null,
+            deletedAt: new Date(),
           },
         });
       }
 
-      // 4. Delete all notifications
+      // 4. Redact messages sent by the deleted user
+      //    Content is replaced with "[Deleted]" but the message record is preserved
+      //    so the other party's conversation history remains intact.
+      await tx.message.updateMany({
+        where: { senderId: userId },
+        data: {
+          content: '[Deleted]',
+          contentEncrypted: null,
+        },
+      });
+
+      // 5. Redact conversation metadata that may contain PII
+      //    Null out lastMessagePreview and workerIdentitySnapshot for conversations
+      //    where the deleted user is a participant.
+      const conversationsAsP1 = await tx.conversation.findMany({
+        where: { participant1Id: userId },
+        select: { id: true },
+      });
+      const conversationsAsP2 = await tx.conversation.findMany({
+        where: { participant2Id: userId },
+        select: { id: true },
+      });
+      const conversationIds = [
+        ...conversationsAsP1.map(c => c.id),
+        ...conversationsAsP2.map(c => c.id),
+      ];
+      if (conversationIds.length > 0) {
+        await tx.conversation.updateMany({
+          where: { id: { in: conversationIds } },
+          data: {
+            lastMessagePreview: null,
+            workerIdentitySnapshot: Prisma.DbNull,
+          },
+        });
+      }
+
+      // 6. Delete all notifications for the user
       await tx.notification.deleteMany({
         where: { userId },
       });
 
-      // 5. Mark all consents as withdrawn (keep record for audit)
+      // 7. Withdraw all consents (keep records for audit trail)
       await tx.consent.updateMany({
-        where: { userId },
-        data: { withdrawnAt: new Date() },
+        where: { userId, status: ConsentStatus.GIVEN },
+        data: {
+          status: ConsentStatus.WITHDRAWN,
+          withdrawnAt: new Date(),
+        },
       });
 
-      // 6. Delete data export requests
+      // 8. Delete data export requests (file paths already purged by retention)
       await tx.dataExportRequest.deleteMany({
         where: { userId },
       });
 
-      // 7. Mark deletion request as completed
+      // 9. Mark deletion request as completed
       await tx.dataDeletionRequest.update({
         where: { id: deletionRequestId },
         data: {
-          status: 'COMPLETED',
+          status: DeletionStatus.COMPLETED,
           completedAt: new Date(),
         },
       });
 
-      // 8. Remove GDPR flags
+      // 10. Remove GDPR flags
       await tx.userGdprFlags.deleteMany({
         where: { userId },
       });
 
-      // 9. Create audit log entry
+      // 11. Delete refresh tokens (invalidate all sessions)
+      await tx.refreshToken.deleteMany({
+        where: { userId },
+      });
+
+      // 12. Create audit log entry
       await tx.auditLog.create({
         data: {
           userId,
@@ -224,7 +302,7 @@ export class RetentionService {
           changes: {
             deletionRequestId,
             executedAt: new Date().toISOString(),
-            dataRetained: ['invoices', 'audit_logs', 'consent_records', 'kvk_number'],
+            dataRetained: ['invoices', 'audit_logs', 'consent_records', 'kvk_number', 'ratings_anonymized', 'messages_redacted'],
           },
         },
       });
@@ -369,6 +447,7 @@ export class RetentionService {
     documentsPurged: number;
     ipsAnonymized: number;
     messagesAnonymized: number;
+    breachDeadlinesChecked: number;
   }> {
     return {
       notificationsDeleted: await this.purgeOldNotifications(),
@@ -377,6 +456,141 @@ export class RetentionService {
       documentsPurged: await this.purgeOldVerificationDocuments(),
       ipsAnonymized: await this.anonymizeOldIpAddresses(),
       messagesAnonymized: await this.anonymizeOldMessages(),
+      breachDeadlinesChecked: await this.checkBreachDeadlines(),
     };
+  }
+
+  // ============================================================================
+  // GDPR ART. 33-34: BREACH NOTIFICATION DEADLINE ENFORCEMENT
+  // ============================================================================
+
+  /**
+   * Check for data breaches that have exceeded the 72-hour notification deadline
+   * without being reported to the supervisory authority (Art. 33) or affected
+   * data subjects (Art. 34).
+   *
+   * This runs daily as part of the retention schedule. It flags overdue breaches
+   * and creates audit log entries for compliance tracking.
+   */
+  @Cron('0 4 * * *') // Run at 4:00 AM UTC, after the 3:00 AM retention tasks
+  async checkBreachDeadlines(): Promise<number> {
+    this.logger.log('Checking data breach notification deadlines (GDPR Art. 33/34)...');
+
+    const seventyTwoHoursAgo = new Date(Date.now() - 72 * 60 * 60 * 1000);
+
+    // Find breaches still in INVESTIGATING or CONTAINED status past 72 hours
+    // that haven't been reported to the authority yet
+    const overdueBreachToAuthority = await this.prisma.dataBreach.findMany({
+      where: {
+        status: { in: [BreachStatus.INVESTIGATING, BreachStatus.CONTAINED] },
+        reportedToAuthorityAt: null,
+        discoveredAt: { lte: seventyTwoHoursAgo },
+      },
+    });
+
+    // Find breaches reported to authority but not yet to affected users
+    // (Art. 34 requires notification without undue delay when high risk)
+    const overdueBreachToUsers = await this.prisma.dataBreach.findMany({
+      where: {
+        status: { in: [BreachStatus.REPORTED_AUTHORITY] },
+        reportedToUsersAt: null,
+        severity: { in: [BreachSeverity.HIGH, BreachSeverity.CRITICAL] },
+        discoveredAt: { lte: seventyTwoHoursAgo },
+      },
+    });
+
+    let flaggedCount = 0;
+
+    for (const breach of overdueBreachToAuthority) {
+      this.logger.warn(
+        `BREACH DEADLINE EXCEEDED: Breach "${breach.title}" (${breach.id}) ` +
+        `discovered at ${breach.discoveredAt.toISOString()} has NOT been reported ` +
+        `to the supervisory authority within 72 hours. ` +
+        `This is a GDPR Art. 33 violation.`
+      );
+
+      // Create an audit log entry for compliance tracking
+      await this.prisma.auditLog.create({
+        data: {
+          action: 'BREACH_72H_DEADLINE_EXCEEDED',
+          entityType: 'data_breach',
+          entityId: breach.id,
+          legalBasis: 'GDPR_ARTICLE_33',
+          changes: {
+            breachId: breach.id,
+            title: breach.title,
+            discoveredAt: breach.discoveredAt.toISOString(),
+            hoursSinceDiscovery: Math.round(
+              (Date.now() - breach.discoveredAt.getTime()) / (1000 * 60 * 60)
+            ),
+            authorityNotified: false,
+          },
+        },
+      });
+
+      flaggedCount++;
+    }
+
+    for (const breach of overdueBreachToUsers) {
+      this.logger.warn(
+        `BREACH USER NOTIFICATION OVERDUE: Breach "${breach.title}" (${breach.id}) ` +
+        `reported to authority but affected users have NOT been notified. ` +
+        `Severity: ${breach.severity}. This may be a GDPR Art. 34 violation.`
+      );
+
+      await this.prisma.auditLog.create({
+        data: {
+          action: 'BREACH_USER_NOTIFICATION_OVERDUE',
+          entityType: 'data_breach',
+          entityId: breach.id,
+          legalBasis: 'GDPR_ARTICLE_34',
+          changes: {
+            breachId: breach.id,
+            title: breach.title,
+            discoveredAt: breach.discoveredAt.toISOString(),
+            severity: breach.severity,
+            usersNotified: false,
+          },
+        },
+      });
+
+      // Transition breach to NOTIFIED_USERS status so the user-facing endpoint returns it
+      await this.prisma.dataBreach.update({
+        where: { id: breach.id },
+        data: {
+          status: BreachStatus.NOTIFIED_USERS,
+          reportedToUsersAt: new Date(),
+        },
+      });
+
+      // Notify all users about the high/critical severity breach
+      // For breaches affecting all users, we notify up to the estimated count
+      const affectedUserCount = breach.estimatedAffectedUsers || 100;
+      const users = await this.prisma.user.findMany({
+        where: { status: 'ACTIVE' },
+        select: { id: true },
+        take: Math.min(affectedUserCount, 1000), // Cap at 1000 notifications per check
+      });
+
+      for (const user of users) {
+        this.eventEmitter.emit(NotificationEventType.BREACH_NOTIFICATION, {
+          recipientUserId: user.id,
+          breachId: breach.id,
+          breachTitle: breach.title,
+          severity: breach.severity,
+          actionUrl: `/privacy/dashboard`,
+        });
+      }
+
+      flaggedCount++;
+    }
+
+    if (flaggedCount > 0) {
+      this.logger.warn(`Breach deadline check complete: ${flaggedCount} overdue breach(es) flagged.`);
+    } else {
+      this.logger.log('Breach deadline check complete: no overdue breaches found.');
+    }
+
+    return flaggedCount;
   }
 }

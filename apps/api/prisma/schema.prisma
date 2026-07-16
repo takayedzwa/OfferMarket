@@ -58,9 +58,44 @@ model User {
   dsaComplaintsFiled      DSAComplaint[]        @relation("UserDSAComplaintsFiled")
   dsaComplaintsAssigned   DSAComplaint[]        @relation("UserDSAComplaintsAssigned")
   noticeMisuseRecords     NoticeMisuseRecord[]  @relation("UserNoticeMisuseRecords")
+  refreshTokens          RefreshToken[]
+  passwordResetTokens    PasswordResetToken[]
 
   @@index([email])
   @@index([role])
+}
+
+// Refresh token tracking for token rotation and reuse detection
+model RefreshToken {
+  id          String    @id @default(uuid())
+  userId      String
+  tokenHash   String    @unique                    // SHA-256 hash of the refresh token
+  familyId    String                               // Token family: all rotated tokens share a family
+  isRevoked   Boolean   @default(false)            // Marked true when used/rotated away
+  expiresAt   DateTime
+  createdAt   DateTime  @default(now())
+
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([tokenHash])
+  @@index([familyId])
+}
+
+// Password reset token for forgot-password flow
+model PasswordResetToken {
+  id        String    @id @default(uuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tokenHash])
+  @@index([userId])
+  @@index([expiresAt])
 }
 
 model Worker {
@@ -1202,20 +1237,22 @@ model UserGdprFlags {
 }
 
 model DataSubjectRequest {
-  id              String                   @id @default(uuid())
-  userId          String
-  requestType     DataSubjectRequestType
-  status          DataSubjectRequestStatus @default(PENDING)
-  description     String? // User-provided description
-  adminNotes      String? // Internal notes
-  processedBy     String? // Admin who processed it
-  processedAt     DateTime?
-  completedAt     DateTime?
-  resultData      Json? // For access requests: export location
-  rejectionReason String?
-  dueDate         DateTime // GDPR 30-day deadline
-  createdAt       DateTime                 @default(now())
-  updatedAt       DateTime                 @updatedAt
+  id                   String                   @id @default(uuid())
+  userId               String
+  requestType          DataSubjectRequestType
+  status               DataSubjectRequestStatus @default(PENDING)
+  description          String? // User-provided description
+  rectificationField   String?                 @map("rectification_field") // Art. 16: which field to correct
+  rectificationValue   String?                 @map("rectification_value") // Art. 16: the corrected value
+  adminNotes           String? // Internal notes
+  processedBy          String? // Admin who processed it
+  processedAt          DateTime?
+  completedAt          DateTime?
+  resultData           Json? // For access requests: export location
+  rejectionReason      String?
+  dueDate              DateTime // GDPR 30-day deadline
+  createdAt            DateTime                 @default(now())
+  updatedAt            DateTime                 @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -1232,6 +1269,7 @@ enum DataSubjectRequestType {
   RESTRICT // Article 18
   PORTABILITY // Article 20
   OBJECT // Article 21
+  AUTOMATED_DECISION // Article 22
   WITHDRAW_CONSENT // Article 7(3)
 }
 
@@ -1251,6 +1289,7 @@ model DataExportRequest {
   format         ExportFormat @default(JSON)
   filePath       String? // S3 path when complete
   fileSize       Int? // In bytes
+  snapshotData   Json? // Stored export data snapshot (Art. 15/20: data as it existed at request time)
   dataCategories String[] // Which categories to include
   completedAt    DateTime?
   expiresAt      DateTime? // Download link expiration (48 hours)

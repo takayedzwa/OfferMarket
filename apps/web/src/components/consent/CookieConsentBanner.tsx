@@ -40,7 +40,7 @@ export default function CookieConsentBanner() {
           setVisible(true);
         } else {
           setConsent(parsed.consent);
-          syncConsentToApi(parsed.consent);
+          syncConsentToApi(parsed.consent); // No previous state on initial load — only sync grants
         }
       } catch {
         setVisible(true);
@@ -68,28 +68,30 @@ export default function CookieConsentBanner() {
   }, []);
 
   const handleAcceptAll = () => {
+    const previousConsent = consent;
     const allAccepted: ConsentState = {
       functional: true,
       analytics: true,
       marketing: true,
     };
-    saveConsent(allAccepted);
+    saveConsent(allAccepted, previousConsent);
   };
 
   const handleRejectAll = () => {
+    const previousConsent = consent;
     const onlyFunctional: ConsentState = {
       functional: true,
       analytics: false,
       marketing: false,
     };
-    saveConsent(onlyFunctional);
+    saveConsent(onlyFunctional, previousConsent);
   };
 
   const handleSavePreferences = () => {
-    saveConsent(consent);
+    saveConsent(consent, consent);
   };
 
-  const saveConsent = (state: ConsentState) => {
+  const saveConsent = (state: ConsentState, previousState?: ConsentState) => {
     localStorage.setItem(CONSENT_KEY, JSON.stringify({
       version: CONSENT_VERSION,
       consent: state,
@@ -97,17 +99,15 @@ export default function CookieConsentBanner() {
     }));
     setConsent(state);
     setVisible(false);
-    syncConsentToApi(state);
+    syncConsentToApi(state, previousState);
 
-    // Control analytics tracking
-    if (state.analytics && typeof window !== 'undefined' && (window as any).posthog) {
-      (window as any).posthog.opt_in_capturing();
-    } else if (typeof window !== 'undefined' && (window as any).posthog) {
-      (window as any).posthog.opt_out_capturing();
-    }
+    // Notify PostHogProvider and other listeners of consent change
+    window.dispatchEvent(new CustomEvent('consent:change', {
+      detail: { analytics: state.analytics, marketing: state.marketing },
+    }));
   };
 
-  const syncConsentToApi = async (state: ConsentState) => {
+  const syncConsentToApi = async (state: ConsentState, previousState?: ConsentState) => {
     try {
       const token = localStorage.getItem('accessToken');
       const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
@@ -126,6 +126,8 @@ export default function CookieConsentBanner() {
         headers.Authorization = `Bearer ${token}`;
       }
 
+      // Sync analytics consent — record both grants and withdrawals
+      // for a complete audit trail (GDPR Art. 7(3) + Telecommunicatiewet)
       if (state.analytics) {
         await fetch(endpoint, {
           method: 'POST',
@@ -137,8 +139,21 @@ export default function CookieConsentBanner() {
             granted: true,
           }),
         });
+      } else if (previousState?.analytics) {
+        // Analytics was previously granted and now withdrawn — record withdrawal
+        await fetch(endpoint, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            consentType: 'COOKIE_ANALYTICS',
+            legalBasis: 'CONSENT',
+            version: CONSENT_VERSION,
+            granted: false,
+          }),
+        });
       }
 
+      // Sync marketing consent — record both grants and withdrawals
       if (state.marketing) {
         await fetch(endpoint, {
           method: 'POST',
@@ -148,6 +163,18 @@ export default function CookieConsentBanner() {
             legalBasis: 'CONSENT',
             version: CONSENT_VERSION,
             granted: true,
+          }),
+        });
+      } else if (previousState?.marketing) {
+        // Marketing was previously granted and now withdrawn — record withdrawal
+        await fetch(endpoint, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            consentType: 'COOKIE_MARKETING',
+            legalBasis: 'CONSENT',
+            version: CONSENT_VERSION,
+            granted: false,
           }),
         });
       }
@@ -170,21 +197,22 @@ export default function CookieConsentBanner() {
               </h3>
               <p className="mt-1 text-sm text-gray-600">
                 We use cookies to enhance your experience. Functional cookies are essential for the site to work.
-                Analytics and marketing cookies are optional and require your consent.
+                Analytics and marketing cookies are optional and require your consent.{' '}
+                <a href="/privacy" className="text-blue-600 underline hover:text-blue-800">Learn more in our Privacy Policy</a>.
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
               <button
-                onClick={handleAcceptAll}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700"
-              >
-                Accept All
-              </button>
-              <button
                 onClick={handleRejectAll}
-                className="px-4 py-2 text-sm font-semibold text-gray-800 bg-white border border-gray-400 rounded-lg hover:bg-gray-50"
+                className="px-4 py-2 text-sm font-semibold text-gray-900 bg-white border-2 border-gray-900 rounded-lg hover:bg-gray-50"
               >
                 Reject Optional
+              </button>
+              <button
+                onClick={handleAcceptAll}
+                className="px-4 py-2 text-sm font-semibold text-gray-900 bg-white border-2 border-gray-900 rounded-lg hover:bg-gray-50"
+              >
+                Accept All
               </button>
               <button
                 onClick={() => setShowDetails(true)}
@@ -243,26 +271,27 @@ export default function CookieConsentBanner() {
 
             <div className="mt-4 flex flex-wrap gap-2">
               <button
-                onClick={handleAcceptAll}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700"
-              >
-                Accept All
-              </button>
-              <button
                 onClick={handleRejectAll}
-                className="px-4 py-2 text-sm font-semibold text-gray-800 bg-white border border-gray-400 rounded-lg hover:bg-gray-50"
+                className="px-4 py-2 text-sm font-semibold text-gray-900 bg-white border-2 border-gray-900 rounded-lg hover:bg-gray-50"
               >
                 Reject Optional
               </button>
               <button
                 onClick={handleSavePreferences}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700"
+                className="px-4 py-2 text-sm font-semibold text-gray-900 bg-white border-2 border-gray-900 rounded-lg hover:bg-gray-50"
               >
                 Save Preferences
               </button>
+              <button
+                onClick={handleAcceptAll}
+                className="px-4 py-2 text-sm font-semibold text-gray-900 bg-white border-2 border-gray-900 rounded-lg hover:bg-gray-50"
+              >
+                Accept All
+              </button>
             </div>
             <p className="mt-2 text-xs text-gray-500">
-              You can change your preferences at any time via Cookie Settings.
+              You can change your preferences at any time via Cookie Settings.{' '}
+              <a href="/privacy" className="text-blue-600 underline hover:text-blue-800">Privacy Policy</a>.
             </p>
           </div>
         )}

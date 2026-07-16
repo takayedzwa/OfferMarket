@@ -30,7 +30,7 @@ interface DataSummary {
 export default function PrivacyDashboard() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
-  const [activeTab, setActiveTab] = useState<'overview' | 'consents' | 'export' | 'deletion' | 'restriction'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'consents' | 'access' | 'export' | 'restriction' | 'deletion' | 'automated-decision'>('overview');
   const [dataSummary, setDataSummary] = useState<DataSummary | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -96,8 +96,10 @@ export default function PrivacyDashboard() {
   const tabs = [
     { id: 'overview' as const, label: 'Overview', icon: '🏠' },
     { id: 'consents' as const, label: 'Consents', icon: '✅' },
-    { id: 'export' as const, label: 'Export Data', icon: '📦' },
+    { id: 'access' as const, label: 'Access Request', icon: '📋' },
+    { id: 'export' as const, label: 'Data Portability', icon: '📦' },
     { id: 'restriction' as const, label: 'Restriction', icon: '🔒' },
+    { id: 'automated-decision' as const, label: 'Automated Decisions', icon: '🤖' },
     { id: 'deletion' as const, label: 'Delete Account', icon: '🗑️' },
   ];
 
@@ -116,7 +118,7 @@ export default function PrivacyDashboard() {
         </div>
 
         {/* Rights overview cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
           <div className="bg-white rounded-lg shadow p-4">
             <div className="flex items-center gap-3">
               <span className="text-2xl">📋</span>
@@ -126,7 +128,7 @@ export default function PrivacyDashboard() {
               </div>
             </div>
             <p className="mt-2 text-xs text-gray-600">
-              Request a copy of all personal data we hold about you.
+              Request confirmation and a copy of all personal data we hold about you.
             </p>
           </div>
           <div className="bg-white rounded-lg shadow p-4">
@@ -150,7 +152,19 @@ export default function PrivacyDashboard() {
               </div>
             </div>
             <p className="mt-2 text-xs text-gray-600">
-              Export your data in a machine-readable format.
+              Export your data in a machine-readable format for transfer.
+            </p>
+          </div>
+          <div className="bg-white rounded-lg shadow p-4">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">🤖</span>
+              <div>
+                <p className="text-sm font-medium text-gray-900">Automated Decisions</p>
+                <p className="text-xs text-gray-500">Art. 22 AVG</p>
+              </div>
+            </div>
+            <p className="mt-2 text-xs text-gray-600">
+              Object to decisions made solely by automated means and request human review.
             </p>
           </div>
         </div>
@@ -280,8 +294,187 @@ export default function PrivacyDashboard() {
         )}
 
         {activeTab === 'consents' && <ConsentCard />}
+
+        {activeTab === 'access' && (
+          <div className="bg-white shadow rounded-lg p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-2">Right of Access (Art. 15 AVG)</h2>
+            <p className="text-sm text-gray-600 mb-4">
+              Under Article 15 of the AVG, you have the right to obtain confirmation as to whether
+              personal data concerning you is being processed, and access to that data along with
+              information about the purposes, categories, recipients, retention periods, and your rights.
+            </p>
+            <p className="text-sm text-gray-600 mb-4">
+              This is different from Data Portability (Art. 20), which allows you to receive your data
+              in a machine-readable format for transfer to another controller. Use this tab to submit
+              a formal access request; use the &ldquo;Data Portability&rdquo; tab for data export.
+            </p>
+
+            <div className="border border-gray-200 rounded-lg p-4 mb-4">
+              <h3 className="text-sm font-medium text-gray-900 mb-2">What you&apos;ll receive</h3>
+              <ul className="text-sm text-gray-600 space-y-1 list-disc pl-5">
+                <li>Confirmation that your data is being processed</li>
+                <li>A complete copy of all personal data we hold about you</li>
+                <li>The purposes of processing</li>
+                <li>The categories of data concerned</li>
+                <li>Recipients or categories of recipients</li>
+                <li>Retention periods or criteria</li>
+                <li>Information about your rights (rectification, erasure, restriction, objection)</li>
+                <li>Information about the source of the data (if not collected from you directly)</li>
+                <li>Information about automated decision-making, including profiling</li>
+              </ul>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={async () => {
+                  try {
+                    const token = localStorage.getItem('accessToken');
+                    const res = await fetch(`${API_BASE}/privacy/request/access`, {
+                      method: 'POST',
+                      headers: getAuthHeaders(),
+                    });
+                    if (res.ok) {
+                      alert('Your access request has been submitted. We will respond within 30 days as required by the AVG.');
+                    } else {
+                      alert('You may already have a pending access request.');
+                    }
+                  } catch {
+                    alert('Unable to submit access request. Please try again later.');
+                  }
+                }}
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700"
+              >
+                Submit Access Request
+              </button>
+              <button
+                onClick={() => setActiveTab('export')}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+              >
+                I want Data Portability instead →
+              </button>
+            </div>
+
+            <p className="mt-4 text-xs text-gray-500">
+              We will respond to your request within 30 days. In complex cases, this may be extended
+              by a further 60 days, in which case we will inform you of the delay and the reasons.
+            </p>
+          </div>
+        )}
+
         {activeTab === 'export' && <DataExportCard />}
         {activeTab === 'restriction' && <RestrictionToggle />}
+        {activeTab === 'automated-decision' && (
+          <div className="bg-white shadow rounded-lg p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-2">Automated Decision-Making (Art. 22 AVG)</h2>
+            <p className="text-sm text-gray-600 mb-4">
+              Under Article 22 of the AVG, you have the right not to be subject to a decision based
+              solely on automated processing — including profiling — that produces legal effects or
+              similarly significantly affects you. You can object to such decisions and request
+              human review.
+            </p>
+
+            <div className="border border-gray-200 rounded-lg p-4 mb-4 bg-gray-50">
+              <h3 className="text-sm font-medium text-gray-900 mb-2">Examples of automated decisions</h3>
+              <ul className="text-sm text-gray-600 space-y-1 list-disc pl-5">
+                <li>Automated rejection of job applications or offers</li>
+                <li>Algorithmic profile scoring that affects your visibility to employers</li>
+                <li>Automated fraud detection that restricts your account</li>
+                <li>Automated trust or risk scores that limit your access</li>
+              </ul>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Type of automated decision *
+                </label>
+                <select
+                  id="decisionType"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
+                >
+                  <option value="">Select a decision type...</option>
+                  <option value="profile_scoring">Profile visibility/scoring</option>
+                  <option value="offer_matching">Automated offer matching/rejection</option>
+                  <option value="trust_risk_scoring">Trust/risk score affecting access</option>
+                  <option value="account_restriction">Automated account restriction</option>
+                  <option value="fraud_detection">Automated fraud detection</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Why do you believe this decision was made solely by automated means? *
+                </label>
+                <textarea
+                  id="decisionReason"
+                  rows={4}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-sm"
+                  placeholder="Describe the decision and why you believe it was made without human intervention..."
+                />
+              </div>
+
+              <div className="flex items-start gap-2">
+                <input
+                  type="checkbox"
+                  id="requestHumanReview"
+                  defaultChecked
+                  className="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600"
+                />
+                <label htmlFor="requestHumanReview" className="text-sm text-gray-700">
+                  I request human review of this decision (recommended)
+                </label>
+              </div>
+
+              <button
+                onClick={async () => {
+                  const decisionType = (document.getElementById('decisionType') as HTMLSelectElement)?.value;
+                  const reason = (document.getElementById('decisionReason') as HTMLTextAreaElement)?.value;
+                  const requestHumanReview = (document.getElementById('requestHumanReview') as HTMLInputElement)?.checked;
+
+                  if (!decisionType) {
+                    alert('Please select a decision type.');
+                    return;
+                  }
+                  if (!reason?.trim()) {
+                    alert('Please describe why you believe this decision was automated.');
+                    return;
+                  }
+
+                  try {
+                    const token = localStorage.getItem('accessToken');
+                    const res = await fetch(`${API_BASE}/privacy/request/automated-decision`, {
+                      method: 'POST',
+                      headers: getAuthHeaders(),
+                      body: JSON.stringify({
+                        decisionType,
+                        reason: reason.trim(),
+                        requestHumanReview,
+                      }),
+                    });
+                    if (res.ok) {
+                      const data = await res.json();
+                      alert('Your objection to the automated decision has been submitted. ' + (data.message || 'Processing of this type of decision has been paused pending human review.'));
+                    } else {
+                      alert('Unable to submit your objection. Please try again later.');
+                    }
+                  } catch {
+                    alert('Unable to submit your objection. Please try again later.');
+                  }
+                }}
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700"
+              >
+                Submit Objection
+              </button>
+            </div>
+
+            <p className="mt-4 text-xs text-gray-500">
+              When you submit this objection, your processing will be restricted until a human
+              reviews the decision. You will be contacted within 30 days with the outcome of the review.
+            </p>
+          </div>
+        )}
+
         {activeTab === 'deletion' && <DeletionCard />}
       </div>
     </div>

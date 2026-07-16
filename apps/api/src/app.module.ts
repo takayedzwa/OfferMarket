@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { EventEmitterModule } from '@nestjs/event-emitter';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { WorkersModule } from './modules/workers/workers.module';
@@ -16,6 +18,8 @@ import { BillingModule } from './modules/billing/billing.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { PrivacyModule } from './modules/privacy/privacy.module';
 import { DsaModule } from './modules/dsa/dsa.module';
+import { CustomThrottlerGuard } from './guards/throttler-guard';
+import { ProcessingRestrictionGuard } from './guards/processing-restriction.guard';
 
 @Module({
   imports: [
@@ -23,16 +27,22 @@ import { DsaModule } from './modules/dsa/dsa.module';
       isGlobal: true,
       envFilePath: '.env',
     }),
+    // Rate limiting — protects all endpoints against brute-force and DoS attacks.
+    // Default: 100 requests per 60 seconds per IP.
+    // Auth endpoints override with stricter limits (see auth.controller.ts).
+    ThrottlerModule.forRoot([
+      {
+        name: 'short',
+        ttl: 60000,
+        limit: 100,
+      },
+    ]),
     // EventEmitter2 enables decoupled event-driven notifications.
     // Services emit events (e.g., offer.accepted); NotificationsService listens.
     EventEmitterModule.forRoot({
-      // Use wildcards for event patterns
       wildcard: false,
-      // Delimiter for wildcards (not used with wildcard: false)
       delimiter: '.',
-      // Whether to throw errors in event handlers (we want to catch and log, not crash)
       newListener: false,
-      // Maximum listeners per event
       maxListeners: 10,
     }),
     PrismaModule,
@@ -50,6 +60,14 @@ import { DsaModule } from './modules/dsa/dsa.module';
     NotificationsModule,
     PrivacyModule,
     DsaModule,
+  ],
+  providers: [
+    // Apply rate limiting globally via custom guard (skips admin users)
+    { provide: APP_GUARD, useClass: CustomThrottlerGuard },
+    // Enforce GDPR Article 18 processing restriction — blocks write operations
+    // for users who have restricted processing. Privacy endpoints are exempted
+    // with @SkipProcessingRestrictionCheck() so users can lift restrictions.
+    { provide: APP_GUARD, useClass: ProcessingRestrictionGuard },
   ],
 })
 export class AppModule {}

@@ -20,6 +20,9 @@ export enum NotificationEventType {
   // Billing
   INVOICE_CREATED = 'invoice.created',
   INVOICE_OVERDUE = 'invoice.overdue',
+
+  // GDPR / Privacy
+  BREACH_NOTIFICATION = 'breach.notification',
 }
 
 // ============================================================================
@@ -121,6 +124,17 @@ export interface InvoiceOverduePayload extends BaseNotificationPayload {
   invoiceNumber: string;
   totalCents: number;
   daysOverdue: number;
+}
+
+// ============================================================================
+// Breach notification payloads
+// ============================================================================
+
+export interface BreachNotificationPayload extends BaseNotificationPayload {
+  recipientUserId: string;
+  breachId: string;
+  breachTitle: string;
+  severity: string;
 }
 
 // ============================================================================

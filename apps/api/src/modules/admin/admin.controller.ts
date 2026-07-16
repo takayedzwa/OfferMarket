@@ -1,24 +1,11 @@
-import { Controller, Get, Post, Patch, Body, Param, Query, UseGuards, Headers, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Body, Param, Query, UseGuards, Request } from '@nestjs/common';
+import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
 import { AdminGuard } from '../../guards/admin.guard';
 import { AdminService } from './admin.service';
 import { UpdateSettingsDto } from './dto/update-settings.dto';
 
-class SimpleAuthGuard {
-  canActivate(context: any): boolean {
-    const request = context.switchToHttp().getRequest();
-    const userId = request.headers['x-user-id'];
-    const userRole = request.headers['x-user-role'];
-
-    if (!userId || !userRole) {
-      throw new BadRequestException('User authentication required');
-    }
-
-    request.user = { id: userId, role: userRole };
-    return true;
-  }
-}
-
 @Controller('admin')
+@UseGuards(JwtAuthGuard, AdminGuard)
 export class AdminController {
   constructor(private readonly adminService: AdminService) {}
 
@@ -27,7 +14,6 @@ export class AdminController {
   // ============================================================================
 
   @Get('dashboard-stats')
-  @UseGuards(SimpleAuthGuard)
   async getDashboardStats() {
     return this.adminService.getDashboardStats();
   }
@@ -37,7 +23,6 @@ export class AdminController {
   // ============================================================================
 
   @Get('users')
-  @UseGuards(AdminGuard)
   async getUsers(
     @Query('page') page?: string,
     @Query('limit') limit?: string,
@@ -60,27 +45,27 @@ export class AdminController {
   @Post('users/:id/suspend')
   async suspendUser(
     @Param('id') id: string,
-    @Headers('x-user-id') adminUserId: string,
+    @Request() req: any,
     @Body('reason') reason?: string,
   ) {
-    return this.adminService.suspendUser(id, adminUserId, reason);
+    return this.adminService.suspendUser(id, req.user.id, reason);
   }
 
   @Post('users/:id/ban')
   async banUser(
     @Param('id') id: string,
-    @Headers('x-user-id') adminUserId: string,
+    @Request() req: any,
     @Body('reason') reason?: string,
   ) {
-    return this.adminService.banUser(id, adminUserId, reason);
+    return this.adminService.banUser(id, req.user.id, reason);
   }
 
   @Post('users/:id/restore')
   async restoreUser(
     @Param('id') id: string,
-    @Headers('x-user-id') adminUserId: string,
+    @Request() req: any,
   ) {
-    return this.adminService.restoreUser(id, adminUserId);
+    return this.adminService.restoreUser(id, req.user.id);
   }
 
   // ============================================================================
@@ -153,19 +138,19 @@ export class AdminController {
   @Post('employers/:id/verify')
   async verifyEmployer(
     @Param('id') id: string,
-    @Headers('x-user-id') adminUserId: string,
+    @Request() req: any,
     @Body('notes') notes?: string,
   ) {
-    return this.adminService.verifyEmployer(id, adminUserId, notes);
+    return this.adminService.verifyEmployer(id, req.user.id, notes);
   }
 
   @Post('employers/:id/reject')
   async rejectEmployer(
     @Param('id') id: string,
-    @Headers('x-user-id') adminUserId: string,
+    @Request() req: any,
     @Body('reason') reason: string,
   ) {
-    return this.adminService.rejectEmployer(id, adminUserId, reason);
+    return this.adminService.rejectEmployer(id, req.user.id, reason);
   }
 
   // ============================================================================
@@ -179,12 +164,10 @@ export class AdminController {
 
   @Patch('settings')
   async updateSetting(
-    @Body('key') key: string,
-    @Body('value') value: any,
-    @Headers('x-user-id') adminUserId: string,
-    @Body('category') category?: string,
+    @Body() dto: UpdateSettingsDto,
+    @Request() req: any,
   ) {
-    return this.adminService.updateSetting(key, value, adminUserId, category);
+    return this.adminService.updateSetting(dto.key, dto.value, req.user.id, dto.category);
   }
 
   // ============================================================================
@@ -226,7 +209,6 @@ export class AdminController {
   // ============================================================================
 
   @Get('offers')
-  @UseGuards(SimpleAuthGuard)
   async getAllOffers(
     @Query('page') page?: string,
     @Query('limit') limit?: string,
@@ -242,7 +224,6 @@ export class AdminController {
   }
 
   @Get('offers/:id')
-  @UseGuards(SimpleAuthGuard)
   async getOfferById(@Param('id') id: string) {
     return this.adminService.getOfferById(id);
   }
