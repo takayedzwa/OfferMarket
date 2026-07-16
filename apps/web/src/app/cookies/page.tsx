@@ -50,8 +50,7 @@ export default function CookiePolicyPage() {
                 Consent is valid for a maximum of <strong>13 months</strong>, after which you will be asked to renew it.
                 We store your consent preference with a timestamp so we can verify compliance.
               </p>
-            </section>
-              <p>
+              <p className="mt-2">
                 Cookies are small text files stored on your device when you visit our website. They help us
                 provide you with a better experience by remembering your preferences, enabling essential
                 functionality, and helping us understand how you use our platform.

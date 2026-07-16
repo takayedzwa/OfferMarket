@@ -147,7 +147,28 @@ export default function TermsOfServicePage() {
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold text-gray-900 mb-3">10. Termination</h2>
+              <h2 className="text-xl font-semibold text-gray-900 mb-3">10. Force Majeure</h2>
+              <p>
+                Neither party shall be liable for any failure or delay in performing its obligations under
+                these terms where such failure or delay results from circumstances beyond its reasonable control,
+                including but not limited to: natural disasters, pandemics, war, terrorism, riots, strikes or
+                other labour disputes, fire, flood, interruption or failure of internet service providers,
+                telecommunications networks, power utilities, or cloud infrastructure providers, and
+                governmental actions or orders.
+              </p>
+              <p className="mt-2">
+                If a force majeure event continues for more than 30 consecutive days, either party may
+                terminate these terms with immediate effect by written notice to the other party, without
+                liability for such termination.
+              </p>
+              <p className="mt-2">
+                OfferMarket B.V. will make reasonable efforts to notify users of the nature and expected
+                duration of any force majeure event affecting the platform via email or a notice on the platform.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-xl font-semibold text-gray-900 mb-3">11. Termination</h2>
               <p>
                 You may close your account at any time through the{' '}
                 <a href="/privacy/dashboard" className="text-blue-600 hover:underline">Privacy Dashboard</a>.
@@ -161,7 +182,7 @@ export default function TermsOfServicePage() {
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold text-gray-900 mb-3">11. Changes</h2>
+              <h2 className="text-xl font-semibold text-gray-900 mb-3">12. Changes</h2>
               <p>
                 We may update these terms. Significant changes will be communicated via email. Continued
                 use of the platform after changes constitutes acceptance.
@@ -170,7 +191,7 @@ export default function TermsOfServicePage() {
 
             {/* DSA Compliance Sections — Digital Services Act (Regulation EU 2022/2065) */}
             <section>
-              <h2 className="text-xl font-semibold text-gray-900 mb-3">12. Illegal Content Reporting (DSA Art. 16)</h2>
+              <h2 className="text-xl font-semibold text-gray-900 mb-3">13. Illegal Content Reporting (DSA Art. 16)</h2>
               <p>
                 Under the <strong>Digital Services Act</strong> (Regulation EU 2022/2065), you have the right
                 to notify us of content on OfferMarket that you believe to be illegal. Our notice-and-action
@@ -196,7 +217,7 @@ export default function TermsOfServicePage() {
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold text-gray-900 mb-3">13. Content Moderation (DSA Art. 14)</h2>
+              <h2 className="text-xl font-semibold text-gray-900 mb-3">14. Content Moderation (DSA Art. 14)</h2>
               <p>
                 OfferMarket uses a combination of human review and automated systems to moderate content
                 on the platform. Our content moderation policies and procedures include:
@@ -210,7 +231,7 @@ export default function TermsOfServicePage() {
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold text-gray-900 mb-3">14. Statement of Reasons (DSA Art. 17)</h2>
+              <h2 className="text-xl font-semibold text-gray-900 mb-3">15. Statement of Reasons (DSA Art. 17)</h2>
               <p>
                 When we restrict content on the platform (removal, visibility limitation, account suspension,
                 etc.), we will provide the affected user with a statement of reasons that includes:
@@ -222,12 +243,12 @@ export default function TermsOfServicePage() {
                 <li>Whether automated means were used in the decision</li>
                 <li>The legal or contractual ground for the restriction</li>
                 <li>The territorial scope of the restriction</li>
-                <li>Information on how to submit a complaint (see Section 16)</li>
+                <li>Information on how to submit a complaint (see Section 17)</li>
               </ul>
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold text-gray-900 mb-3">15. Referral to Authorities (DSA Art. 18)</h2>
+              <h2 className="text-xl font-semibold text-gray-900 mb-3">16. Referral to Authorities (DSA Art. 18)</h2>
               <p>
                 Where we have reasonable grounds to believe that a report concerns an offence involving
                 a threat to the life or safety of persons, we will promptly refer the matter to the
@@ -240,7 +261,7 @@ export default function TermsOfServicePage() {
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold text-gray-900 mb-3">16. Complaint-Handling (DSA Art. 20)</h2>
+              <h2 className="text-xl font-semibold text-gray-900 mb-3">17. Complaint-Handling (DSA Art. 20)</h2>
               <p>
                 If you disagree with a content moderation decision, you may submit a complaint through
                 our internal complaint-handling system. Complaints are:
@@ -258,7 +279,7 @@ export default function TermsOfServicePage() {
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold text-gray-900 mb-3">17. Misuse of Notice-and-Action (DSA Art. 23)</h2>
+              <h2 className="text-xl font-semibold text-gray-900 mb-3">18. Misuse of Notice-and-Action (DSA Art. 23)</h2>
               <p>
                 Submitting manifestly unfounded notices or notices containing manifestly illegal content
                 may result in:
@@ -275,7 +296,7 @@ export default function TermsOfServicePage() {
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold text-gray-900 mb-3">18. Trader Traceability (DSA Art. 30)</h2>
+              <h2 className="text-xl font-semibold text-gray-900 mb-3">19. Trader Traceability (DSA Art. 30)</h2>
               <p>
                 As an online marketplace, OfferMarket collects and verifies information about employers
                 (traders) who use the platform. Before an employer can publish offers, we collect:
@@ -295,7 +316,7 @@ export default function TermsOfServicePage() {
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold text-gray-900 mb-3">19. Transparency Reporting (DSA Arts. 15, 24)</h2>
+              <h2 className="text-xl font-semibold text-gray-900 mb-3">20. Transparency Reporting (DSA Arts. 15, 24)</h2>
               <p>
                 OfferMarket publishes transparency reports on content moderation activities, available at:
               </p>
@@ -311,7 +332,7 @@ export default function TermsOfServicePage() {
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold text-gray-900 mb-3">20. Single Point of Contact</h2>
+              <h2 className="text-xl font-semibold text-gray-900 mb-3">21. Single Point of Contact</h2>
               <p>
                 For all matters related to the Digital Services Act, you may contact:
               </p>
@@ -326,11 +347,33 @@ export default function TermsOfServicePage() {
             </section>
 
             <section>
-              <h2 className="text-xl font-semibold text-gray-900 mb-3">21. Contact</h2>
+              <h2 className="text-xl font-semibold text-gray-900 mb-3">22. Severability</h2>
+              <p>
+                If any provision of these terms is held to be invalid, illegal, or unenforceable by a court
+                of competent jurisdiction, such provision shall be modified to the minimum extent necessary
+                to make it valid and enforceable, or if modification is not possible, shall be severed from
+                these terms. The invalidity of any provision shall not affect the validity or enforceability
+                of any other provision, which shall remain in full force and effect.
+              </p>
+              <p className="mt-2">
+                These terms shall be interpreted so as to best effect the parties&apos; intentions, and any
+                provisions that are found to be invalid or unenforceable shall be replaced by valid provisions
+                that most closely match the intent of the original provisions.
+              </p>
+              <p className="mt-2">
+                This applies in particular to the limitation of liability provisions in Section 9, which shall
+                be reduced to the maximum extent permitted under applicable mandatory law, including but not
+                limited to Dutch Book 6 Article 7:658 (employer liability) and Article 6:248 BW (reasonableness
+                and fairness).
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-xl font-semibold text-gray-900 mb-3">23. Contact</h2>
               <div className="bg-gray-50 rounded-md p-4">
                 <p><strong>OfferMarket B.V.</strong></p>
-                <p>[Address], [City], Netherlands</p>
-                <p>KvK: [Number]</p>
+                <p>Herengracht 420, 1017 Amsterdam, Netherlands</p>
+                <p>KvK: 93075284</p>
                 <p>Email: <a href="mailto:legal@offermarket.nl" className="text-blue-600 hover:underline">legal@offermarket.nl</a></p>
               </div>
             </section>

@@ -18,12 +18,13 @@ async function bootstrap() {
   // to all responses to protect personal data from injection attacks
   app.use(new SecurityHeadersMiddleware().use);
 
-  // Global validation pipe - minimal to avoid interfering with nested DTOs
-  // OfferValidationPipe handles full validation for offers endpoint
-  // transform: true is needed for class-transformer decorators (@Transform) to work
+  // Global validation pipe — whitelist strips unknown properties to prevent
+  // mass assignment attacks (GDPR Art. 5(1)(f) data integrity).
+  // transform: true is needed for class-transformer decorators (@Transform) to work.
   app.useGlobalPipes(
     new ValidationPipe({
-      whitelist: false,
+      whitelist: true,
+      forbidNonWhitelisted: true,
       transform: true,
     }),
   );

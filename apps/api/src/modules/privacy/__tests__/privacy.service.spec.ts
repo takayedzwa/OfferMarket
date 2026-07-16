@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
   ConsentType,
   ConsentStatus,
@@ -14,6 +15,7 @@ import {
 } from '@prisma/client';
 import { PrivacyService } from '../privacy.service';
 import { PrismaService } from '../../../prisma/prisma.service';
+import { RetentionService } from '../retention.service';
 
 // ---------------------------------------------------------------------------
 // Mock PrismaService — one mock per model method used by PrivacyService
@@ -28,6 +30,7 @@ class MockPrismaService {
   };
   user = {
     findUnique: jest.fn(),
+    findMany: jest.fn(),
     update: jest.fn(),
   };
   worker = {
@@ -110,6 +113,8 @@ describe('PrivacyService', () => {
       providers: [
         PrivacyService,
         { provide: PrismaService, useValue: prisma },
+        { provide: EventEmitter2, useValue: { emit: jest.fn(), on: jest.fn() } },
+        { provide: RetentionService, useValue: { executeUserDeletion: jest.fn() } },
       ],
     }).compile();
 
@@ -977,50 +982,40 @@ describe('PrivacyService', () => {
 
   describe('executeDeletion', () => {
     const userId = 'user-1';
+    let retentionService: { executeUserDeletion: jest.Mock };
 
-    it('should anonymize user PII and mark as DELETED', async () => {
-      prisma.user.findUnique.mockResolvedValue({ id: userId });
-      prisma.dataDeletionRequest.findFirst.mockResolvedValue({ id: 'del-1', userId, status: DeletionStatus.CONFIRMED });
-      prisma.dataDeletionRequest.update.mockResolvedValue({});
-      prisma.user.update.mockResolvedValue({});
-      prisma.worker.findUnique.mockResolvedValue(null);
-      prisma.employer.findUnique.mockResolvedValue(null);
-      prisma.notification.deleteMany.mockResolvedValue({ count: 5 });
-      prisma.consent.updateMany.mockResolvedValue({ count: 3 });
-
-      await service.executeDeletion(userId);
-
-      expect(prisma.user.update).toHaveBeenCalledWith({
-        where: { id: userId },
-        data: expect.objectContaining({
-          email: `deleted-${userId}@offermarket.nl`,
-          phone: null,
-          status: 'DELETED',
-        }),
-      });
+    beforeEach(() => {
+      // Re-get the mock retention service from the module
     });
 
-    it('should anonymize worker profile when it exists', async () => {
+    it('should delegate to RetentionService.executeUserDeletion after setting PROCESSING status', async () => {
       prisma.user.findUnique.mockResolvedValue({ id: userId });
       prisma.dataDeletionRequest.findFirst.mockResolvedValue({ id: 'del-1', userId, status: DeletionStatus.CONFIRMED });
       prisma.dataDeletionRequest.update.mockResolvedValue({});
-      prisma.user.update.mockResolvedValue({});
-      prisma.worker.findUnique.mockResolvedValue({ id: 'worker-1', userId });
-      prisma.worker.update.mockResolvedValue({});
-      prisma.employer.findUnique.mockResolvedValue(null);
-      prisma.notification.deleteMany.mockResolvedValue({ count: 0 });
-      prisma.consent.updateMany.mockResolvedValue({ count: 0 });
 
-      await service.executeDeletion(userId);
+      // Get the mock retention service from the module
+      const module = await Test.createTestingModule({
+        providers: [
+          PrivacyService,
+          { provide: PrismaService, useValue: prisma },
+          { provide: EventEmitter2, useValue: { emit: jest.fn(), on: jest.fn() } },
+          { provide: RetentionService, useValue: { executeUserDeletion: jest.fn().mockResolvedValue(undefined) } },
+        ],
+      }).compile();
+      const svc = module.get<PrivacyService>(PrivacyService);
+      const retSvc = module.get<RetentionService>(RetentionService) as any;
 
-      expect(prisma.worker.update).toHaveBeenCalledWith({
-        where: { id: 'worker-1' },
-        data: expect.objectContaining({
-          workAuthorization: null,
-          summary: null,
-          profileVisibility: 'HIDDEN',
+      await svc.executeDeletion(userId);
+
+      // Should set status to PROCESSING first
+      expect(prisma.dataDeletionRequest.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'del-1' },
+          data: expect.objectContaining({ status: DeletionStatus.PROCESSING }),
         }),
-      });
+      );
+      // Should delegate actual deletion to RetentionService
+      expect(retSvc.executeUserDeletion).toHaveBeenCalledWith(userId, 'del-1');
     });
 
     it('should throw NotFoundException for missing user', async () => {
@@ -1204,6 +1199,7 @@ describe('PrivacyService', () => {
   describe('reportBreach', () => {
     it('should create breach with INVESTIGATING status', async () => {
       prisma.dataBreach.create.mockResolvedValue({ id: 'breach-1' });
+      prisma.user.findMany.mockResolvedValue([{ id: 'admin-1' }]);
 
       await service.reportBreach({
         title: 'Test Breach',
@@ -1225,6 +1221,7 @@ describe('PrivacyService', () => {
 
     it('should default estimatedAffectedUsers to 0', async () => {
       prisma.dataBreach.create.mockResolvedValue({ id: 'breach-1' });
+      prisma.user.findMany.mockResolvedValue([{ id: 'admin-1' }]);
 
       await service.reportBreach({
         title: 'Test',
@@ -1276,13 +1273,80 @@ describe('PrivacyService', () => {
       await expect(service.processDataExport('nonexistent')).rejects.toThrow(NotFoundException);
     });
 
-    it('should throw BadRequestException for already COMPLETED request', async () => {
-      prisma.dataExportRequest.findUnique.mockResolvedValue({
+    it('should return snapshot data for COMPLETED request (re-download)', async () => {
+      const snapshotData = { user: { id: 'user-1', email: 'test@test.com' } };
+      const mockRequest = {
         id: 'export-1',
+        userId: 'user-1',
         status: ExportStatus.COMPLETED,
-      });
+        snapshotData,
+      };
 
-      await expect(service.processDataExport('export-1')).rejects.toThrow(BadRequestException);
+      prisma.dataExportRequest.findUnique.mockResolvedValue(mockRequest);
+
+      const result = await service.processDataExport('export-1');
+      expect(result).toBeDefined();
+      expect(result).toEqual(snapshotData);
+    });
+  });
+
+  describe('getExportData', () => {
+    it('should return snapshot data for completed export (re-download)', async () => {
+      const snapshotData = { user: { id: 'user-1', email: 'test@test.com' } };
+      const mockRequest = {
+        id: 'export-1',
+        userId: 'user-1',
+        status: ExportStatus.COMPLETED,
+        snapshotData,
+        format: ExportFormat.JSON,
+      };
+
+      prisma.dataExportRequest.findUnique.mockResolvedValue(mockRequest);
+
+      const result = await service.getExportData('export-1', 'user-1', ExportFormat.JSON);
+      expect(result).toBeDefined();
+      expect(result.contentType).toBe('application/json');
+      expect(result.filename).toContain('export');
+      expect(JSON.parse(result.content)).toEqual(snapshotData);
+    });
+
+    it('should return CSV format when requested', async () => {
+      const snapshotData = { user: { id: 'user-1', email: 'test@test.com' } };
+      const mockRequest = {
+        id: 'export-1',
+        userId: 'user-1',
+        status: ExportStatus.COMPLETED,
+        snapshotData,
+        format: ExportFormat.JSON,
+      };
+
+      prisma.dataExportRequest.findUnique.mockResolvedValue(mockRequest);
+
+      const result = await service.getExportData('export-1', 'user-1', ExportFormat.CSV);
+      expect(result).toBeDefined();
+      expect(result.contentType).toBe('text/csv');
+      expect(result.filename).toContain('.csv');
+    });
+
+    it('should throw NotFoundException for non-existent export', async () => {
+      prisma.dataExportRequest.findUnique.mockResolvedValue(null);
+
+      await expect(service.getExportData('nonexistent', 'user-1', ExportFormat.JSON))
+        .rejects.toThrow();
+    });
+
+    it('should throw ForbiddenException for wrong user', async () => {
+      const mockRequest = {
+        id: 'export-1',
+        userId: 'user-2',
+        status: ExportStatus.COMPLETED,
+        snapshotData: {},
+      };
+
+      prisma.dataExportRequest.findUnique.mockResolvedValue(mockRequest);
+
+      await expect(service.getExportData('export-1', 'user-1', ExportFormat.JSON))
+        .rejects.toThrow();
     });
   });
 });

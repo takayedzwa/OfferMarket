@@ -1,8 +1,9 @@
-import { Injectable, BadRequestException, UnauthorizedException } from '@nestjs/common';
+import { Injectable, BadRequestException, UnauthorizedException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { TrustService } from '../trust/trust.service';
 import * as bcrypt from 'bcrypt';
 import * as jwt from 'jsonwebtoken';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class AuthService {
@@ -63,6 +64,9 @@ export class AuthService {
 
       // Generate JWT
       const tokens = this.generateTokens(user.id, user.role);
+
+      // Store refresh token for rotation tracking
+      await this.storeRefreshToken(user.id, tokens.refreshToken);
 
       return {
         user: {
@@ -361,6 +365,9 @@ export class AuthService {
 
     const tokens = this.generateTokens(user.id, user.role);
 
+    // Store the refresh token for rotation tracking
+    await this.storeRefreshToken(user.id, tokens.refreshToken);
+
     return {
       user: {
         id: user.id,
@@ -424,14 +431,14 @@ export class AuthService {
   private generateTokens(userId: string, role: string) {
     const accessToken = jwt.sign(
       { sub: userId, role },
-      process.env.JWT_SECRET || 'dev-secret-key-change-in-production',
-      { expiresIn: '1h' }
+      process.env.JWT_SECRET || (process.env.NODE_ENV === 'production' ? (() => { throw new Error('JWT_SECRET environment variable is required in production'); })() : 'dev-secret-key-not-for-production'),
+      { expiresIn: '1h', algorithm: 'HS256' }
     );
 
     const refreshToken = jwt.sign(
-      { sub: userId },
-      process.env.JWT_REFRESH_SECRET || 'dev-refresh-secret-key',
-      { expiresIn: '7d' }
+      { sub: userId, type: 'refresh' },
+      process.env.JWT_REFRESH_SECRET || (process.env.NODE_ENV === 'production' ? (() => { throw new Error('JWT_REFRESH_SECRET environment variable is required in production'); })() : 'dev-refresh-secret-key-not-for-production'),
+      { expiresIn: '7d', algorithm: 'HS256' }
     );
 
     return {
@@ -439,5 +446,163 @@ export class AuthService {
       refreshToken,
       expiresIn: 3600
     };
+  }
+
+  /**
+   * Store a refresh token hash for rotation tracking.
+   * Called after generating tokens on login and registration.
+   */
+  private async storeRefreshToken(userId: string, refreshToken: string, familyId?: string) {
+    const tokenHash = this.hashToken(refreshToken);
+    const fid = familyId || crypto.randomUUID();
+    await this.prisma.refreshToken.create({
+      data: {
+        userId,
+        tokenHash,
+        familyId: fid,
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      },
+    });
+    return fid;
+  }
+
+  // ============================================================================
+  // REFRESH TOKEN (with rotation and reuse detection)
+  // ============================================================================
+
+  /**
+   * Hash a refresh token for secure storage.
+   */
+  private hashToken(token: string): string {
+    return crypto.createHash('sha256').update(token).digest('hex');
+  }
+
+  /**
+   * Exchange a valid refresh token for a new access/refresh token pair.
+   *
+   * Implements OWASP-recommended token rotation:
+   * 1. Verify the JWT is valid and is a refresh token
+   * 2. Look up the token hash in the database
+   * 3. If the token has already been used (revoked), it's a reuse — revoke
+   *    the entire token family (possible theft) and force re-authentication
+   * 4. If the token is valid, revoke it and issue a new pair in the same family
+   */
+  async refreshToken(refreshToken: string) {
+    if (!refreshToken) {
+      throw new UnauthorizedException('Refresh token is required');
+    }
+
+    const refreshSecret = process.env.JWT_REFRESH_SECRET || (process.env.NODE_ENV === 'production' ? (() => { throw new Error('JWT_REFRESH_SECRET environment variable is required in production'); })() : 'dev-refresh-secret-key-not-for-production');
+
+    // Step 1: Verify the JWT
+    let payload: any;
+    try {
+      payload = jwt.verify(refreshToken, refreshSecret, { algorithms: ['HS256'] }) as any;
+    } catch (error) {
+      throw new UnauthorizedException('Invalid or expired refresh token');
+    }
+
+    if (payload.type !== 'refresh') {
+      throw new UnauthorizedException('Invalid token type');
+    }
+
+    const userId = payload.sub;
+    const tokenHash = this.hashToken(refreshToken);
+
+    // Step 2: Look up the token in the database
+    const storedToken = await this.prisma.refreshToken.findUnique({
+      where: { tokenHash },
+    });
+
+    // Step 3: Reuse detection — if the token doesn't exist in DB, it may be
+    // an old token from before rotation was enabled, or it's invalid.
+    // If it exists and is revoked, that's a reuse attempt (possible theft).
+    if (storedToken?.isRevoked) {
+      // TOKEN REUSE DETECTED: This refresh token was already used.
+      // Revoke the entire token family to prevent further access.
+      await this.prisma.refreshToken.updateMany({
+        where: { familyId: storedToken.familyId },
+        data: { isRevoked: true },
+      });
+
+      // Report suspicious activity
+      await this.trustService.reportSuspiciousActivity({
+        entityType: 'USER',
+        userId,
+        activityType: 'REFRESH_TOKEN_REUSE',
+        severity: 'HIGH',
+        description: `Refresh token reuse detected for user ${userId}. All sessions revoked as precaution.`,
+        ipAddress: 'system',
+      });
+
+      throw new ForbiddenException('Refresh token has been revoked. Please log in again.');
+    }
+
+    // Verify user still exists and is active
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    if (user.deletedAt) {
+      throw new UnauthorizedException('Account has been deleted');
+    }
+
+    if (user.status === 'BANNED') {
+      throw new UnauthorizedException('Account has been banned');
+    }
+
+    const isBlacklisted = await this.trustService.isBlacklisted('USER', user.id);
+    if (isBlacklisted) {
+      throw new UnauthorizedException('Account has been suspended');
+    }
+
+    // Step 4: Revoke the old token and issue a new pair in the same family
+    const familyId = storedToken?.familyId || crypto.randomUUID();
+
+    // Revoke the old token
+    if (storedToken) {
+      await this.prisma.refreshToken.update({
+        where: { id: storedToken.id },
+        data: { isRevoked: true },
+      });
+    }
+
+    // Issue new tokens
+    const tokens = this.generateTokens(user.id, user.role);
+    const newRefreshTokenHash = this.hashToken(tokens.refreshToken);
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+
+    // Store the new refresh token
+    await this.prisma.refreshToken.create({
+      data: {
+        userId: user.id,
+        tokenHash: newRefreshTokenHash,
+        familyId,
+        expiresAt,
+      },
+    });
+
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        emailVerified: user.emailVerified,
+      },
+      tokens,
+    };
+  }
+
+  /**
+   * Revoke all refresh tokens for a user (used on logout, password change, etc.)
+   */
+  async revokeAllRefreshTokens(userId: string) {
+    await this.prisma.refreshToken.deleteMany({
+      where: { userId },
+    });
   }
 }

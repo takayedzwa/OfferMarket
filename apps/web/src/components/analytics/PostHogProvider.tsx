@@ -1,63 +1,98 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState, useRef } from 'react';
+
+const POSTHOG_KEY = process.env.NEXT_PUBLIC_POSTHOG_KEY || '';
+const POSTHOG_HOST = process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://eu.posthog.com';
 
 /**
  * PostHogProvider
  *
- * Initializes PostHog analytics with consent gating per Telecommunicatiewet Art. 11.7a.
+ * Initializes PostHog analytics only after the user grants analytics consent.
+ * Fully compliant with Telecommunicatiewet Art. 11.7a and GDPR.
  *
  * Key compliance features:
- * - PostHog starts in an opted-out state (`opt_out_capturing_by_default: true`)
- * - No tracking happens until the user explicitly grants analytics consent
- * - When consent is granted (via CookieConsentBanner), PostHog is opted in
- * - When consent is withdrawn, PostHog is opted out
- *
- * The CookieConsentBanner component calls `posthog.opt_in_capturing()` /
- * `posthog.opt_out_capturing()` based on user preference, which works with
- * this provider's initialization.
- *
- * If NEXT_PUBLIC_POSTHOG_KEY is not set, PostHog is not initialized at all.
+ * - PostHog is NOT loaded at all until analytics consent is granted
+ * - When consent is granted, PostHog is dynamically imported and initialized
+ * - When consent is withdrawn, PostHog is shut down and unloaded
+ * - Listens for 'consent:change' events dispatched by CookieConsentBanner
  */
 export default function PostHogProvider({ children }: { children: React.ReactNode }) {
+  const [initialized, setInitialized] = useState(false);
+  const posthogRef = useRef<any>(null);
+
   useEffect(() => {
-    const posthogKey = process.env.NEXT_PUBLIC_POSTHOG_KEY;
-    const posthogHost = process.env.NEXT_PUBLIC_POSTHOG_HOST;
+    if (!POSTHOG_KEY || typeof window === 'undefined') return;
 
-    if (!posthogKey || typeof window === 'undefined') return;
+    // Check initial consent state from localStorage
+    const checkConsent = (): boolean => {
+      try {
+        const stored = localStorage.getItem('offermarket_cookie_consent');
+        if (!stored) return false;
+        const parsed = JSON.parse(stored);
+        return parsed?.consent?.analytics === true;
+      } catch {
+        return false;
+      }
+    };
 
-    // Dynamically import PostHog only when the key is configured
-    import('posthog-js')
-      .then(({ default: posthog }) => {
-        posthog.init(posthogKey, {
-          api_host: posthogHost || 'https://eu.posthog.com',
-          // CRITICAL: Start opted out — no tracking until user gives consent
-          opt_out_capturing_by_default: true,
-          persistence: 'localStorage',
-          disable_session_recording: true, // Enable only after explicit consent
-          capture_pageview: false, // We'll enable after consent
-          autocapture: false, // Disable auto-capture until consent
-        });
-
-        // Check if user has already granted analytics consent
-        // If so, opt in immediately
-        try {
-          const stored = localStorage.getItem('offermarket_cookie_consent');
-          if (stored) {
-            const parsed = JSON.parse(stored);
-            if (parsed.consent?.analytics) {
-              posthog.opt_in_capturing();
-              posthog.capture_pageview();
-            }
-          }
-        } catch {
-          // If we can't read consent, stay opted out
-        }
-      })
-      .catch(() => {
-        // PostHog failed to load — analytics silently disabled
+    const initPostHog = async () => {
+      if (initialized || !POSTHOG_KEY) return;
+      const posthog = (await import('posthog-js')).default;
+      posthog.init(POSTHOG_KEY, {
+        api_host: POSTHOG_HOST,
+        // Consent was given, so opt in directly
+        opt_out_capturing_by_default: false,
+        capture_pageview: true,
+        disable_session_recording: false,
       });
-  }, []);
+      posthog.capture('$pageview');
+      posthogRef.current = posthog;
+      setInitialized(true);
+    };
+
+    const shutdownPostHog = () => {
+      if (posthogRef.current) {
+        posthogRef.current.shutdown();
+        posthogRef.current = null;
+        setInitialized(false);
+      }
+    };
+
+    // Check initial consent — only initialize if already granted
+    if (checkConsent()) {
+      initPostHog();
+    }
+
+    // Listen for consent changes from CookieConsentBanner
+    const handleConsentChange = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const { analytics } = customEvent.detail || {};
+      if (analytics) {
+        initPostHog();
+      } else {
+        shutdownPostHog();
+      }
+    };
+
+    // Also listen for storage changes (e.g., from other tabs)
+    const handleStorageChange = () => {
+      if (checkConsent()) {
+        initPostHog();
+      } else {
+        shutdownPostHog();
+      }
+    };
+
+    window.addEventListener('consent:change', handleConsentChange);
+    window.addEventListener('storage', handleStorageChange);
+
+    return () => {
+      window.removeEventListener('consent:change', handleConsentChange);
+      window.removeEventListener('storage', handleStorageChange);
+      shutdownPostHog();
+    };
+  }, [initialized]);
 
   return <>{children}</>;
 }

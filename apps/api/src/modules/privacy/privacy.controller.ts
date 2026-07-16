@@ -1,9 +1,13 @@
-import { Controller, Get, Post, Delete, Patch, Body, Param, Query, Request, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Patch, Body, Param, Query, Request, UseGuards, Res, NotFoundException } from '@nestjs/common';
+import { SkipThrottle } from '@nestjs/throttler';
+import type { Response } from 'express';
 import { PrivacyService } from './privacy.service';
 import { RetentionService } from './retention.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
 import { AdminGuard } from '../../guards/admin.guard';
+import { SkipProcessingRestrictionCheck } from '../../decorators/skip-processing-restriction.decorator';
+import { BreachStatus } from '@prisma/client';
 import {
   RecordConsentDto,
   WithdrawConsentDto,
@@ -16,6 +20,7 @@ import {
   CreateBreachNotificationDto,
   UpdateBreachNotificationDto,
   ProcessDataSubjectRequestDto,
+  AutomatedDecisionObjectionDto,
 } from './dto/privacy.dto';
 import { ConsentType, ExportFormat } from '@prisma/client';
 
@@ -101,6 +106,7 @@ export class PrivacyController {
 
   @Delete('consents/:consentType')
   @UseGuards(JwtAuthGuard)
+  @SkipProcessingRestrictionCheck()
   async withdrawConsent(
     @Param('consentType') consentType: ConsentType,
     @Request() req: any,
@@ -122,6 +128,7 @@ export class PrivacyController {
 
   @Post('export')
   @UseGuards(JwtAuthGuard)
+  @SkipProcessingRestrictionCheck()
   async requestDataExport(
     @Request() req: any,
     @Body() dto?: CreateDataExportDto,
@@ -143,9 +150,19 @@ export class PrivacyController {
 
   @Get('export/:id')
   @UseGuards(JwtAuthGuard)
-  async downloadExport(@Param('id') id: string, @Request() req: any) {
-    const data = await this.privacyService.processDataExport(id);
-    return data;
+  @SkipProcessingRestrictionCheck()
+  async downloadExport(
+    @Param('id') id: string,
+    @Query('format') format: ExportFormat,
+    @Request() req: any,
+    @Res() res: Response,
+  ) {
+    const userId = this.getAuthenticatedUserId(req);
+    const exportData = await this.privacyService.getExportData(id, userId, format || ExportFormat.JSON);
+
+    res.setHeader('Content-Type', exportData.contentType);
+    res.setHeader('Content-Disposition', `attachment; filename="${exportData.filename}"`);
+    res.send(exportData.content);
   }
 
   @Post('request/access')
@@ -167,6 +184,7 @@ export class PrivacyController {
 
   @Post('request/erasure')
   @UseGuards(JwtAuthGuard)
+  @SkipProcessingRestrictionCheck()
   async requestErasure(
     @Request() req: any,
     @Body() dto?: CreateDataDeletionDto,
@@ -197,6 +215,7 @@ export class PrivacyController {
 
   @Post('request/restrict')
   @UseGuards(JwtAuthGuard)
+  @SkipProcessingRestrictionCheck()
   async requestRestriction(
     @Request() req: any,
     @Body() dto: SetProcessingRestrictionDto,
@@ -211,6 +230,7 @@ export class PrivacyController {
 
   @Delete('request/restrict')
   @UseGuards(JwtAuthGuard)
+  @SkipProcessingRestrictionCheck()
   async removeRestriction(@Request() req: any) {
     const userId = this.getAuthenticatedUserId(req);
     const flags = await this.privacyService.setProcessingRestriction(userId, false);
@@ -232,12 +252,33 @@ export class PrivacyController {
 
   @Post('request/object')
   @UseGuards(JwtAuthGuard)
+  @SkipProcessingRestrictionCheck()
   async requestObject(
     @Request() req: any,
     @Body() body: { processingType: string; reason?: string },
   ) {
     const userId = this.getAuthenticatedUserId(req);
     return this.privacyService.objectToProcessing(userId, body.processingType, body.reason);
+  }
+
+  // ============================================================================
+  // RIGHT REGARDING AUTOMATED DECISION-MAKING (Article 22)
+  // ============================================================================
+
+  @Post('request/automated-decision')
+  @UseGuards(JwtAuthGuard)
+  @SkipProcessingRestrictionCheck()
+  async objectToAutomatedDecision(
+    @Request() req: any,
+    @Body() dto: AutomatedDecisionObjectionDto,
+  ) {
+    const userId = this.getAuthenticatedUserId(req);
+    return this.privacyService.objectToAutomatedDecision(
+      userId,
+      dto.decisionType,
+      dto.reason,
+      dto.requestHumanReview ?? true,
+    );
   }
 
   @Get('requests')
@@ -262,6 +303,46 @@ export class PrivacyController {
   }
 
   // ============================================================================
+  // DATA BREACH NOTIFICATIONS (GDPR Art. 34)
+  // ============================================================================
+
+  /**
+   * User-facing endpoint to check if they have been affected by a data breach
+   * that has been notified to affected data subjects.
+   * Only returns breaches that have been marked as NOTIFIED_USERS.
+   */
+  @Get('breach-notifications')
+  @UseGuards(JwtAuthGuard)
+  async getUserBreachNotifications(@Request() req: any) {
+    const userId = this.getAuthenticatedUserId(req);
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException('User not found');
+
+    // Return breaches that have been notified to users, limited to relevant info
+    const breaches = await this.prisma.dataBreach.findMany({
+      where: {
+        status: BreachStatus.NOTIFIED_USERS,
+      },
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        severity: true,
+        affectedDataCategories: true,
+        discoveredAt: true,
+        remediationSteps: true,
+      },
+      orderBy: { discoveredAt: 'desc' },
+      take: 10,
+    });
+
+    return breaches.map(b => ({
+      ...b,
+      discoveredAt: b.discoveredAt.toISOString(),
+    }));
+  }
+
+  // ============================================================================
   // PROCESSING RESTRICTION CHECK
   // ============================================================================
 
@@ -281,6 +362,7 @@ export class PrivacyController {
   // ============================================================================
 
   @Get('admin/requests')
+  @SkipThrottle()
   @UseGuards(JwtAuthGuard, AdminGuard)
   async getAllRequests(
     @Query('page') page: string = '1',
@@ -297,6 +379,7 @@ export class PrivacyController {
   }
 
   @Patch('admin/requests/:id')
+  @SkipThrottle()
   @UseGuards(JwtAuthGuard, AdminGuard)
   async processRequest(
     @Param('id') id: string,
@@ -307,7 +390,19 @@ export class PrivacyController {
     return this.privacyService.processRequest(id, adminId, dto);
   }
 
+  @Post('admin/requests/:id/execute-rectification')
+  @SkipThrottle()
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  async executeRectification(
+    @Param('id') id: string,
+    @Request() req: any,
+  ) {
+    const adminId = this.getAuthenticatedUserId(req);
+    return this.privacyService.executeRectification(id, adminId);
+  }
+
   @Get('admin/breaches')
+  @SkipThrottle()
   @UseGuards(JwtAuthGuard, AdminGuard)
   async getBreaches(
     @Query('page') page: string = '1',
@@ -317,6 +412,7 @@ export class PrivacyController {
   }
 
   @Post('admin/breaches')
+  @SkipThrottle()
   @UseGuards(JwtAuthGuard, AdminGuard)
   async reportBreach(
     @Body() dto: CreateBreachNotificationDto,
@@ -335,6 +431,7 @@ export class PrivacyController {
   }
 
   @Patch('admin/breaches/:id')
+  @SkipThrottle()
   @UseGuards(JwtAuthGuard, AdminGuard)
   async updateBreach(
     @Param('id') id: string,
@@ -344,18 +441,86 @@ export class PrivacyController {
   }
 
   @Get('admin/retention-policies')
+  @SkipThrottle()
   @UseGuards(JwtAuthGuard, AdminGuard)
   async getRetentionPolicies() {
     return this.privacyService.getRetentionPolicies();
   }
 
+  // ============================================================================
+  // DATA PROCESSING AGREEMENTS (GDPR Article 28) — Admin
+  // ============================================================================
+
+  @Get('admin/processing-agreements')
+  @SkipThrottle()
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  async getProcessingAgreements(@Query('active') active?: string) {
+    return this.privacyService.getProcessingAgreements(active !== 'false');
+  }
+
+  @Post('admin/processing-agreements')
+  @SkipThrottle()
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  async createProcessingAgreement(@Body() body: {
+    processorName: string;
+    processorType: string;
+    agreementUrl?: string;
+    agreementDate: string;
+    expiryDate?: string;
+    dataCategories: string[];
+  }) {
+    return this.privacyService.createProcessingAgreement({
+      processorName: body.processorName,
+      processorType: body.processorType,
+      agreementUrl: body.agreementUrl,
+      agreementDate: new Date(body.agreementDate),
+      expiryDate: body.expiryDate ? new Date(body.expiryDate) : undefined,
+      dataCategories: body.dataCategories,
+    });
+  }
+
+  @Patch('admin/processing-agreements/:id')
+  @SkipThrottle()
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  async updateProcessingAgreement(
+    @Param('id') id: string,
+    @Body() body: {
+      processorName?: string;
+      processorType?: string;
+      agreementUrl?: string;
+      agreementDate?: string;
+      expiryDate?: string;
+      dataCategories?: string[];
+      isActive?: boolean;
+    },
+    @Request() req: any,
+  ) {
+    const adminId = this.getAuthenticatedUserId(req);
+    return this.privacyService.updateProcessingAgreement(id, {
+      ...body,
+      agreementDate: body.agreementDate ? new Date(body.agreementDate) : undefined,
+      expiryDate: body.expiryDate ? new Date(body.expiryDate) : undefined,
+      reviewedAt: new Date(),
+      reviewedBy: adminId,
+    });
+  }
+
+  @Delete('admin/processing-agreements/:id')
+  @SkipThrottle()
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  async deactivateProcessingAgreement(@Param('id') id: string) {
+    return this.privacyService.deactivateProcessingAgreement(id);
+  }
+
   @Get('admin/processing-activities')
+  @SkipThrottle()
   @UseGuards(JwtAuthGuard, AdminGuard)
   async getProcessingActivities() {
     return this.privacyService.getProcessingActivities();
   }
 
   @Get('admin/ropa')
+  @SkipThrottle()
   @UseGuards(JwtAuthGuard, AdminGuard)
   async getRopa() {
     const [activities, policies] = await Promise.all([
@@ -366,6 +531,7 @@ export class PrivacyController {
   }
 
   @Post('admin/seed')
+  @SkipThrottle()
   @UseGuards(JwtAuthGuard, AdminGuard)
   async seedGdprData() {
     await this.privacyService.seedRetentionPolicies();
@@ -374,6 +540,7 @@ export class PrivacyController {
   }
 
   @Post('admin/retention/run')
+  @SkipThrottle()
   @UseGuards(JwtAuthGuard, AdminGuard)
   async runRetentionTasks() {
     const results = await this.retentionService.runAllRetentionTasks();
@@ -381,6 +548,7 @@ export class PrivacyController {
   }
 
   @Get('admin/retention/status')
+  @SkipThrottle()
   @UseGuards(JwtAuthGuard, AdminGuard)
   async getRetentionStatus() {
     const pendingDeletions = await this.prisma.dataDeletionRequest.count({

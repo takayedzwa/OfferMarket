@@ -40,6 +40,22 @@ export default function DeletionCard() {
       // Store the request ID for cancellation
       setDeletionRequestId(data.id);
 
+      // Confirm the deletion request so it transitions from PENDING to CONFIRMED.
+      // Without this, the retention cron will never pick it up for execution.
+      try {
+        const confirmResponse = await fetch(`${API_BASE}/privacy/request/erasure/${data.id}/confirm`, {
+          method: 'POST',
+          headers: getAuthHeaders(),
+        });
+        if (!confirmResponse.ok) {
+          // Confirmation failed — log but don't block the user.
+          // The request is still created; the user can try again or contact support.
+          console.error('Failed to confirm deletion request:', confirmResponse.status);
+        }
+      } catch (confirmErr) {
+        console.error('Failed to confirm deletion request:', confirmErr);
+      }
+
       // Use scheduledDeletionAt from the response, or default to 30 days
       const scheduledDate = data.scheduledDeletionAt
         ? new Date(data.scheduledDeletionAt)

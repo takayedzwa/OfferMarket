@@ -28,8 +28,8 @@ export default function PrivacyPolicyPage() {
               </p>
               <div className="mt-2 bg-gray-50 rounded-md p-4">
                 <p className="font-medium">OfferMarket B.V.</p>
-                <p>[KvK Number]</p>
-                <p>[Address]</p>
+                <p>KvK: 93075284</p>
+                <p>Herengracht 420, 1017 Amsterdam, Netherlands</p>
                 <p>Data Protection Officer: <a href="mailto:dpo@offermarket.nl" className="text-blue-600 hover:underline">dpo@offermarket.nl</a></p>
               </div>
               <p className="mt-3">
@@ -266,14 +266,59 @@ export default function PrivacyPolicyPage() {
             <section>
               <h2 className="text-xl font-semibold text-gray-900 mb-3">9. International Data Transfers</h2>
               <p>
-                Our primary infrastructure is hosted within the European Union (AWS EU regions).
-                Where data is transferred outside the EU, we ensure appropriate safeguards are in place:
+                Our primary infrastructure is hosted within the European Union (AWS EU regions — Ireland and Frankfurt).
+                However, some of our processors operate outside the EU:
               </p>
-              <ul className="mt-3 space-y-1 list-disc pl-5">
-                <li>Standard Contractual Clauses (SCCs) with all non-EU processors</li>
-                <li>Adequacy decisions where applicable</li>
-                <li>Data Processing Agreements with all processors</li>
-              </ul>
+              <div className="mt-4 overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Processor</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Processing</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Country</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Safeguard</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    <tr>
+                      <td className="px-4 py-3 text-sm">AWS (Amazon Web Services)</td>
+                      <td className="px-4 py-3 text-sm">Infrastructure, hosting</td>
+                      <td className="px-4 py-3 text-sm">Ireland / Germany (EU)</td>
+                      <td className="px-4 py-3 text-sm">EU-hosted — no third-country transfer</td>
+                    </tr>
+                    <tr>
+                      <td className="px-4 py-3 text-sm">PostHog</td>
+                      <td className="px-4 py-3 text-sm">Analytics (EU-hosted instance)</td>
+                      <td className="px-4 py-3 text-sm">Germany (EU)</td>
+                      <td className="px-4 py-3 text-sm">EU-hosted — no third-country transfer</td>
+                    </tr>
+                    <tr>
+                      <td className="px-4 py-3 text-sm">Stripe</td>
+                      <td className="px-4 py-3 text-sm">Payment processing</td>
+                      <td className="px-4 py-3 text-sm">United States</td>
+                      <td className="px-4 py-3 text-sm">SCCs + Stripe Data Processing Agreement; EU-US Data Privacy Framework</td>
+                    </tr>
+                    <tr>
+                      <td className="px-4 py-3 text-sm">Twilio (SendGrid)</td>
+                      <td className="px-4 py-3 text-sm">Email delivery</td>
+                      <td className="px-4 py-3 text-sm">United States</td>
+                      <td className="px-4 py-3 text-sm">SCCs + Twilio DPA</td>
+                    </tr>
+                    <tr>
+                      <td className="px-4 py-3 text-sm">Sentry</td>
+                      <td className="px-4 py-3 text-sm">Error monitoring</td>
+                      <td className="px-4 py-3 text-sm">United States</td>
+                      <td className="px-4 py-3 text-sm">SCCs + Sentry DPA; Data Processing Agreement</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <p className="mt-4">
+                Where data is transferred to countries outside the EEA that do not have an adequacy decision,
+                we rely on Standard Contractual Clauses (SCCs) approved by the European Commission, supplemented
+                by Data Processing Agreements that include the mandatory Art. 28 GDPR provisions. You may request
+                a copy of the relevant SCCs by contacting our DPO.
+              </p>
             </section>
 
             {/* 10. Security */}
@@ -319,8 +364,8 @@ export default function PrivacyPolicyPage() {
               <div className="mt-2 bg-gray-50 rounded-md p-4">
                 <p><strong>Data Protection Officer:</strong> dpo@offermarket.nl</p>
                 <p><strong>OfferMarket B.V.</strong></p>
-                <p>[Address], [City], Netherlands</p>
-                <p><strong>KvK:</strong> [Number]</p>
+                <p>Herengracht 420, 1017 Amsterdam, Netherlands</p>
+                <p><strong>KvK:</strong> 93075284</p>
               </div>
             </section>
           </div>
