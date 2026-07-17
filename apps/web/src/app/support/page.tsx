@@ -19,39 +19,46 @@ export default function SupportDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [recentTickets, setRecentTickets] = useState<any[]>([]);
 
+  const handleResponse = (res: Response) => {
+    if (res.status === 401) {
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('userId');
+      localStorage.removeItem('userRole');
+      router.push('/login');
+      return null;
+    }
+    return res.json();
+  };
+
   useEffect(() => {
-    const adminUserId = localStorage.getItem('userId');
+    const token = localStorage.getItem('accessToken');
     const userRole = localStorage.getItem('userRole');
 
-    if (userRole !== 'SUPPORT' && userRole !== 'ADMIN') {
+    if (!token || (userRole !== 'SUPPORT' && userRole !== 'ADMIN')) {
       router.push('/');
       return;
     }
 
-    fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1'}/support/dashboard-stats`, {
+    fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1'}/support/dashboard`, {
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
-        'X-User-ID': adminUserId || '',
-        'X-User-Role': userRole || '',
+        'Authorization': `Bearer ${token}`,
       },
     })
-      .then((res) => res.json())
+      .then((res) => handleResponse(res))
       .then((data) => {
-        setStats(data);
+        if (data) setStats(data);
         setLoading(false);
       })
       .catch(() => setLoading(false));
 
     fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1'}/support/tickets?page=1&limit=5`, {
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
-        'X-User-ID': adminUserId || '',
-        'X-User-Role': userRole || '',
+        'Authorization': `Bearer ${token}`,
       },
     })
-      .then((res) => res.json())
+      .then((res) => handleResponse(res))
       .then((data) => {
-        setRecentTickets(data.tickets || []);
+        if (data) setRecentTickets(data.tickets || []);
       })
       .catch(() => {});
   }, [router]);

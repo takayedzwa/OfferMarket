@@ -62,8 +62,6 @@ export default function AdminSettingsPage() {
     fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1'}/admin/settings`, {
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
-        'X-User-ID': localStorage.getItem('userId') || '',
-        'X-User-Role': 'ADMIN',
       },
     })
       .then((res) => res.json())
@@ -84,8 +82,6 @@ export default function AdminSettingsPage() {
 
   const handleSave = () => {
     setSaving(true);
-    const adminUserId = localStorage.getItem('userId');
-    if (!adminUserId) return;
 
     const updates = Object.entries(settings).map(([key, value]) => ({
       key,
@@ -100,8 +96,6 @@ export default function AdminSettingsPage() {
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
-            'X-User-ID': adminUserId,
-            'X-User-Role': 'ADMIN',
           },
           body: JSON.stringify(update),
         })

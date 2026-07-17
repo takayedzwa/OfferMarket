@@ -11,8 +11,8 @@ export class CreateTicketDto {
   description: string;
 
   @IsString()
-  @IsIn(['account', 'payment', 'technical', 'dispute', 'other'])
-  category: string;
+  @IsIn(['GENERAL', 'ACCOUNT', 'BILLING', 'TECHNICAL', 'REPORT', 'FEATURE', 'OTHER'])
+  category: string; // Values must match EnumsController.getTicketCategoryEnums()
 
   @IsString()
   @IsOptional()

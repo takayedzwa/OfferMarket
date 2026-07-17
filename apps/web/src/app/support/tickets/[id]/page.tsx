@@ -31,12 +31,13 @@ interface SupportTicket {
 interface TicketMessage {
   id: string;
   ticketId: string;
-  userId: string;
-  message: string;
-  isInternalNote: boolean;
+  senderId: string;
+  content: string;
+  isInternal: boolean;
   attachments?: string[];
   createdAt: string;
-  user?: {
+  sender?: {
+    id: string;
     email: string;
     role: string;
   };
@@ -49,39 +50,59 @@ export default function SupportTicketDetailPage() {
   const [ticket, setTicket] = useState<SupportTicket | null>(null);
   const [messages, setMessages] = useState<TicketMessage[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [replyMessage, setReplyMessage] = useState("");
   const [isInternalNote, setIsInternalNote] = useState(false);
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [newStatus, setNewStatus] = useState("");
 
+  const authHeaders = () => {
+    const token = localStorage.getItem('accessToken');
+    if (!token) {
+      router.push('/login');
+      return null;
+    }
+    return { 'Authorization': `Bearer ${token}` };
+  };
+
+  const handleUnauthorized = (res: Response) => {
+    if (res.status === 401) {
+      localStorage.removeItem('accessToken');
+      setError('Session expired. Please log in again.');
+      return true;
+    }
+    return false;
+  };
+
   const fetchTicket = () => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1'}/support/tickets/${ticketId}`, {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
-        'X-User-ID': localStorage.getItem('userId') || '',
-        'X-User-Role': localStorage.getItem('userRole') || '',
-      },
-    })
-      .then((res) => res.json())
+    const headers = authHeaders();
+    if (!headers) return;
+
+    fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1'}/support/tickets/${ticketId}`, { headers })
+      .then((res) => {
+        if (handleUnauthorized(res)) return;
+        return res.json();
+      })
       .then((data) => {
-        setTicket(data);
+        if (data) setTicket(data);
         setLoading(false);
       })
       .catch(() => setLoading(false));
   };
 
   const fetchMessages = () => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1'}/support/tickets/${ticketId}/messages`, {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
-        'X-User-ID': localStorage.getItem('userId') || '',
-        'X-User-Role': localStorage.getItem('userRole') || '',
-      },
-    })
-      .then((res) => res.json())
+    const headers = authHeaders();
+    if (!headers) return;
+
+    fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1'}/support/tickets/${ticketId}/messages`, { headers })
+      .then((res) => {
+        if (handleUnauthorized(res)) return null;
+        if (!res.ok) return { messages: [] };
+        return res.json();
+      })
       .then((data) => {
-        setMessages(data.messages || []);
+        if (data) setMessages(data.messages || []);
       })
       .catch(() => {});
   };
@@ -93,50 +114,42 @@ export default function SupportTicketDetailPage() {
 
   const handleReply = () => {
     if (!replyMessage.trim()) return;
-    const adminUserId = localStorage.getItem('userId');
-    if (!adminUserId) return;
+    const headers = authHeaders();
+    if (!headers) return;
 
-    fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1'}/support/tickets/${ticketId}/messages`, {
+    fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1'}/support/tickets/${ticketId}/reply`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
-        'X-User-ID': adminUserId,
-        'X-User-Role': localStorage.getItem('userRole') || '',
-      },
+      headers: { ...headers, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        message: replyMessage,
-        isInternalNote,
+        content: replyMessage,
+        isInternal: isInternalNote,
       }),
     })
       .then((res) => {
+        if (handleUnauthorized(res)) return;
         if (res.ok) {
           setReplyMessage("");
           setIsInternalNote(false);
           fetchMessages();
           fetchTicket();
         } else {
-          alert('Failed to send message');
+          res.json().then((data) => alert(data.message || 'Failed to send message'));
         }
       })
       .catch(() => alert('Failed to send message'));
   };
 
   const handleStatusChange = (status: string) => {
-    const adminUserId = localStorage.getItem('userId');
-    if (!adminUserId) return;
+    const headers = authHeaders();
+    if (!headers) return;
 
     fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1'}/support/tickets/${ticketId}/status`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
-        'X-User-ID': adminUserId,
-        'X-User-Role': localStorage.getItem('userRole') || '',
-      },
+      headers: { ...headers, 'Content-Type': 'application/json' },
       body: JSON.stringify({ status }),
     })
       .then((res) => {
+        if (handleUnauthorized(res)) return;
         if (res.ok) {
           setShowStatusModal(false);
           fetchTicket();
@@ -148,20 +161,16 @@ export default function SupportTicketDetailPage() {
   };
 
   const handleAssign = (supportUserId: string) => {
-    const adminUserId = localStorage.getItem('userId');
-    if (!adminUserId) return;
+    const headers = authHeaders();
+    if (!headers) return;
 
     fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1'}/support/tickets/${ticketId}/assign`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
-        'X-User-ID': adminUserId,
-        'X-User-Role': localStorage.getItem('userRole') || '',
-      },
+      headers: { ...headers, 'Content-Type': 'application/json' },
       body: JSON.stringify({ assignedToId: supportUserId }),
     })
       .then((res) => {
+        if (handleUnauthorized(res)) return;
         if (res.ok) {
           setShowAssignModal(false);
           fetchTicket();
@@ -175,6 +184,19 @@ export default function SupportTicketDetailPage() {
   const handleUnassign = () => {
     handleAssign("");
   };
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600 mb-4">{error}</p>
+          <button onClick={() => router.push('/login')} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+            Go to Login
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -280,24 +302,24 @@ export default function SupportTicketDetailPage() {
             {messages.map((msg) => (
               <div
                 key={msg.id}
-                className={`bg-white rounded-xl border shadow-sm p-6 ${msg.isInternalNote ? 'border-yellow-300 bg-yellow-50' : ''}`}
+                className={`bg-white rounded-xl border shadow-sm p-6 ${msg.isInternal ? 'border-yellow-300 bg-yellow-50' : ''}`}
               >
                 <div className="flex items-center gap-3 mb-4">
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                    msg.user?.role === 'ADMIN' || msg.user?.role === 'SUPPORT'
+                    msg.sender?.role === 'ADMIN' || msg.sender?.role === 'SUPPORT'
                       ? 'bg-purple-100'
                       : 'bg-blue-100'
                   }`}>
                     <User className={`w-5 h-5 ${
-                      msg.user?.role === 'ADMIN' || msg.user?.role === 'SUPPORT'
+                      msg.sender?.role === 'ADMIN' || msg.sender?.role === 'SUPPORT'
                         ? 'text-purple-600'
                         : 'text-blue-600'
                     }`} />
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <div className="font-medium text-gray-900">{msg.user?.email || 'User'}</div>
-                      {msg.isInternalNote && (
+                      <div className="font-medium text-gray-900">{msg.sender?.email || 'User'}</div>
+                      {msg.isInternal && (
                         <span className="px-2 py-0.5 text-xs font-medium bg-yellow-200 text-yellow-800 rounded-full flex items-center gap-1">
                           <Shield className="w-3 h-3" />
                           Internal Note
@@ -308,7 +330,7 @@ export default function SupportTicketDetailPage() {
                   </div>
                 </div>
                 <div className="prose max-w-none">
-                  <p className="text-gray-900 whitespace-pre-wrap">{msg.message}</p>
+                  <p className="text-gray-900 whitespace-pre-wrap">{msg.content}</p>
                 </div>
               </div>
             ))}

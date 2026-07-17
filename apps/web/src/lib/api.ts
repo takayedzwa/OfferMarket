@@ -13,20 +13,12 @@ export const api = axios.create({
 
 // Request interceptor to add auth headers
 api.interceptors.request.use((config) => {
-  // Check for token in localStorage
+  // Add JWT token from localStorage
   if (typeof window !== 'undefined') {
     const token = localStorage.getItem('accessToken');
-    const userId = localStorage.getItem('userId');
-    const userRole = localStorage.getItem('userRole');
 
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
-    }
-    if (userId) {
-      config.headers['x-user-id'] = userId;
-    }
-    if (userRole) {
-      config.headers['x-user-role'] = userRole;
     }
   }
   return config;
@@ -97,6 +89,9 @@ export const enumsApi = {
   getSpecialization: () => api.get('/enums/specialization'),
   getWorkAuthorization: () => api.get('/enums/work-authorization'),
   getLanguageLevel: () => api.get('/enums/language-level'),
+  getTicketCategory: () => api.get('/enums/ticket-category'),
+  getTicketPriority: () => api.get('/enums/ticket-priority'),
+  getTicketStatus: () => api.get('/enums/ticket-status'),
 };
 
 // ============================================================================

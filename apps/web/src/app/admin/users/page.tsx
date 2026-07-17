@@ -28,10 +28,8 @@ export default function AdminUsersPage() {
   const fetchUsers = () => {
     setLoading(true);
     const accessToken = localStorage.getItem('accessToken');
-    const userId = localStorage.getItem('userId');
-    const userRole = localStorage.getItem('userRole');
 
-    if (!accessToken || !userId || userRole !== 'ADMIN') {
+    if (!accessToken) {
       router.push('/login');
       return;
     }
@@ -47,8 +45,6 @@ export default function AdminUsersPage() {
     fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1'}/admin/users?${params}`, {
       headers: {
         'Authorization': `Bearer ${accessToken}`,
-        'X-User-ID': userId,
-        'X-User-Role': userRole,
       },
     })
       .then((res) => {
@@ -81,11 +77,9 @@ export default function AdminUsersPage() {
   };
 
   const handleAction = (user: User, action: string) => {
-    const adminUserId = localStorage.getItem('userId');
     const accessToken = localStorage.getItem('accessToken');
-    const userRole = localStorage.getItem('userRole');
 
-    if (!adminUserId || !accessToken || userRole !== 'ADMIN') {
+    if (!accessToken) {
       router.push('/login');
       return;
     }
@@ -96,8 +90,6 @@ export default function AdminUsersPage() {
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${accessToken}`,
-        'X-User-ID': adminUserId,
-        'X-User-Role': userRole,
       },
       body: JSON.stringify({ reason: action === 'restore' ? undefined : 'Admin action' }),
     })

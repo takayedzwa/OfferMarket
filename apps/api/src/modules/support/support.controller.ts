@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Body, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Body, Param, Query, Request, UseGuards } from '@nestjs/common';
 import { SupportService } from './support.service';
 import { SupportGuard } from '../../guards/support.guard';
 import { CreateTicketDto, TicketReplyDto, AssignTicketDto } from './dto/create-ticket.dto';
@@ -39,6 +39,19 @@ export class SupportController {
     return this.supportService.getTicketById(id);
   }
 
+  @Get('tickets/:id/messages')
+  async getTicketMessages(
+    @Param('id') id: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.supportService.getTicketMessages(
+      id,
+      page ? parseInt(page) : 1,
+      limit ? parseInt(limit) : 50,
+    );
+  }
+
   @Post('tickets')
   async createTicket(@Body() data: CreateTicketDto) {
     return this.supportService.createTicket(data);
@@ -47,27 +60,35 @@ export class SupportController {
   @Post('tickets/:id/reply')
   async replyToTicket(
     @Param('id') id: string,
-    @Query('senderId') senderId: string,
-    @Body('content') content: string,
-    @Body('isInternal') isInternal?: boolean,
+    @Request() req: any,
+    @Body() dto: TicketReplyDto,
   ) {
-    return this.supportService.replyToTicket(id, senderId, content, isInternal);
+    return this.supportService.replyToTicket(id, req.user.id, dto.content, dto.isInternal);
+  }
+
+  @Post('tickets/:id/status')
+  async updateTicketStatus(
+    @Param('id') id: string,
+    @Request() req: any,
+    @Body('status') status: string,
+  ) {
+    return this.supportService.updateTicketStatus(id, status, req.user.id);
   }
 
   @Post('tickets/:id/close')
   async closeTicket(
     @Param('id') id: string,
-    @Query('resolverId') resolverId: string,
+    @Request() req: any,
   ) {
-    return this.supportService.closeTicket(id, resolverId);
+    return this.supportService.closeTicket(id, req.user.id);
   }
 
   @Post('tickets/:id/resolve')
   async resolveTicket(
     @Param('id') id: string,
-    @Query('resolverId') resolverId: string,
+    @Request() req: any,
   ) {
-    return this.supportService.resolveTicket(id, resolverId);
+    return this.supportService.resolveTicket(id, req.user.id);
   }
 
   @Patch('tickets/:id/assign')
@@ -92,6 +113,19 @@ export class SupportController {
     return this.supportService.getUserOffers(id);
   }
 
+  @Get('users/:id/tickets')
+  async getUserTickets(
+    @Param('id') id: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.supportService.getUserTickets(
+      id,
+      page ? parseInt(page) : 1,
+      limit ? parseInt(limit) : 20,
+    );
+  }
+
   @Get('conversations/:id')
   async getConversationById(@Param('id') id: string) {
     return this.supportService.getConversationById(id);
@@ -101,18 +135,18 @@ export class SupportController {
   async unblockCompany(
     @Param('workerId') workerId: string,
     @Param('employerId') employerId: string,
-    @Query('supportUserId') supportUserId: string,
+    @Request() req: any,
   ) {
-    return this.supportService.unblockCompany(workerId, employerId, supportUserId);
+    return this.supportService.unblockCompany(workerId, employerId, req.user.id);
   }
 
   @Post('offers/:id/extend')
   async extendOfferExpiry(
     @Param('id') offerId: string,
-    @Query('supportUserId') supportUserId: string,
+    @Request() req: any,
     @Body('days') days: number,
   ) {
-    return this.supportService.extendOfferExpiry(offerId, days, supportUserId);
+    return this.supportService.extendOfferExpiry(offerId, days, req.user.id);
   }
 
   // ============================================================================
@@ -120,13 +154,13 @@ export class SupportController {
   // ============================================================================
 
   @Get('my-tickets')
-  async getUserTickets(
-    @Query('userId') userId: string,
+  async getMyTickets(
+    @Request() req: any,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
   ) {
     return this.supportService.getUserTickets(
-      userId,
+      req.user.id,
       page ? parseInt(page) : 1,
       limit ? parseInt(limit) : 20,
     );

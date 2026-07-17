@@ -89,6 +89,11 @@ export class SupportService {
         resolver: true,
         conversation: {
           orderBy: { createdAt: 'asc' },
+          include: {
+            sender: {
+              select: { id: true, email: true, role: true },
+            },
+          },
         },
       },
     });
@@ -137,12 +142,17 @@ export class SupportService {
     }
 
     // Create message
-    await this.prisma.ticketMessage.create({
+    const message = await this.prisma.ticketMessage.create({
       data: {
         ticketId,
         senderId,
         content,
         isInternal,
+      },
+      include: {
+        sender: {
+          select: { id: true, email: true, role: true },
+        },
       },
     });
 
@@ -154,7 +164,73 @@ export class SupportService {
       });
     }
 
-    return { success: true };
+    return message;
+  }
+
+  async getTicketMessages(ticketId: string, page: number = 1, limit: number = 50) {
+    const ticket = await this.prisma.supportTicket.findUnique({
+      where: { id: ticketId },
+    });
+
+    if (!ticket) {
+      throw new NotFoundException('Ticket not found');
+    }
+
+    const skip = (page - 1) * limit;
+    const [messages, total] = await Promise.all([
+      this.prisma.ticketMessage.findMany({
+        where: { ticketId },
+        skip,
+        take: limit,
+        include: {
+          sender: {
+            select: { id: true, email: true, role: true },
+          },
+        },
+        orderBy: { createdAt: 'asc' },
+      }),
+      this.prisma.ticketMessage.count({ where: { ticketId } }),
+    ]);
+
+    return {
+      messages,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  async updateTicketStatus(ticketId: string, status: string, resolverId: string) {
+    const ticket = await this.prisma.supportTicket.findUnique({
+      where: { id: ticketId },
+    });
+
+    if (!ticket) {
+      throw new NotFoundException('Ticket not found');
+    }
+
+    const validStatuses = ['OPEN', 'IN_PROGRESS', 'PENDING_USER', 'RESOLVED', 'CLOSED'];
+    if (!validStatuses.includes(status)) {
+      throw new BadRequestException(`Invalid status. Must be one of: ${validStatuses.join(', ')}`);
+    }
+
+    const updateData: any = { status };
+    if (status === 'RESOLVED' || status === 'CLOSED') {
+      updateData.resolvedAt = new Date();
+      updateData.resolvedById = resolverId;
+    }
+
+    return this.prisma.supportTicket.update({
+      where: { id: ticketId },
+      data: updateData,
+      include: {
+        user: true,
+        assignedTo: true,
+      },
+    });
   }
 
   async closeTicket(ticketId: string, resolverId: string) {

@@ -32,10 +32,8 @@ export default function AdminVerificationsPage() {
   const fetchPendingVerifications = () => {
     setLoading(true);
     const accessToken = localStorage.getItem('accessToken');
-    const userId = localStorage.getItem('userId');
-    const userRole = localStorage.getItem('userRole');
 
-    if (!accessToken || !userId || userRole !== 'ADMIN') {
+    if (!accessToken) {
       router.push('/login');
       return;
     }
@@ -43,8 +41,6 @@ export default function AdminVerificationsPage() {
     fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1'}/admin/verification-queue`, {
       headers: {
         'Authorization': `Bearer ${accessToken}`,
-        'X-User-ID': userId,
-        'X-User-Role': userRole,
       },
     })
       .then((res) => {
@@ -72,10 +68,9 @@ export default function AdminVerificationsPage() {
 
   const handleAction = () => {
     if (!selectedVerification) return;
-    const adminUserId = localStorage.getItem('userId');
     const accessToken = localStorage.getItem('accessToken');
 
-    if (!adminUserId || !accessToken) {
+    if (!accessToken) {
       router.push('/login');
       return;
     }
@@ -86,8 +81,6 @@ export default function AdminVerificationsPage() {
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${accessToken}`,
-        'X-User-ID': adminUserId,
-        'X-User-Role': 'ADMIN',
       },
       body: JSON.stringify({
         reason: actionType === "reject" ? (notes || 'Rejected by admin') : undefined,
