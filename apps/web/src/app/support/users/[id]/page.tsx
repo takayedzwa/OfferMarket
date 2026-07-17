@@ -40,8 +40,6 @@ export default function SupportUserDetailPage() {
     fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1'}/support/users/${userId}`, {
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
-        'X-User-ID': localStorage.getItem('userId') || '',
-        'X-User-Role': localStorage.getItem('userRole') || '',
       },
     })
       .then((res) => res.json())
@@ -56,8 +54,6 @@ export default function SupportUserDetailPage() {
     fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1'}/support/users/${userId}/tickets`, {
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
-        'X-User-ID': localStorage.getItem('userId') || '',
-        'X-User-Role': localStorage.getItem('userRole') || '',
       },
     })
       .then((res) => res.json())

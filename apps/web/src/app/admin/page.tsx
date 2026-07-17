@@ -26,11 +26,9 @@ export default function AdminDashboard() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    // Check if user is admin - only redirect if we have a confirmed non-admin user
-    const userRole = localStorage.getItem('userRole');
     const accessToken = localStorage.getItem('accessToken');
 
-    if (!accessToken || !userRole || userRole !== 'ADMIN') {
+    if (!accessToken) {
       router.push('/login');
       return;
     }
@@ -39,8 +37,6 @@ export default function AdminDashboard() {
     fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1'}/admin/dashboard-stats`, {
       headers: {
         'Authorization': `Bearer ${accessToken}`,
-        'X-User-ID': localStorage.getItem('userId') || '',
-        'X-User-Role': userRole,
       },
     })
       .then((res) => {

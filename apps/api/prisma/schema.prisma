@@ -60,6 +60,7 @@ model User {
   noticeMisuseRecords     NoticeMisuseRecord[]  @relation("UserNoticeMisuseRecords")
   refreshTokens          RefreshToken[]
   passwordResetTokens    PasswordResetToken[]
+  ticketMessages         TicketMessage[]        @relation("TicketMessageSender")
 
   @@index([email])
   @@index([role])
@@ -603,6 +604,7 @@ model TicketMessage {
   createdAt   DateTime @default(now())
 
   ticket SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  sender User          @relation("TicketMessageSender", fields: [senderId], references: [id], onDelete: Cascade)
 
   @@index([ticketId])
   @@index([senderId])

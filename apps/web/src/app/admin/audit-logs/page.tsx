@@ -39,8 +39,6 @@ export default function AdminAuditLogsPage() {
     fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1'}/admin/audit-logs?${params}`, {
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
-        'X-User-ID': localStorage.getItem('userId') || '',
-        'X-User-Role': 'ADMIN',
       },
     })
       .then((res) => res.json())

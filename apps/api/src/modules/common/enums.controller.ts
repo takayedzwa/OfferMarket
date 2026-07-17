@@ -31,6 +31,9 @@ export class EnumsController {
       specialization: this.getSpecializationEnums(),
       workAuthorization: this.getWorkAuthorizationEnums(),
       languageLevel: this.getLanguageLevelEnums(),
+      ticketCategory: this.getTicketCategoryEnums(),
+      ticketPriority: this.getTicketPriorityEnums(),
+      ticketStatus: this.getTicketStatusEnums(),
     };
   }
 
@@ -86,6 +89,21 @@ export class EnumsController {
   @Get('language-level')
   async getLanguageLevel() {
     return this.getLanguageLevelEnums();
+  }
+
+  @Get('ticket-category')
+  async getTicketCategory() {
+    return this.getTicketCategoryEnums();
+  }
+
+  @Get('ticket-priority')
+  async getTicketPriority() {
+    return this.getTicketPriorityEnums();
+  }
+
+  @Get('ticket-status')
+  async getTicketStatus() {
+    return this.getTicketStatusEnums();
   }
 
   // ===========================================================================
@@ -216,6 +234,37 @@ export class EnumsController {
       { value: 'C1', label: 'C1 - Advanced' },
       { value: 'C2', label: 'C2 - Proficient' },
       { value: 'NATIVE', label: 'Native Speaker' },
+    ];
+  }
+
+  private getTicketCategoryEnums() {
+    return [
+      { value: 'GENERAL', label: 'General Inquiry' },
+      { value: 'ACCOUNT', label: 'Account Issue' },
+      { value: 'BILLING', label: 'Billing / Payment' },
+      { value: 'TECHNICAL', label: 'Technical Problem' },
+      { value: 'REPORT', label: 'Report Content / User' },
+      { value: 'FEATURE', label: 'Feature Request' },
+      { value: 'OTHER', label: 'Other' },
+    ];
+  }
+
+  private getTicketPriorityEnums() {
+    return [
+      { value: 'LOW', label: 'Low' },
+      { value: 'MEDIUM', label: 'Medium' },
+      { value: 'HIGH', label: 'High' },
+      { value: 'URGENT', label: 'Urgent' },
+    ];
+  }
+
+  private getTicketStatusEnums() {
+    return [
+      { value: 'OPEN', label: 'Open' },
+      { value: 'IN_PROGRESS', label: 'In Progress' },
+      { value: 'PENDING_USER', label: 'Pending User' },
+      { value: 'RESOLVED', label: 'Resolved' },
+      { value: 'CLOSED', label: 'Closed' },
     ];
   }
 }

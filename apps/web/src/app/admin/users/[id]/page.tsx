@@ -41,8 +41,6 @@ export default function AdminUserDetailPage() {
     fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1'}/admin/users/${userId}`, {
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
-        'X-User-ID': localStorage.getItem('userId') || '',
-        'X-User-Role': 'ADMIN',
       },
     })
       .then((res) => res.json())
@@ -57,8 +55,6 @@ export default function AdminUserDetailPage() {
     fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1'}/admin/audit-logs?targetUserId=${userId}`, {
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
-        'X-User-ID': localStorage.getItem('userId') || '',
-        'X-User-Role': 'ADMIN',
       },
     })
       .then((res) => res.json())
@@ -74,16 +70,13 @@ export default function AdminUserDetailPage() {
   }, [userId]);
 
   const handleSuspend = () => {
-    const adminUserId = localStorage.getItem('userId');
-    if (!adminUserId || !suspendReason.trim()) return;
+    if (!suspendReason.trim()) return;
 
     fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1'}/admin/users/${userId}/suspend`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
-        'X-User-ID': adminUserId,
-        'X-User-Role': 'ADMIN',
       },
       body: JSON.stringify({ reason: suspendReason }),
     })
@@ -100,16 +93,13 @@ export default function AdminUserDetailPage() {
   };
 
   const handleBan = () => {
-    const adminUserId = localStorage.getItem('userId');
-    if (!adminUserId || !banReason.trim()) return;
+    if (!banReason.trim()) return;
 
     fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1'}/admin/users/${userId}/ban`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
-        'X-User-ID': adminUserId,
-        'X-User-Role': 'ADMIN',
       },
       body: JSON.stringify({ reason: banReason }),
     })
@@ -126,16 +116,11 @@ export default function AdminUserDetailPage() {
   };
 
   const handleRestore = () => {
-    const adminUserId = localStorage.getItem('userId');
-    if (!adminUserId) return;
-
     fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1'}/admin/users/${userId}/restore`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
-        'X-User-ID': adminUserId,
-        'X-User-Role': 'ADMIN',
       },
       body: JSON.stringify({ reason: 'Restored by admin' }),
     })

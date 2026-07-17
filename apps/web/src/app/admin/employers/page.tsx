@@ -48,8 +48,6 @@ export default function AdminEmployersPage() {
     fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1'}/admin/employers?${params}`, {
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
-        'X-User-ID': localStorage.getItem('userId') || '',
-        'X-User-Role': 'ADMIN',
       },
     })
       .then((res) => res.json())
@@ -71,16 +69,11 @@ export default function AdminEmployersPage() {
   };
 
   const handleVerify = (employerId: string) => {
-    const adminUserId = localStorage.getItem('userId');
-    if (!adminUserId) return;
-
     fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1'}/admin/employers/${employerId}/verify`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
-        'X-User-ID': adminUserId,
-        'X-User-Role': 'ADMIN',
       },
     })
       .then((res) => {
@@ -94,16 +87,11 @@ export default function AdminEmployersPage() {
   };
 
   const handleReject = (employerId: string) => {
-    const adminUserId = localStorage.getItem('userId');
-    if (!adminUserId) return;
-
     fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1'}/admin/employers/${employerId}/reject`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
-        'X-User-ID': adminUserId,
-        'X-User-Role': 'ADMIN',
       },
       body: JSON.stringify({ reason: 'Rejected by admin' }),
     })

@@ -47,8 +47,6 @@ export default function AdminOffersPage() {
     fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1'}/admin/offers?${params}`, {
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
-        'X-User-ID': localStorage.getItem('userId') || '',
-        'X-User-Role': 'ADMIN',
       },
     })
       .then((res) => res.json())
@@ -72,15 +70,10 @@ export default function AdminOffersPage() {
   const handleDelete = (offerId: string) => {
     if (!confirm('Are you sure you want to delete this offer?')) return;
 
-    const adminUserId = localStorage.getItem('userId');
-    if (!adminUserId) return;
-
     fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1'}/admin/offers/${offerId}`, {
       method: 'DELETE',
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
-        'X-User-ID': adminUserId,
-        'X-User-Role': 'ADMIN',
       },
     })
       .then((res) => {

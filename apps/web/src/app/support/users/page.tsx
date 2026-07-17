@@ -31,8 +31,6 @@ export default function SupportUsersPage() {
     fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1'}/support/users?search=${encodeURIComponent(search)}`, {
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
-        'X-User-ID': localStorage.getItem('userId') || '',
-        'X-User-Role': localStorage.getItem('userRole') || '',
       },
     })
       .then((res) => res.json())

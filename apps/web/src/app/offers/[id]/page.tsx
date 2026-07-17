@@ -140,12 +140,7 @@ export default function OfferDetailPage() {
       const [statsRes, ratingsRes, myRatingsRes] = await Promise.all([
         fetch(`http://localhost:3001/api/v1/ratings/employer/${employerId}/stats`),
         fetch(`http://localhost:3001/api/v1/ratings/employer/${employerId}?limit=5`),
-        fetch(`http://localhost:3001/api/v1/ratings/my`, {
-          headers: {
-            'x-user-id': localStorage.getItem('userId') || '',
-            'x-user-role': localStorage.getItem('userRole') || ''
-          }
-        })
+        fetch(`http://localhost:3001/api/v1/ratings/my`)
       ]);
 
       if (statsRes.ok) {
@@ -180,8 +175,6 @@ export default function OfferDetailPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-id': userId || '',
-          'x-user-role': localStorage.getItem('userRole') || ''
         },
         body: JSON.stringify({
           offerId: params.id,

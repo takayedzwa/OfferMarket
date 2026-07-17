@@ -1,48 +1,84 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Ticket, Send } from "lucide-react";
+import { ArrowLeft, Send } from "lucide-react";
+import { enumsApi } from "../../../lib/api";
+
+interface EnumOption {
+  value: string;
+  label: string;
+}
 
 export default function NewTicketPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [categories, setCategories] = useState<EnumOption[]>([]);
+  const [priorities, setPriorities] = useState<EnumOption[]>([]);
   const [formData, setFormData] = useState({
     userId: "",
     subject: "",
     description: "",
-    category: "GENERAL",
+    category: "",
     priority: "MEDIUM",
   });
+
+  useEffect(() => {
+    Promise.all([
+      enumsApi.getTicketCategory().then((res) => setCategories(res.data)),
+      enumsApi.getTicketPriority().then((res) => setPriorities(res.data)),
+    ]).catch(() => {
+      // Fallback enums if API is unavailable
+      setCategories([
+        { value: "GENERAL", label: "General Inquiry" },
+        { value: "ACCOUNT", label: "Account Issue" },
+        { value: "BILLING", label: "Billing / Payment" },
+        { value: "TECHNICAL", label: "Technical Problem" },
+        { value: "REPORT", label: "Report Content / User" },
+        { value: "FEATURE", label: "Feature Request" },
+        { value: "OTHER", label: "Other" },
+      ]);
+      setPriorities([
+        { value: "LOW", label: "Low" },
+        { value: "MEDIUM", label: "Medium" },
+        { value: "HIGH", label: "High" },
+        { value: "URGENT", label: "Urgent" },
+      ]);
+    });
+  }, []);
+
+  // Set default category once loaded
+  useEffect(() => {
+    if (categories.length > 0 && !formData.category) {
+      setFormData((prev) => ({ ...prev, category: categories[0].value }));
+    }
+  }, [categories]);
 
   const handleChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleSubmit = () => {
-    if (!formData.userId.trim() || !formData.subject.trim() || !formData.description.trim()) {
+    if (!formData.userId.trim() || !formData.subject.trim() || !formData.description.trim() || !formData.category) {
       alert("Please fill in all required fields");
       return;
     }
 
     setLoading(true);
-    const adminUserId = localStorage.getItem('userId');
 
     fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1'}/support/tickets`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
-        'X-User-ID': adminUserId || '',
-        'X-User-Role': localStorage.getItem('userRole') || '',
       },
       body: JSON.stringify(formData),
     })
       .then((res) => res.json())
       .then((data) => {
         setLoading(false);
-        if (data.ticket?.id) {
-          router.push(`/support/tickets/${data.ticket.id}`);
+        if (data.ticket?.id || data.id) {
+          router.push(`/support/tickets/${data.ticket?.id || data.id}`);
         } else {
           alert('Ticket created successfully');
           router.push('/support/tickets');
@@ -105,20 +141,16 @@ export default function NewTicketPage() {
           {/* Category */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Category
+              Category <span className="text-red-500">*</span>
             </label>
             <select
               value={formData.category}
               onChange={(e) => handleChange('category', e.target.value)}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
             >
-              <option value="GENERAL">General Inquiry</option>
-              <option value="ACCOUNT">Account Issue</option>
-              <option value="BILLING">Billing/Payment</option>
-              <option value="TECHNICAL">Technical Problem</option>
-              <option value="REPORT">Report Content/User</option>
-              <option value="FEATURE">Feature Request</option>
-              <option value="OTHER">Other</option>
+              {categories.map((cat) => (
+                <option key={cat.value} value={cat.value}>{cat.label}</option>
+              ))}
             </select>
           </div>
 
@@ -132,10 +164,9 @@ export default function NewTicketPage() {
               onChange={(e) => handleChange('priority', e.target.value)}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
             >
-              <option value="LOW">Low</option>
-              <option value="MEDIUM">Medium</option>
-              <option value="HIGH">High</option>
-              <option value="URGENT">Urgent</option>
+              {priorities.map((pri) => (
+                <option key={pri.value} value={pri.value}>{pri.label}</option>
+              ))}
             </select>
           </div>
 

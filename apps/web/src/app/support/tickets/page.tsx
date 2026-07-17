@@ -49,8 +49,6 @@ export default function SupportTicketsPage() {
     fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1'}/support/tickets?${params}`, {
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
-        'X-User-ID': localStorage.getItem('userId') || '',
-        'X-User-Role': localStorage.getItem('userRole') || '',
       },
     })
       .then((res) => res.json())

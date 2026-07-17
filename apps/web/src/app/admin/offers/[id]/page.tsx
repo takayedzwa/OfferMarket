@@ -65,10 +65,8 @@ export default function AdminOfferDetailPage() {
 
   const fetchOffer = () => {
     const accessToken = localStorage.getItem('accessToken');
-    const userId = localStorage.getItem('userId');
-    const userRole = localStorage.getItem('userRole');
 
-    if (!accessToken || !userId || userRole !== 'ADMIN') {
+    if (!accessToken) {
       router.push('/login');
       return;
     }
@@ -76,8 +74,6 @@ export default function AdminOfferDetailPage() {
     fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1'}/admin/offers/${offerId}`, {
       headers: {
         'Authorization': `Bearer ${accessToken}`,
-        'X-User-ID': userId,
-        'X-User-Role': userRole,
       },
     })
       .then((res) => {
