@@ -1,4 +1,5 @@
 import { Controller, Get, Post, Patch, Body, Param, Query, Request, UseGuards } from '@nestjs/common';
+import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
 import { SupportService } from './support.service';
 import { SupportGuard } from '../../guards/support.guard';
 import { CreateTicketDto, TicketReplyDto, AssignTicketDto } from './dto/create-ticket.dto';
@@ -53,8 +54,12 @@ export class SupportController {
   }
 
   @Post('tickets')
-  async createTicket(@Body() data: CreateTicketDto) {
-    return this.supportService.createTicket(data);
+  @UseGuards(JwtAuthGuard)
+  async createTicket(@Request() req: any, @Body() data: CreateTicketDto) {
+    // SECURITY: userId comes from the JWT token, not the request body,
+    // preventing IDOR attacks where users could create tickets for other users.
+    const userId = req.user.id;
+    return this.supportService.createTicket({ ...data, userId });
   }
 
   @Post('tickets/:id/reply')

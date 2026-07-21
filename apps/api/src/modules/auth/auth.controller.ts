@@ -116,29 +116,56 @@ export class AuthController {
   }
 
   // ============================================================================
+  // SEND VERIFICATION CODE
+  // SECURITY: Authenticated users request a code for their own email/phone.
+  // The code is stored as a SHA-256 hash; the raw code is returned for
+  // development convenience (MUST be removed before production).
+  // ============================================================================
+
+  @Post('send-verification-code')
+  @UseGuards(JwtAuthGuard)
+  @Throttle({ short: { ttl: 60000, limit: 5 } })
+  async sendVerificationCode(
+    @Request() req: any,
+    @Body('type') type: 'EMAIL' | 'PHONE',
+  ) {
+    const userId = req.user.id;
+    return this.authService.sendVerificationCode(userId, type || 'EMAIL');
+  }
+
+  // ============================================================================
   // VERIFY EMAIL
+  // SECURITY: userId is now extracted from the JWT token instead of the request
+  // body, preventing IDOR attacks where any authenticated user could verify
+  // another user's email. The verification code is also validated against a
+  // stored hash rather than being blindly accepted.
   // ============================================================================
 
   @Post('verify-email')
+  @UseGuards(JwtAuthGuard)
   @Throttle({ short: { ttl: 60000, limit: 10 } })
   async verifyEmail(
-    @Body('userId') userId: string,
+    @Request() req: any,
     @Body('code') code: string
   ) {
+    const userId = req.user.id;
     return this.authService.verifyEmail(userId, code);
   }
 
   // ============================================================================
   // VERIFY PHONE
+  // SECURITY: Same as verify-email — userId comes from JWT, code is validated.
   // ============================================================================
 
   @Post('verify-phone')
+  @UseGuards(JwtAuthGuard)
   @Throttle({ short: { ttl: 60000, limit: 10 } })
   async verifyPhone(
-    @Body('userId') userId: string,
+    @Request() req: any,
     @Body('phone') phone: string,
     @Body('code') code: string
   ) {
+    const userId = req.user.id;
     return this.authService.verifyPhone(userId, phone, code);
   }
 

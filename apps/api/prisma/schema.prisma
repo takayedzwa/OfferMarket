@@ -46,6 +46,7 @@ model User {
   resolvedTickets      SupportTicket[]       @relation("ResolvedSupportTickets")
   suspiciousActivities SuspiciousActivity[]
   blacklistEntries     BlacklistEntry[]      @relation("BlacklistedUser")
+  verificationCodes    VerificationCode[]
   consents             Consent[]
   dataSubjectRequests  DataSubjectRequest[]
   gdprFlags            UserGdprFlags?
@@ -97,6 +98,20 @@ model PasswordResetToken {
   @@index([tokenHash])
   @@index([userId])
   @@index([expiresAt])
+}
+
+model VerificationCode {
+  id        String   @id @default(uuid())
+  userId    String
+  type      String   // "EMAIL" or "PHONE"
+  codeHash  String   // SHA-256 hash of the verification code
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, type, expiresAt])
+  @@index([codeHash])
 }
 
 model Worker {

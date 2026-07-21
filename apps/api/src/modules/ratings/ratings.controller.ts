@@ -55,17 +55,18 @@ export class RatingsController {
   /**
    * PATCH /ratings/:id
    * Update an existing rating (only by original rater)
+   * SECURITY: userId is extracted from the JWT token instead of query params,
+   * preventing IDOR attacks where any authenticated user could update another
+   * user's ratings.
    */
   @Patch(':id')
   @UseGuards(JwtAuthGuard)
   async updateRating(
     @Param('id') ratingId: string,
     @Body() updateRatingDto: UpdateRatingDto,
-    @Query('userId') userId: string
+    @Request() req: any
   ) {
-    if (!userId) {
-      throw new BadRequestException('userId is required');
-    }
+    const userId = req.user.id;
     return this.ratingsService.updateRating(ratingId, userId, updateRatingDto);
   }
 
@@ -122,12 +123,15 @@ export class RatingsController {
   /**
    * GET /ratings/:id
    * Get a specific rating by ID
+   * SECURITY: userId is extracted from JWT if available, not from query params.
    */
   @Get(':id')
+  @UseGuards(JwtAuthGuard)
   async getRatingById(
     @Param('id') ratingId: string,
-    @Query('userId') userId?: string
+    @Request() req: any
   ) {
+    const userId = req.user.id;
     return this.ratingsService.getRatingById(ratingId, userId);
   }
 
@@ -138,16 +142,16 @@ export class RatingsController {
   /**
    * POST /ratings/:id/flag
    * Flag a rating for review (admin only)
+   * SECURITY: adminUserId is extracted from the JWT token instead of query params,
+   * preventing IDOR attacks.
    */
   @Post(':id/flag')
   @UseGuards(JwtAuthGuard, AdminGuard)
   async flagRating(
     @Param('id') ratingId: string,
-    @Query('userId') adminUserId: string
+    @Request() req: any
   ) {
-    if (!adminUserId) {
-      throw new BadRequestException('Admin userId is required');
-    }
+    const adminUserId = req.user.id;
     return this.ratingsService.flagRating(ratingId, adminUserId);
   }
 

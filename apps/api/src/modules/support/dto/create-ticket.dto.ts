@@ -1,8 +1,10 @@
 import { IsString, IsOptional, IsIn, IsObject, IsBoolean } from 'class-validator';
 
 export class CreateTicketDto {
-  @IsString()
-  userId: string;
+  // SECURITY: userId is no longer accepted from the request body.
+  // It is extracted from the authenticated JWT token in the controller,
+  // preventing IDOR attacks where a user could create tickets attributed
+  // to another user.
 
   @IsString()
   subject: string;

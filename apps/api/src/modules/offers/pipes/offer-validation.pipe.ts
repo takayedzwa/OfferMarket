@@ -70,10 +70,10 @@ export class OfferValidationPipe implements PipeTransform {
           message: 'Maximum salary is required',
           field: 'compensation.salaryMax'
         });
-      } else if (salaryMin && salaryMax && (salaryMax - salaryMin > 5000)) {
+      } else if (salaryMin && salaryMax && (salaryMax - salaryMin > 20000)) {
         errors.push({
           code: 'OFFER_VALIDATION_SALARY_RANGE_MAX_SPREAD',
-          message: 'Salary range cannot exceed €5,000. Be specific about compensation.',
+          message: 'Salary range cannot exceed €20,000. Please provide a more specific salary range.',
           field: 'compensation.salaryRange'
         });
       }

@@ -101,6 +101,15 @@ export class WorkersService {
       deletedAt: null,
     };
 
+    // SECURITY: Exclude workers who have blocked the searching employer.
+    // This prevents employers from finding workers who have explicitly
+    // blocked them, even if the worker's profile visibility is ALL_VERIFIED.
+    if (employerId) {
+      where.blockedCompanies = {
+        none: { employerId },
+      };
+    }
+
     // Visibility filter: show ALL_VERIFIED workers, plus SELECTED_COMPANIES workers
     // that have explicitly granted visibility to this employer.
     if (employerId) {
