@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "../../../contexts/AuthContext";
-import { offersApi } from "../../../lib/api";
+import { offersApi, ratingsApi } from "../../../lib/api";
 import { Offer, OfferVersion } from "../../../lib/types";
 import {
   ArrowLeft,
@@ -138,23 +138,22 @@ export default function OfferDetailPage() {
     setLoadingRatings(true);
     try {
       const [statsRes, ratingsRes, myRatingsRes] = await Promise.all([
-        fetch(`http://localhost:3001/api/v1/ratings/employer/${employerId}/stats`),
-        fetch(`http://localhost:3001/api/v1/ratings/employer/${employerId}?limit=5`),
-        fetch(`http://localhost:3001/api/v1/ratings/my`)
+        ratingsApi.getEmployerRatingStats(employerId).catch(() => null),
+        ratingsApi.getEmployerRatings(employerId).catch(() => null),
+        ratingsApi.getMyRatings().catch(() => null),
       ]);
 
-      if (statsRes.ok) {
-        const stats = await statsRes.json();
-        setEmployerStats(stats);
+      if (statsRes?.data) {
+        setEmployerStats(statsRes.data);
       }
 
-      if (ratingsRes.ok) {
-        const ratings = await ratingsRes.json();
-        setEmployerRatings(ratings);
+      if (ratingsRes?.data) {
+        const ratingsData = ratingsRes.data;
+        setEmployerRatings(Array.isArray(ratingsData) ? ratingsData : ratingsData?.ratings || []);
       }
 
-      if (myRatingsRes.ok) {
-        const myRatings = await myRatingsRes.json();
+      if (myRatingsRes?.data) {
+        const myRatings = Array.isArray(myRatingsRes.data) ? myRatingsRes.data : myRatingsRes.data?.ratings || [];
         // Check if user already rated this employer
         const hasRatedThisEmployer = myRatings.some((r: any) => r.employerId === employerId);
         setHasRated(hasRatedThisEmployer);
@@ -168,36 +167,20 @@ export default function OfferDetailPage() {
 
   const handleSubmitRating = async (ratingData: any) => {
     try {
-      const userId = localStorage.getItem('userId');
-      console.log('Submitting rating for offer:', params.id, 'userId:', userId);
-
-      const response = await fetch('http://localhost:3001/api/v1/ratings', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          offerId: params.id,
-          ...ratingData
-        })
+      const response = await ratingsApi.createRating({
+        offerId: params.id,
+        ...ratingData
       });
 
-      const responseData = await response.json();
-      console.log('Rating response:', response.status, responseData);
-
-      if (response.ok) {
-        setHasRated(true);
-        setShowRateModal(false);
-        // Reload ratings
-        if (offer?.employer?.id) {
-          loadEmployerRatings(offer.employer.id);
-        }
-      } else {
-        setError(responseData.message || 'Failed to submit rating');
+      setHasRated(true);
+      setShowRateModal(false);
+      // Reload ratings
+      if (offer?.employer?.id) {
+        loadEmployerRatings(offer.employer.id);
       }
     } catch (err: any) {
       console.error('Rating submission error:', err);
-      setError(err.message || 'Failed to submit rating');
+      setError(err.response?.data?.message || err.message || 'Failed to submit rating');
     }
   };
 

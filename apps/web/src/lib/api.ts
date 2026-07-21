@@ -253,6 +253,40 @@ export const employersApi = {
 };
 
 // ============================================================================
+// RATINGS API
+// SECURITY: All authenticated endpoints use the JWT token for userId.
+// No userId query params are sent — the backend extracts identity from the token.
+// ============================================================================
+
+export const ratingsApi = {
+  // Create a rating (authenticated)
+  createRating: (data: any) => api.post('/ratings', data),
+
+  // Get my ratings (authenticated)
+  getMyRatings: () => api.get('/ratings/my'),
+
+  // Get employer ratings (public)
+  getEmployerRatings: (employerId: string, limit: number = 5, offset: number = 0) =>
+    api.get(`/ratings/employer/${employerId}`, { params: { limit, offset } }),
+
+  // Get employer rating stats (public)
+  getEmployerRatingStats: (employerId: string) =>
+    api.get(`/ratings/employer/${employerId}/stats`),
+
+  // Get employer trust score (public)
+  getEmployerTrustScore: (employerId: string) =>
+    api.get(`/ratings/employer/${employerId}/trust-score`),
+
+  // Update a rating (authenticated)
+  updateRating: (ratingId: string, data: any) =>
+    api.patch(`/ratings/${ratingId}`, data),
+
+  // Get rating by ID (authenticated)
+  getRatingById: (ratingId: string) =>
+    api.get(`/ratings/${ratingId}`),
+};
+
+// ============================================================================
 // OFFERS API
 // ============================================================================
 
