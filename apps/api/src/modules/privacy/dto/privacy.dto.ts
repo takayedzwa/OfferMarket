@@ -84,6 +84,10 @@ export class ConfirmDataDeletionDto {
 export class SetProcessingRestrictionDto {
   @IsBoolean()
   restricted!: boolean;
+
+  @IsOptional()
+  @IsString()
+  reason?: string;
 }
 
 // ============================================================================
