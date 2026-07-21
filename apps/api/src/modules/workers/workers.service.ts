@@ -502,12 +502,31 @@ export class WorkersService {
   }
 
   // ============================================================================
+  // SUB-RESOURCE LIMITS
+  // SECURITY: Prevent profile bloat / abuse by capping the number of each
+  // sub-resource type. These limits are generous enough for real profiles
+  // but prevent DoS via unlimited creation.
+  // ============================================================================
+
+  private static readonly MAX_SKILLS = 20;
+  private static readonly MAX_CERTIFICATIONS = 15;
+  private static readonly MAX_LANGUAGES = 10;
+  private static readonly MAX_EDUCATION = 10;
+  private static readonly MAX_PROJECT_EXPERIENCES = 15;
+
+  // ============================================================================
   // PROFILE SKILL CRUD
   // ============================================================================
 
   async addProfileSkill(userId: string, dto: CreateProfileSkillDto) {
     const worker = await this.prisma.worker.findUnique({ where: { userId } });
     if (!worker) throw new NotFoundException('Worker profile not found');
+
+    // Enforce maximum skills limit
+    const currentCount = await this.prisma.profileSkill.count({ where: { profileId: worker.id } });
+    if (currentCount >= WorkersService.MAX_SKILLS) {
+      throw new BadRequestException(`Maximum of ${WorkersService.MAX_SKILLS} skills reached`);
+    }
 
     // Resolve skillId: either provided directly, or look up/create by name
     let skillId = dto.skillId;
@@ -606,6 +625,12 @@ export class WorkersService {
     const worker = await this.prisma.worker.findUnique({ where: { userId } });
     if (!worker) throw new NotFoundException('Worker profile not found');
 
+    // Enforce maximum certifications limit
+    const currentCount = await this.prisma.certification.count({ where: { profileId: worker.id } });
+    if (currentCount >= WorkersService.MAX_CERTIFICATIONS) {
+      throw new BadRequestException(`Maximum of ${WorkersService.MAX_CERTIFICATIONS} certifications reached`);
+    }
+
     const certification = await this.prisma.certification.create({
       data: {
         profileId: worker.id,
@@ -679,6 +704,12 @@ export class WorkersService {
     const worker = await this.prisma.worker.findUnique({ where: { userId } });
     if (!worker) throw new NotFoundException('Worker profile not found');
 
+    // Enforce maximum languages limit
+    const currentCount = await this.prisma.workerLanguage.count({ where: { workerId: worker.id } });
+    if (currentCount >= WorkersService.MAX_LANGUAGES) {
+      throw new BadRequestException(`Maximum of ${WorkersService.MAX_LANGUAGES} languages reached`);
+    }
+
     const language = await this.prisma.workerLanguage.create({
       data: {
         workerId: worker.id,
@@ -727,6 +758,12 @@ export class WorkersService {
   async addEducation(userId: string, dto: CreateEducationDto) {
     const worker = await this.prisma.worker.findUnique({ where: { userId } });
     if (!worker) throw new NotFoundException('Worker profile not found');
+
+    // Enforce maximum education limit
+    const currentCount = await this.prisma.education.count({ where: { workerId: worker.id } });
+    if (currentCount >= WorkersService.MAX_EDUCATION) {
+      throw new BadRequestException(`Maximum of ${WorkersService.MAX_EDUCATION} education entries reached`);
+    }
 
     const education = await this.prisma.education.create({
       data: {
@@ -784,6 +821,12 @@ export class WorkersService {
   async addProjectExperience(userId: string, dto: CreateProjectExperienceDto) {
     const worker = await this.prisma.worker.findUnique({ where: { userId } });
     if (!worker) throw new NotFoundException('Worker profile not found');
+
+    // Enforce maximum project experiences limit
+    const currentCount = await this.prisma.projectExperience.count({ where: { workerId: worker.id } });
+    if (currentCount >= WorkersService.MAX_PROJECT_EXPERIENCES) {
+      throw new BadRequestException(`Maximum of ${WorkersService.MAX_PROJECT_EXPERIENCES} project experiences reached`);
+    }
 
     const project = await this.prisma.projectExperience.create({
       data: {
@@ -1003,16 +1046,45 @@ export class WorkersService {
   }
 
   // ============================================================================
-  // DELETE WORKER PROFILE (Soft Delete)
+  // DELETE WORKER PROFILE (Soft Delete with Cascade)
+  // SECURITY: Soft-deletes the worker profile and cascades: hides profile
+  // visibility, removes visible-companies grants, blocks, and marks the
+  // user account as DELETED so it can no longer authenticate.
   // ============================================================================
 
   async deleteWorkerProfile(workerId: string) {
-    return this.prisma.worker.update({
-      where: { id: workerId },
-      data: {
-        deletedAt: new Date(),
-        profileVisibility: 'HIDDEN'
-      }
+    const worker = await this.prisma.worker.findUnique({ where: { id: workerId } });
+    if (!worker) {
+      throw new NotFoundException('Worker profile not found');
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      // 1. Soft-delete the worker profile and hide visibility
+      const updated = await tx.worker.update({
+        where: { id: workerId },
+        data: {
+          deletedAt: new Date(),
+          profileVisibility: 'HIDDEN',
+        },
+      });
+
+      // 2. Remove all visible-company grants (no longer needed)
+      await tx.visibleCompany.deleteMany({
+        where: { workerId },
+      });
+
+      // 3. Remove all blocked-company entries
+      await tx.blockedCompany.deleteMany({
+        where: { workerId },
+      });
+
+      // 4. Mark user account as DELETED to prevent further authentication
+      await tx.user.update({
+        where: { id: worker.userId },
+        data: { status: 'DELETED' },
+      });
+
+      return updated;
     });
   }
 
@@ -1373,21 +1445,14 @@ export class WorkersService {
 
   // ============================================================================
   // HELPER: Generate Worker Public ID
+  // SECURITY: Uses PostgreSQL sequence for atomic increment, preventing race
+  // conditions where concurrent requests could generate duplicate IDs.
   // ============================================================================
 
   private async generateWorkerPublicId(tx: any): Promise<string> {
-    const lastWorker = await tx.worker.findFirst({
-      orderBy: { createdAt: 'desc' }
-    });
-
-    let sequence = 1;
-    if (lastWorker && lastWorker.publicId) {
-      const match = lastWorker.publicId.match(/(\d+)$/);
-      if (match) {
-        sequence = parseInt(match[1]) + 1;
-      }
-    }
-
+    // Use a PostgreSQL sequence for atomic, race-safe ID generation
+    const result = await tx.$queryRaw`SELECT nextval('worker_public_id_seq') as seq`;
+    const sequence = Number(result[0].seq);
     return `W-${String(sequence).padStart(6, '0')}`;
   }
 }

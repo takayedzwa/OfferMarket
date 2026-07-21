@@ -300,3 +300,88 @@ Fix:
 - Frontend (profile/edit/page.tsx): Added VisibleCompaniesManager component that appears when SELECTED_COMPANIES visibility is selected, allowing workers to add/remove employers.
 - Frontend (profile/setup/page.tsx): Added a warning message when SELECTED_COMPANIES is selected, directing workers to manage visibility after profile creation.
 - Frontend (profile/page.tsx): Added a note for SELECTED_COMPANIES profiles linking to visibility management settings.
+
+## High Fix
+
+Summary of HIGH Priority Fixes (W-H1 through W-H8)
+
+✅ W-H1: Frontend userId in Query Param (IDOR)
+
+- apps/web/src/lib/api.ts — Removed userId query params from all workersApi methods (18 methods) and all employersApi methods (5 methods). The backend now extracts userId from the JWT token, eliminating the IDOR vulnerability where user IDs were leaked in URLs/logs.
+
+✅ W-H2: Email/Phone Verification Bypass
+
+- apps/api/src/modules/auth/auth.controller.ts — Added @UseGuards(JwtAuthGuard) to verify-email and verify-phone endpoints. Changed them to extract userId from req.user.id instead of @Body('userId').
+- apps/api/src/modules/auth/auth.service.ts — Replaced the dummy verifyEmail/verifyPhone methods that blindly set flags to true. Now validates the code against a SHA-256 hash stored in the VerificationCode table, with expiry enforcement. Added a new sendVerificationCode(userId, type) method that generates 6-digit codes with 15-minute expiry.
+- apps/api/prisma/schema.prisma — Added VerificationCode model with codeHash, type (EMAIL/PHONE), and expiresAt fields.
+
+✅ W-H3: Password Reset Token in API Response
+
+- apps/api/src/modules/auth/auth.service.ts — forgotPassword() no longer returns { token: rawToken }. The raw token is logged at console.info level for development testing. The response only contains { message: "..." } — the same message regardless of whether the email exists (preventing user enumeration).
+
+✅ W-H4: Support Ticket userId from Request Body
+
+- apps/api/src/modules/support/dto/create-ticket.dto.ts — Removed userId field from CreateTicketDto.
+- apps/api/src/modules/support/support.controller.ts — Added @UseGuards(JwtAuthGuard) and @Request() req to createTicket. Now passes { ...data, userId: req.user.id } to the service.
+- apps/api/src/modules/support/support.service.ts — Updated createTicket signature to accept CreateTicketDto & { userId: string }.
+
+✅ W-H5/W-H8: Overly Restrictive Salary Spread
+
+- apps/api/src/modules/offers/pipes/offer-validation.pipe.ts — Increased max salary spread from €5,000 to €20,000, allowing legitimate Dutch labor market salary ranges. Updated error message to reflect the new limit.
+
+✅ W-H6: Search Doesn't Check Blocked Status
+
+- apps/api/src/modules/workers/workers.service.ts — Added blockedCompanies: { none: { employerId } } filter to searchWorkers(). Employers who have been blocked by a worker will no longer see that worker in search results, even if the worker's visibility is ALL_VERIFIED.
+
+✅ W-H7: Ratings userId from Query Param
+
+- apps/api/src/modules/ratings/ratings.controller.ts —
+    - updateRating (PATCH /:id): Removed @Query('userId'), added @Request() req, extracts userId from req.user.id.
+    - getRatingById (GET /:id): Added @UseGuards(JwtAuthGuard), extracts userId from JWT instead of query param.
+    - flagRating (POST /:id/flag): Removed @Query('userId'), extracts adminUserId from req.user.id.
+
+
+## Medium Fix
+
+Summary of MEDIUM Priority Fixes (W-M1 through W-M9)
+
+✅ W-M1: Worker/Offer Public ID Race Condition
+
+- workers.service.ts — Replaced find-then-increment pattern with PostgreSQL nextval('worker_public_id_seq') for atomic, race-safe ID generation
+- offers.service.ts — Same fix: nextval('offer_public_id_seq') instead of find-then-increment
+- Created both sequences in the database
+
+✅ W-M2: Offer Acceptance Requires Viewing First
+
+- offers.service.ts — Removed SUBMITTED from allowed acceptance states. Workers must now VIEW the offer before accepting. Only VIEWED and SHORTLISTED are valid for acceptance.
+
+✅ W-M3: Rating Requires Accepted/Completed Offer
+
+- ratings.service.ts — Removed VIEWED and SUBMITTED from canRateStatuses. Workers can now only rate offers in ACCEPTED, REJECTED, WITHDRAWN, or EXPIRED states — ensuring ratings are based on meaningful interaction.
+
+✅ W-M4: Employer Email Redacted for Non-Accepted Offers
+
+- offers.service.ts — getOfferForWorker() now redacts email, phone, and passwordHash from the employer user object for non-ACCEPTED states. Full contact details only revealed after acceptance.
+
+✅ W-M5: ProcessingRestrictionGuard Already Global (No Change Needed)
+
+- Confirmed ProcessingRestrictionGuard was already registered as APP_GUARD in app.module.ts line 70. No fix needed.
+
+✅ W-M6: Unread Count No Longer Assumes Fixed Roles
+
+- messages.service.ts — sendMessage, markAsRead, and archiveConversation now look up the recipient's actual role from the User table instead of assuming participant1Id = worker. This makes the logic resilient to role assignment changes.
+
+✅ W-M7: Sub-Resource Limits
+
+- workers.service.ts — Added limits: 20 skills, 15 certifications, 10 languages, 10 education entries, 15 project experiences. Each add* method now checks the current count before creating.
+
+✅ W-M8: Worker Deletion Cascade
+
+- workers.service.ts — deleteWorkerProfile now uses a transaction to: (1) soft-delete the worker profile, (2) remove all visible-company grants, (3) remove all blocked-company entries, (4) mark the user account as DELETED to prevent authentication.
+
+✅ W-M9: Access Token Blacklist on Logout
+
+- auth.service.ts — Added jti (JWT ID) claim to access tokens via crypto.randomUUID(). New blacklistAccessToken() method stores the jti in a BlacklistedToken table.
+- auth.controller.ts — Logout endpoint now calls blacklistAccessToken() in addition to revokeAllRefreshTokens().
+- jwt.strategy.ts — Validates each token's jti against the blacklist. Also added DELETED status check.
+- Prisma schema — Added BlacklistedToken model with jti, userId, and expiresAt fields.

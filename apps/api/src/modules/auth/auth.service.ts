@@ -521,10 +521,15 @@ export class AuthService {
   // ============================================================================
 
   private generateTokens(userId: string, role: string) {
+    // Include a unique jti (JWT ID) claim so the access token can be
+    // blacklisted on logout. Without jti, access tokens remain valid
+    // until natural expiry even after logout.
+    const jti = crypto.randomUUID();
+
     const accessToken = jwt.sign(
-      { sub: userId, role },
+      { sub: userId, role, jti },
       process.env.JWT_SECRET || (process.env.NODE_ENV === 'production' ? (() => { throw new Error('JWT_SECRET environment variable is required in production'); })() : 'dev-secret-key-not-for-production'),
-      { expiresIn: '1h', algorithm: 'HS256' }
+      { expiresIn: '1h', algorithm: 'HS256', jwtid: jti }
     );
 
     const refreshToken = jwt.sign(
@@ -695,6 +700,32 @@ export class AuthService {
   async revokeAllRefreshTokens(userId: string) {
     await this.prisma.refreshToken.deleteMany({
       where: { userId },
+    });
+  }
+
+  /**
+   * Blacklist an access token by its jti (JWT ID) claim.
+   * This ensures the token cannot be reused after logout, closing the
+   * window where a stolen access token would remain valid until expiry.
+   */
+  async blacklistAccessToken(userId: string, jti: string) {
+    // Store the jti with an expiry matching the access token TTL (1 hour).
+    // After that point, the token would have expired naturally anyway.
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
+
+    await this.prisma.blacklistedToken.upsert({
+      where: { jti },
+      create: { jti, userId, expiresAt },
+      update: { expiresAt },
+    });
+  }
+
+  /**
+   * Clean up expired blacklist entries. Can be called periodically.
+   */
+  async cleanupExpiredBlacklistedTokens() {
+    await this.prisma.blacklistedToken.deleteMany({
+      where: { expiresAt: { lt: new Date() } },
     });
   }
 

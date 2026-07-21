@@ -196,7 +196,9 @@ export class OffersService {
   /**
    * Get offer details for worker
    *
-   * CRITICAL: Employer identity is visible, but worker's identity remains hidden
+   * CRITICAL: Employer identity is visible, but worker's identity remains hidden.
+   * PRIVACY: For non-accepted states, employer email is redacted. Full contact
+   * details are only revealed after the worker accepts the offer.
    */
   async getOfferForWorker(offerId: string, userId: string) {
     // First, find the Worker record by userId
@@ -238,6 +240,20 @@ export class OffersService {
         where: { id: offerId },
         data: { viewedAt: new Date() }
       });
+    }
+
+    // PRIVACY: Redact employer email for non-accepted states.
+    // Full contact details are only revealed after acceptance.
+    const acceptedStates = ['ACCEPTED'];
+    if (!acceptedStates.includes(offer.status) && offer.employer?.user) {
+      // Remove sensitive fields from the employer user object for non-accepted offers.
+      // The worker only sees the company name, not the employer's personal email/phone.
+      offer.employer.user = {
+        ...offer.employer.user,
+        email: '[redacted]',
+        phone: '[redacted]',
+        passwordHash: '[redacted]',
+      };
     }
 
     return offer;
@@ -529,8 +545,11 @@ export class OffersService {
       }
 
       // 3. Verify offer can be accepted
-      if (offer.status !== 'SUBMITTED' && offer.status !== 'VIEWED' && offer.status !== 'SHORTLISTED') {
-        throw new BadRequestException(`Offer cannot be accepted in current state: ${offer.status}`);
+      // SECURITY: Workers must VIEW an offer before accepting. Accepting a
+      // SUBMITTED offer without viewing could be unintentional — the worker
+      // hasn't seen the terms yet. Only VIEWED and SHORTLISTED are valid.
+      if (offer.status !== 'VIEWED' && offer.status !== 'SHORTLISTED') {
+        throw new BadRequestException(`Offer cannot be accepted in current state: ${offer.status}. Please view the offer first before accepting.`);
       }
 
       // 4. Check offer hasn't expired
@@ -973,18 +992,12 @@ export class OffersService {
   // HELPER METHODS
   // ============================================================================
 
+  // SECURITY: Uses PostgreSQL sequence for atomic, race-safe ID generation,
+  // preventing duplicate IDs under concurrent requests.
   private async generateOfferPublicId(tx: any): Promise<string> {
     const year = new Date().getFullYear();
-    const lastOffer = await tx.offer.findFirst({
-      orderBy: { createdAt: 'desc' }
-    });
-
-    let sequence = 1;
-    if (lastOffer && lastOffer.publicId) {
-      const lastSeq = parseInt(lastOffer.publicId.split('-')[2]);
-      sequence = lastSeq + 1;
-    }
-
+    const result = await tx.$queryRaw`SELECT nextval('offer_public_id_seq') as seq`;
+    const sequence = Number(result[0].seq);
     return `OFF-${year}-${String(sequence).padStart(6, '0')}`;
   }
 

@@ -183,14 +183,26 @@ export class AuthController {
   }
 
   // ============================================================================
-  // LOGOUT (revoke all refresh tokens)
+  // LOGOUT (revoke refresh tokens + blacklist access token)
+  // SECURITY: Both refresh tokens and the current access token are revoked.
+  // Previously, only refresh tokens were revoked, leaving access tokens
+  // valid for up to 1 hour after logout.
   // ============================================================================
 
   @Post('logout')
   @UseGuards(JwtAuthGuard)
   async logout(@Request() req: any) {
     const userId = req.user?.id || req.user?.sub || req.user?.userId;
+    const jti = req.user?.jti;
+
+    // Revoke all refresh tokens
     await this.authService.revokeAllRefreshTokens(userId);
+
+    // Blacklist the current access token so it can't be reused
+    if (jti) {
+      await this.authService.blacklistAccessToken(userId, jti);
+    }
+
     return { message: 'Logged out successfully' };
   }
 

@@ -15,6 +15,16 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: any) {
+    // Check if this token has been blacklisted (e.g. user logged out)
+    if (payload.jti) {
+      const blacklisted = await this.prisma.blacklistedToken.findUnique({
+        where: { jti: payload.jti },
+      });
+      if (blacklisted) {
+        throw new UnauthorizedException('Token has been revoked');
+      }
+    }
+
     const user = await this.prisma.user.findUnique({
       where: { id: payload.sub },
     });
@@ -29,6 +39,11 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
     if (user.status === 'BANNED') {
       throw new UnauthorizedException('Account has been banned');
+    }
+
+    // Also reject if user status is DELETED (e.g. worker profile was deleted)
+    if (user.status === 'DELETED') {
+      throw new UnauthorizedException('Account has been deleted');
     }
 
     return {

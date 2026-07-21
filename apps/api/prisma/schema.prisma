@@ -47,6 +47,7 @@ model User {
   suspiciousActivities SuspiciousActivity[]
   blacklistEntries     BlacklistEntry[]      @relation("BlacklistedUser")
   verificationCodes    VerificationCode[]
+  blacklistedTokens    BlacklistedToken[]
   consents             Consent[]
   dataSubjectRequests  DataSubjectRequest[]
   gdprFlags            UserGdprFlags?
@@ -112,6 +113,19 @@ model VerificationCode {
 
   @@index([userId, type, expiresAt])
   @@index([codeHash])
+}
+
+model BlacklistedToken {
+  id        String   @id @default(uuid())
+  jti       String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([jti])
+  @@index([expiresAt])
 }
 
 model Worker {

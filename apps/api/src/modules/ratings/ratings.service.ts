@@ -62,11 +62,13 @@ export class RatingsService {
         throw new BadRequestException('You have already rated this offer');
       }
 
-      // 4. Verify offer has reached a terminal state (accepted, rejected, withdrawn, expired)
-      // Allow rating for any viewed/submitted offer as well for broader feedback
-      const canRateStatuses = ['ACCEPTED', 'REJECTED', 'WITHDRAWN', 'EXPIRED', 'VIEWED', 'SUBMITTED'];
+      // 4. Verify offer has reached a terminal state that justifies rating.
+      // SECURITY: Only ACCEPTED, REJECTED, WITHDRAWN, or EXPIRED offers can be rated.
+      // VIEWED and SUBMITTED are removed — rating an offer you've only glanced at
+      // (without any real interaction) produces low-quality, speculative reviews.
+      const canRateStatuses = ['ACCEPTED', 'REJECTED', 'WITHDRAWN', 'EXPIRED'];
       if (!canRateStatuses.includes(offer.status)) {
-        throw new BadRequestException('Can only rate offers that have been viewed or reached a final status');
+        throw new BadRequestException('Can only rate offers that have been accepted, rejected, withdrawn, or expired');
       }
 
       // 5. Create the rating
