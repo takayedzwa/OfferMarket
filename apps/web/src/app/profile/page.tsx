@@ -105,6 +105,11 @@ export default function ProfilePage() {
                         ? "Selected Companies Only"
                         : "Hidden"} Profile
                     </span>
+                    {profile.profileVisibility === "SELECTED_COMPANIES" && (
+                      <p className="text-sm text-yellow-700 mt-2">
+                        Only employers you&apos;ve granted access to can view your profile. Manage this in your <Link href="/profile/edit" className="underline text-blue-600">profile settings</Link>.
+                      </p>
+                    )}
                   </div>
                 </div>
                 <Link

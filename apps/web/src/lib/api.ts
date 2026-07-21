@@ -32,8 +32,6 @@ api.interceptors.response.use(
       // Token expired, redirect to login
       if (typeof window !== 'undefined') {
         localStorage.removeItem('accessToken');
-        localStorage.removeItem('userId');
-        localStorage.removeItem('userRole');
         window.location.href = '/login';
       }
     }
@@ -64,8 +62,6 @@ export const authApi = {
   logout: () => {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('accessToken');
-      localStorage.removeItem('userId');
-      localStorage.removeItem('userRole');
     }
   },
 };
@@ -266,6 +262,22 @@ export const workersApi = {
   updateVisibility: (visibility: 'ALL_VERIFIED' | 'SELECTED_COMPANIES' | 'HIDDEN') =>
     api.patch('/workers/me/visibility', { visibility }),
 
+  // ============================================================================
+  // VISIBLE COMPANIES (SELECTED_COMPANIES Visibility)
+  // ============================================================================
+
+  // Add a company to the visible companies list
+  addVisibleCompany: (employerId: string) =>
+    api.post('/workers/me/visible-companies', { employerId }),
+
+  // Remove a company from the visible companies list
+  removeVisibleCompany: (employerId: string) =>
+    api.delete(`/workers/me/visible-companies/${employerId}`),
+
+  // Get all visible companies
+  getVisibleCompanies: () =>
+    api.get('/workers/me/visible-companies'),
+
   // Delete profile
   deleteProfile: () => api.delete('/workers/me'),
 };
@@ -449,35 +461,25 @@ export const conversationsApi = {
 
 export const notificationsApi = {
   // Get notifications for current user
+  // SECURITY: userId is no longer passed as a query param. The backend
+  // extracts it from the JWT token, preventing IDOR attacks.
   getNotifications: (params?: { unreadOnly?: boolean; page?: number; limit?: number }) => {
-    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
-    return api.get('/notifications', {
-      params: { userId, ...params },
-    });
+    return api.get('/notifications', { params });
   },
 
   // Get unread count
   getUnreadCount: () => {
-    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
-    return api.get('/notifications/unread-count', {
-      params: { userId },
-    });
+    return api.get('/notifications/unread-count');
   },
 
   // Mark a single notification as read
   markAsRead: (notificationId: string) => {
-    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
-    return api.patch(`/notifications/${notificationId}/read`, null, {
-      params: { userId },
-    });
+    return api.patch(`/notifications/${notificationId}/read`);
   },
 
   // Mark all notifications as read
   markAllAsRead: () => {
-    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
-    return api.patch('/notifications/read-all', null, {
-      params: { userId },
-    });
+    return api.patch('/notifications/read-all');
   },
 };
 

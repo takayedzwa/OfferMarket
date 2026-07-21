@@ -22,19 +22,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const refreshUser = async () => {
     const token = localStorage.getItem("accessToken");
-    const userId = localStorage.getItem("userId");
-    const userRole = localStorage.getItem("userRole");
 
-    if (!token || !userId || !userRole) {
+    if (!token) {
       setUser(null);
       setLoading(false);
       return;
     }
 
     try {
-      const response = await api.get('/auth/me', {
-        params: { userId, userRole }
-      });
+      // SECURITY: userId and userRole are no longer sent as query params.
+      // The /auth/me endpoint now requires JWT authentication and extracts
+      // user identity from the verified token, preventing IDOR attacks.
+      const response = await api.get('/auth/me');
 
       if (response.data.error) {
         setUser(null);
@@ -44,8 +43,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       console.error("Failed to fetch user profile:", error);
       localStorage.removeItem("accessToken");
-      localStorage.removeItem("userId");
-      localStorage.removeItem("userRole");
       setUser(null);
     } finally {
       setLoading(false);
@@ -54,8 +51,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = () => {
     localStorage.removeItem("accessToken");
-    localStorage.removeItem("userId");
-    localStorage.removeItem("userRole");
     setUser(null);
     router.push("/login");
   };

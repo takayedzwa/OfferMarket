@@ -1,4 +1,4 @@
-import { Controller, Post, Body, BadRequestException, Get, Query, Headers, Request, UseGuards } from '@nestjs/common';
+import { Controller, Post, Body, BadRequestException, Get, Request, UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
 import { AuthService } from './auth.service';
@@ -27,8 +27,18 @@ export class AuthController {
   // GET CURRENT USER
   // ============================================================================
 
+  // ============================================================================
+  // GET CURRENT USER
+  // ============================================================================
+  // SECURITY: This endpoint now requires JWT authentication. The userId and
+  // userRole are extracted from the verified JWT token, preventing IDOR where
+  // any authenticated user could retrieve any other user's profile data.
+  // ============================================================================
+
   @Get('me')
-  async getMe(@Query('userId') userId: string, @Query('userRole') userRole: string) {
+  @UseGuards(JwtAuthGuard)
+  async getMe(@Request() req: any) {
+    const userId = req.user.id;
     const user = await this.authService.getUserById(userId);
     if (!user) {
       return { error: 'User not found' };

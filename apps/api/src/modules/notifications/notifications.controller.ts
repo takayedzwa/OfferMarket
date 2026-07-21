@@ -4,8 +4,11 @@ import {
   Patch,
   Param,
   Query,
+  UseGuards,
+  Request,
   BadRequestException,
 } from '@nestjs/common';
+import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
 import { NotificationsService } from './notifications.service';
 
 // ============================================================================
@@ -15,9 +18,13 @@ import { NotificationsService } from './notifications.service';
 // and marking notifications as read. Real-time delivery is handled
 // by the WebSocket gateway — these endpoints are for the initial
 // page load and for users who miss real-time events.
+//
+// SECURITY: All endpoints require JWT authentication. The userId is
+// extracted from the JWT token (req.user.id) — never from query params.
 // ============================================================================
 
 @Controller('notifications')
+@UseGuards(JwtAuthGuard)
 export class NotificationsController {
   constructor(private readonly notificationsService: NotificationsService) {}
 
@@ -25,17 +32,16 @@ export class NotificationsController {
    * GET /notifications
    * List notifications for the authenticated user.
    * Query params: unreadOnly (bool), page (int), limit (int)
+   * SECURITY: userId is extracted from JWT, not from query params.
    */
   @Get()
   async getNotifications(
-    @Query('userId') userId: string,
+    @Request() req: any,
     @Query('unreadOnly') unreadOnly?: string,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
   ) {
-    if (!userId) {
-      throw new BadRequestException('userId is required');
-    }
+    const userId = req.user.id;
 
     return this.notificationsService.getNotifications(userId, {
       unreadOnly: unreadOnly === 'true',
@@ -47,12 +53,11 @@ export class NotificationsController {
   /**
    * GET /notifications/unread-count
    * Get the number of unread notifications for the authenticated user.
+   * SECURITY: userId is extracted from JWT, not from query params.
    */
   @Get('unread-count')
-  async getUnreadCount(@Query('userId') userId: string) {
-    if (!userId) {
-      throw new BadRequestException('userId is required');
-    }
+  async getUnreadCount(@Request() req: any) {
+    const userId = req.user.id;
 
     const count = await this.notificationsService.getUnreadCount(userId);
     return { count };
@@ -61,15 +66,14 @@ export class NotificationsController {
   /**
    * PATCH /notifications/:id/read
    * Mark a specific notification as read.
+   * SECURITY: userId is extracted from JWT to verify ownership.
    */
   @Patch(':id/read')
   async markAsRead(
     @Param('id') id: string,
-    @Query('userId') userId: string,
+    @Request() req: any,
   ) {
-    if (!userId) {
-      throw new BadRequestException('userId is required');
-    }
+    const userId = req.user.id;
 
     const result = await this.notificationsService.markAsRead(id, userId);
     if (!result) {
@@ -81,12 +85,11 @@ export class NotificationsController {
   /**
    * PATCH /notifications/read-all
    * Mark all notifications as read for the authenticated user.
+   * SECURITY: userId is extracted from JWT, not from query params.
    */
   @Patch('read-all')
-  async markAllAsRead(@Query('userId') userId: string) {
-    if (!userId) {
-      throw new BadRequestException('userId is required');
-    }
+  async markAllAsRead(@Request() req: any) {
+    const userId = req.user.id;
 
     return this.notificationsService.markAllAsRead(userId);
   }

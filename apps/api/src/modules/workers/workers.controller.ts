@@ -1,12 +1,18 @@
 import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards, BadRequestException, Request } from '@nestjs/common';
 import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
+import { RolesGuard } from '../../guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
 import { WorkersService } from './workers.service';
 import { AnonymousProfilePipe } from './pipes/anonymous-profile.pipe';
 import { CreateWorkerDto, UpdateWorkerDto, BlockCompanyDto, CreateProfileSkillDto, UpdateProfileSkillDto, CreateCertificationDto, UpdateCertificationDto, CreateWorkerLanguageDto, UpdateWorkerLanguageDto, CreateEducationDto, UpdateEducationDto, CreateProjectExperienceDto, UpdateProjectExperienceDto } from './dto/worker.dto';
+import { PrismaService } from '../../prisma/prisma.service';
 
 @Controller('workers')
 export class WorkersController {
-  constructor(private readonly workersService: WorkersService) {}
+  constructor(
+    private readonly workersService: WorkersService,
+    private readonly prisma: PrismaService,
+  ) {}
 
   // ===========================================================================
   // GET AVAILABLE TRADES & SPECIALIZATIONS
@@ -34,6 +40,7 @@ export class WorkersController {
   @Get('search')
   @UseGuards(JwtAuthGuard)
   async searchWorkers(
+    @Request() req: any,
     @Query('trade') trade?: string,
     @Query('regionId') regionId?: string,
     @Query('availability') availability?: string,
@@ -53,6 +60,17 @@ export class WorkersController {
     const minExp = minExperience && !isNaN(Number(minExperience)) ? Number(minExperience) : undefined;
     const maxExp = maxExperience && !isNaN(Number(maxExperience)) ? Number(maxExperience) : undefined;
 
+    // Resolve employer ID from authenticated user for SELECTED_COMPANIES visibility.
+    // If the user is an employer, include workers whose visibility includes this employer.
+    let employerId: string | undefined;
+    if (req.user.role === 'EMPLOYER') {
+      const employer = await this.prisma.employer.findUnique({
+        where: { userId: req.user.id },
+        select: { id: true },
+      });
+      employerId = employer?.id;
+    }
+
     const searchFilters: any = {
       trade,
       regionId,
@@ -60,7 +78,8 @@ export class WorkersController {
       minExperience: minExp,
       maxExperience: maxExp,
       page: page ? parseInt(String(page)) : 1,
-      limit: limit ? parseInt(String(limit)) : 20
+      limit: limit ? parseInt(String(limit)) : 20,
+      employerId,
     };
 
     if (specializations) {
@@ -104,7 +123,8 @@ export class WorkersController {
   // ===========================================================================
 
   @Get('me')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('WORKER')
   async getMyProfile(@Request() req: any) {
     return this.workersService.getPrivateProfile(req.user.id);
   }
@@ -114,7 +134,8 @@ export class WorkersController {
   // ===========================================================================
 
   @Post()
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('WORKER')
   async createProfile(
     @Body() createDto: CreateWorkerDto,
     @Request() req: any
@@ -127,7 +148,8 @@ export class WorkersController {
   // ===========================================================================
 
   @Patch('me')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('WORKER')
   async updateProfile(
     @Body() updateDto: UpdateWorkerDto,
     @Request() req: any
@@ -140,7 +162,8 @@ export class WorkersController {
   // ===========================================================================
 
   @Post('me/skills')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('WORKER')
   async addProfileSkill(
     @Body() dto: CreateProfileSkillDto,
     @Request() req: any
@@ -149,7 +172,8 @@ export class WorkersController {
   }
 
   @Patch('me/skills/:id')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('WORKER')
   async updateProfileSkill(
     @Param('id') id: string,
     @Body() dto: UpdateProfileSkillDto,
@@ -159,7 +183,8 @@ export class WorkersController {
   }
 
   @Delete('me/skills/:id')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('WORKER')
   async removeProfileSkill(
     @Param('id') id: string,
     @Request() req: any
@@ -172,7 +197,8 @@ export class WorkersController {
   // ===========================================================================
 
   @Post('me/certifications')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('WORKER')
   async addCertification(
     @Body() dto: CreateCertificationDto,
     @Request() req: any
@@ -181,7 +207,8 @@ export class WorkersController {
   }
 
   @Patch('me/certifications/:id')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('WORKER')
   async updateCertification(
     @Param('id') id: string,
     @Body() dto: UpdateCertificationDto,
@@ -191,7 +218,8 @@ export class WorkersController {
   }
 
   @Delete('me/certifications/:id')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('WORKER')
   async removeCertification(
     @Param('id') id: string,
     @Request() req: any
@@ -204,7 +232,8 @@ export class WorkersController {
   // ===========================================================================
 
   @Post('me/languages')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('WORKER')
   async addLanguage(
     @Body() dto: CreateWorkerLanguageDto,
     @Request() req: any
@@ -213,7 +242,8 @@ export class WorkersController {
   }
 
   @Patch('me/languages/:id')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('WORKER')
   async updateLanguage(
     @Param('id') id: string,
     @Body() dto: UpdateWorkerLanguageDto,
@@ -223,7 +253,8 @@ export class WorkersController {
   }
 
   @Delete('me/languages/:id')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('WORKER')
   async removeLanguage(
     @Param('id') id: string,
     @Request() req: any
@@ -236,7 +267,8 @@ export class WorkersController {
   // ===========================================================================
 
   @Post('me/education')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('WORKER')
   async addEducation(
     @Body() dto: CreateEducationDto,
     @Request() req: any
@@ -245,7 +277,8 @@ export class WorkersController {
   }
 
   @Patch('me/education/:id')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('WORKER')
   async updateEducation(
     @Param('id') id: string,
     @Body() dto: UpdateEducationDto,
@@ -255,7 +288,8 @@ export class WorkersController {
   }
 
   @Delete('me/education/:id')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('WORKER')
   async removeEducation(
     @Param('id') id: string,
     @Request() req: any
@@ -268,7 +302,8 @@ export class WorkersController {
   // ===========================================================================
 
   @Post('me/projects')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('WORKER')
   async addProjectExperience(
     @Body() dto: CreateProjectExperienceDto,
     @Request() req: any
@@ -277,7 +312,8 @@ export class WorkersController {
   }
 
   @Patch('me/projects/:id')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('WORKER')
   async updateProjectExperience(
     @Param('id') id: string,
     @Body() dto: UpdateProjectExperienceDto,
@@ -287,7 +323,8 @@ export class WorkersController {
   }
 
   @Delete('me/projects/:id')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('WORKER')
   async removeProjectExperience(
     @Param('id') id: string,
     @Request() req: any
@@ -312,7 +349,8 @@ export class WorkersController {
   // ===========================================================================
 
   @Post('me/block')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('WORKER')
   async blockCompany(
     @Body() blockDto: BlockCompanyDto,
     @Request() req: any
@@ -321,7 +359,8 @@ export class WorkersController {
   }
 
   @Delete('me/block/:employerId')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('WORKER')
   async unblockCompany(
     @Param('employerId') employerId: string,
     @Request() req: any
@@ -330,9 +369,44 @@ export class WorkersController {
   }
 
   @Get('me/blocked')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('WORKER')
   async getBlockedCompanies(@Request() req: any) {
     return this.workersService.getBlockedCompanies(req.user.id);
+  }
+
+  // ===========================================================================
+  // VISIBLE COMPANIES (SELECTED_COMPANIES Visibility)
+  // ===========================================================================
+
+  @Post('me/visible-companies')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('WORKER')
+  async addVisibleCompany(
+    @Body() body: { employerId: string },
+    @Request() req: any
+  ) {
+    if (!body.employerId) {
+      throw new BadRequestException('employerId is required');
+    }
+    return this.workersService.addVisibleCompany(req.user.id, body.employerId);
+  }
+
+  @Delete('me/visible-companies/:employerId')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('WORKER')
+  async removeVisibleCompany(
+    @Param('employerId') employerId: string,
+    @Request() req: any
+  ) {
+    return this.workersService.removeVisibleCompany(req.user.id, employerId);
+  }
+
+  @Get('me/visible-companies')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('WORKER')
+  async getVisibleCompanies(@Request() req: any) {
+    return this.workersService.getVisibleCompanies(req.user.id);
   }
 
   // ===========================================================================
@@ -340,7 +414,8 @@ export class WorkersController {
   // ===========================================================================
 
   @Patch('me/visibility')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('WORKER')
   async updateVisibility(
     @Body('visibility') visibility: 'ALL_VERIFIED' | 'SELECTED_COMPANIES' | 'HIDDEN',
     @Request() req: any
@@ -353,7 +428,8 @@ export class WorkersController {
   // ===========================================================================
 
   @Delete('me')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('WORKER')
   async deleteProfile(@Request() req: any) {
     return this.workersService.deleteWorkerProfile(req.user.id);
   }

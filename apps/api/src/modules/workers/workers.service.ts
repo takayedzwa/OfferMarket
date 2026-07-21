@@ -76,6 +76,7 @@ export class WorkersService {
     employmentTypes?: string[];
     page?: number;
     limit?: number;
+    employerId?: string;
   }) {
     const {
       trade,
@@ -92,13 +93,30 @@ export class WorkersService {
       languageFilter,
       employmentTypes,
       page = 1,
-      limit = 20
+      limit = 20,
+      employerId,
     } = filters;
 
     const where: any = {
       deletedAt: null,
-      profileVisibility: 'ALL_VERIFIED'
     };
+
+    // Visibility filter: show ALL_VERIFIED workers, plus SELECTED_COMPANIES workers
+    // that have explicitly granted visibility to this employer.
+    if (employerId) {
+      where.OR = [
+        { profileVisibility: 'ALL_VERIFIED' },
+        {
+          profileVisibility: 'SELECTED_COMPANIES',
+          visibleCompanies: {
+            some: { employerId },
+          },
+        },
+      ];
+    } else {
+      // No employer context — only show ALL_VERIFIED workers
+      where.profileVisibility = 'ALL_VERIFIED';
+    }
 
     if (trade) {
       where.primaryTrade = trade;
@@ -313,6 +331,17 @@ export class WorkersService {
               }
             }
           }
+        },
+        visibleCompanies: {
+          include: {
+            employer: {
+              select: {
+                id: true,
+                companyName: true,
+                companyTradeName: true
+              }
+            }
+          }
         }
       }
     });
@@ -378,7 +407,24 @@ export class WorkersService {
     }
 
     if (worker.profileVisibility === 'SELECTED_COMPANIES') {
-      throw new NotFoundException('Profile not found');
+      // Worker has selected specific companies that can view their profile.
+      // Only allow access if the viewer is one of those companies.
+      if (!viewerEmployerId) {
+        throw new NotFoundException('Profile not found');
+      }
+
+      const isVisible = await this.prisma.visibleCompany.findUnique({
+        where: {
+          workerId_employerId: {
+            workerId: worker.id,
+            employerId: viewerEmployerId,
+          },
+        },
+      });
+
+      if (!isVisible) {
+        throw new NotFoundException('Profile not found');
+      }
     }
 
     return this.buildAnonymousProfile(worker);
@@ -868,10 +914,82 @@ export class WorkersService {
   // UPDATE PROFILE VISIBILITY
   // ============================================================================
 
-  async updateVisibility(workerId: string, visibility: 'ALL_VERIFIED' | 'SELECTED_COMPANIES' | 'HIDDEN') {
+  async updateVisibility(userId: string, visibility: 'ALL_VERIFIED' | 'SELECTED_COMPANIES' | 'HIDDEN') {
+    const worker = await this.prisma.worker.findUnique({ where: { userId } });
+    if (!worker) {
+      throw new NotFoundException('Worker profile not found');
+    }
     return this.prisma.worker.update({
-      where: { id: workerId },
+      where: { id: worker.id },
       data: { profileVisibility: visibility }
+    });
+  }
+
+  // ============================================================================
+  // VISIBLE COMPANIES (SELECTED_COMPANIES Visibility)
+  // ============================================================================
+
+  async addVisibleCompany(userId: string, employerId: string) {
+    const worker = await this.prisma.worker.findUnique({ where: { userId } });
+    if (!worker) {
+      throw new NotFoundException('Worker profile not found');
+    }
+
+    const employer = await this.prisma.employer.findUnique({
+      where: { id: employerId }
+    });
+    if (!employer) {
+      throw new NotFoundException('Employer not found');
+    }
+
+    return this.prisma.visibleCompany.upsert({
+      where: {
+        workerId_employerId: {
+          workerId: worker.id,
+          employerId
+        }
+      },
+      create: {
+        workerId: worker.id,
+        employerId
+      },
+      update: {}
+    });
+  }
+
+  async removeVisibleCompany(userId: string, employerId: string) {
+    const worker = await this.prisma.worker.findUnique({ where: { userId } });
+    if (!worker) {
+      throw new NotFoundException('Worker profile not found');
+    }
+
+    return this.prisma.visibleCompany.delete({
+      where: {
+        workerId_employerId: {
+          workerId: worker.id,
+          employerId
+        }
+      }
+    });
+  }
+
+  async getVisibleCompanies(userId: string) {
+    const worker = await this.prisma.worker.findUnique({ where: { userId } });
+    if (!worker) {
+      throw new NotFoundException('Worker profile not found');
+    }
+
+    return this.prisma.visibleCompany.findMany({
+      where: { workerId: worker.id },
+      include: {
+        employer: {
+          select: {
+            id: true,
+            companyName: true,
+            companyTradeName: true
+          }
+        }
+      }
     });
   }
 

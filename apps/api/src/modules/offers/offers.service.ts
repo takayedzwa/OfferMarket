@@ -744,6 +744,17 @@ export class OffersService {
         throw new UnauthorizedException('Not authorized');
       }
 
+      // SECURITY: Only allow countering offers that are in an active state.
+      // Offers in terminal states (WITHDRAWN, ACCEPTED, REJECTED, EXPIRED, COUNTERED, DRAFT)
+      // cannot be countered.
+      const allowedStatusesForCounter = ['SUBMITTED', 'VIEWED', 'SHORTLISTED'];
+      if (!allowedStatusesForCounter.includes(offer.status)) {
+        throw new BadRequestException(
+          `Offer cannot be countered in current state: ${offer.status}. ` +
+          `Only offers in states ${allowedStatusesForCounter.join(', ')} can be countered.`
+        );
+      }
+
       if (!offer.currentVersion) {
         throw new BadRequestException('Offer has no version to counter');
       }
