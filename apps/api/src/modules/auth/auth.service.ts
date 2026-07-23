@@ -527,7 +527,7 @@ export class AuthService {
     const jti = crypto.randomUUID();
 
     const accessToken = jwt.sign(
-      { sub: userId, role, jti },
+      { sub: userId, role },
       process.env.JWT_SECRET || (process.env.NODE_ENV === 'production' ? (() => { throw new Error('JWT_SECRET environment variable is required in production'); })() : 'dev-secret-key-not-for-production'),
       { expiresIn: '1h', algorithm: 'HS256', jwtid: jti }
     );

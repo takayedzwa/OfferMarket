@@ -573,6 +573,7 @@ export class WorkersService {
     });
 
     await this.recalculateCompleteness(userId);
+    await this.recalculateSafetyScore(userId);
     return profileSkill;
   }
 
@@ -600,6 +601,7 @@ export class WorkersService {
     });
 
     await this.recalculateCompleteness(userId);
+    await this.recalculateSafetyScore(userId);
     return result;
   }
 
@@ -614,6 +616,7 @@ export class WorkersService {
 
     await this.prisma.profileSkill.delete({ where: { id: skillEntryId } });
     await this.recalculateCompleteness(userId);
+    await this.recalculateSafetyScore(userId);
     return { deleted: true };
   }
 
@@ -719,6 +722,7 @@ export class WorkersService {
     });
 
     await this.recalculateCompleteness(userId);
+    await this.recalculateSafetyScore(userId);
     return language;
   }
 
@@ -748,6 +752,7 @@ export class WorkersService {
 
     await this.prisma.workerLanguage.delete({ where: { id: languageId } });
     await this.recalculateCompleteness(userId);
+    await this.recalculateSafetyScore(userId);
     return { deleted: true };
   }
 
@@ -776,6 +781,7 @@ export class WorkersService {
     });
 
     await this.recalculateCompleteness(userId);
+    await this.recalculateSafetyScore(userId);
     return education;
   }
 
@@ -811,6 +817,7 @@ export class WorkersService {
 
     await this.prisma.education.delete({ where: { id: educationId } });
     await this.recalculateCompleteness(userId);
+    await this.recalculateSafetyScore(userId);
     return { deleted: true };
   }
 
@@ -842,6 +849,7 @@ export class WorkersService {
     });
 
     await this.recalculateCompleteness(userId);
+    await this.recalculateSafetyScore(userId);
     return project;
   }
 
@@ -880,6 +888,7 @@ export class WorkersService {
 
     await this.prisma.projectExperience.delete({ where: { id: projectId } });
     await this.recalculateCompleteness(userId);
+    await this.recalculateSafetyScore(userId);
     return { deleted: true };
   }
 

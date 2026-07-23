@@ -21,10 +21,13 @@ export default function LoginPage() {
       const response = await authApi.login(email, password);
       const { user, tokens } = response.data;
 
-      // Store auth data
+      // Store auth data — SECURITY: Only tokens are stored in localStorage.
+      // userId and userRole are NOT stored here; they come from the JWT
+      // payload and /auth/me endpoint, preventing source-of-truth conflicts.
       localStorage.setItem("accessToken", tokens.accessToken);
-      localStorage.setItem("userId", user.id);
-      localStorage.setItem("userRole", user.role);
+      if (tokens.refreshToken) {
+        localStorage.setItem("refreshToken", tokens.refreshToken);
+      }
 
       // Redirect based on role - profile check happens on the dashboard
       // Use window.location.href for a full page reload to ensure AuthContext re-initializes

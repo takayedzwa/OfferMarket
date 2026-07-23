@@ -1,4 +1,5 @@
 import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards, BadRequestException, Request } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
 import { RolesGuard } from '../../guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -136,6 +137,7 @@ export class WorkersController {
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('WORKER')
+  @Throttle({ short: { ttl: 60000, limit: 5 } })
   async createProfile(
     @Body() createDto: CreateWorkerDto,
     @Request() req: any
@@ -150,6 +152,7 @@ export class WorkersController {
   @Patch('me')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('WORKER')
+  @Throttle({ short: { ttl: 60000, limit: 10 } })
   async updateProfile(
     @Body() updateDto: UpdateWorkerDto,
     @Request() req: any
@@ -164,6 +167,7 @@ export class WorkersController {
   @Post('me/skills')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('WORKER')
+  @Throttle({ short: { ttl: 60000, limit: 20 } })
   async addProfileSkill(
     @Body() dto: CreateProfileSkillDto,
     @Request() req: any
@@ -199,6 +203,7 @@ export class WorkersController {
   @Post('me/certifications')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('WORKER')
+  @Throttle({ short: { ttl: 60000, limit: 15 } })
   async addCertification(
     @Body() dto: CreateCertificationDto,
     @Request() req: any
@@ -234,6 +239,7 @@ export class WorkersController {
   @Post('me/languages')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('WORKER')
+  @Throttle({ short: { ttl: 60000, limit: 10 } })
   async addLanguage(
     @Body() dto: CreateWorkerLanguageDto,
     @Request() req: any
@@ -269,6 +275,7 @@ export class WorkersController {
   @Post('me/education')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('WORKER')
+  @Throttle({ short: { ttl: 60000, limit: 10 } })
   async addEducation(
     @Body() dto: CreateEducationDto,
     @Request() req: any
@@ -304,6 +311,7 @@ export class WorkersController {
   @Post('me/projects')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('WORKER')
+  @Throttle({ short: { ttl: 60000, limit: 15 } })
   async addProjectExperience(
     @Body() dto: CreateProjectExperienceDto,
     @Request() req: any

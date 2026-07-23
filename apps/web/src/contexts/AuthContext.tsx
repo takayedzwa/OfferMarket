@@ -1,9 +1,30 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { authApi, api } from "../lib/api";
 import { User } from "../lib/types";
+
+/**
+ * Decode a JWT payload without a library.
+ * Returns the parsed payload object, or null if the token is malformed.
+ */
+function decodeJwtPayload(token: string): Record<string, any> | null {
+  try {
+    const base64Url = token.split('.')[1];
+    if (!base64Url) return null;
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    );
+    return JSON.parse(jsonPayload);
+  } catch {
+    return null;
+  }
+}
 
 interface AuthContextType {
   user: User | null;
@@ -19,6 +40,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const pathname = usePathname();
+  let isRefreshing = false;
+
+  /**
+   * Attempt to refresh the access token using the refresh token.
+   * Returns true if refresh succeeded, false otherwise.
+   */
+  const tryRefreshToken = async (): Promise<boolean> => {
+    if (isRefreshing) return false;
+    isRefreshing = true;
+    try {
+      const refreshToken = localStorage.getItem("refreshToken");
+      if (!refreshToken) return false;
+
+      const response = await authApi.refreshToken(refreshToken);
+      if (response.data?.accessToken) {
+        localStorage.setItem("accessToken", response.data.accessToken);
+        if (response.data.refreshToken) {
+          localStorage.setItem("refreshToken", response.data.refreshToken);
+        }
+        return true;
+      }
+      return false;
+    } catch {
+      return false;
+    } finally {
+      isRefreshing = false;
+    }
+  };
 
   const refreshUser = async () => {
     const token = localStorage.getItem("accessToken");
@@ -30,30 +79,62 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     try {
-      // SECURITY: userId and userRole are no longer sent as query params.
-      // The /auth/me endpoint now requires JWT authentication and extracts
-      // user identity from the verified token, preventing IDOR attacks.
+      // SECURITY: userId and userRole are decoded from the JWT payload,
+      // not stored separately in localStorage. This eliminates the source-
+      // of-truth conflict and prevents IDOR via localStorage manipulation.
       const response = await api.get('/auth/me');
 
       if (response.data.error) {
         setUser(null);
       } else {
         setUser(response.data);
+
+        // Sync role from server response into a derived state (not localStorage)
+        // so components that need the role can read it from the user object.
       }
-    } catch (error) {
-      console.error("Failed to fetch user profile:", error);
-      localStorage.removeItem("accessToken");
-      setUser(null);
+    } catch (error: any) {
+      // If we get a 401, try to refresh the token before giving up
+      if (error?.response?.status === 401) {
+        const refreshed = await tryRefreshToken();
+        if (refreshed) {
+          // Retry the original request with the new token
+          try {
+            const retryResponse = await api.get('/auth/me');
+            if (!retryResponse.data.error) {
+              setUser(retryResponse.data);
+              return;
+            }
+          } catch {
+            // Retry also failed — fall through to logout
+          }
+        }
+        // Refresh also failed — clear tokens and redirect
+        localStorage.removeItem("accessToken");
+        localStorage.removeItem("refreshToken");
+        setUser(null);
+      } else {
+        console.error("Failed to fetch user profile:", error);
+        localStorage.removeItem("accessToken");
+        localStorage.removeItem("refreshToken");
+        setUser(null);
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  const logout = () => {
+  const logout = useCallback(async () => {
+    try {
+      // Call backend logout to blacklist the access token and revoke refresh tokens
+      await api.post('/auth/logout');
+    } catch {
+      // Ignore errors — we're clearing local state regardless
+    }
     localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
     setUser(null);
     router.push("/login");
-  };
+  }, [router]);
 
   useEffect(() => {
     refreshUser();
