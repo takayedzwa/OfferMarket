@@ -16,6 +16,8 @@ import { RatingsService } from './ratings.service';
 import { CreateRatingDto } from './dto/create-rating.dto';
 import { UpdateRatingDto } from './dto/update-rating.dto';
 import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
+import { RolesGuard } from '../../guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
 import { AdminGuard } from '../../guards/admin.guard';
 
 @Controller('ratings')
@@ -39,7 +41,8 @@ export class RatingsController {
    * - Would work there again (boolean)
    */
   @Post()
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('WORKER')
   async createRating(
     @Body() createRatingDto: CreateRatingDto,
     @Request() req: any
@@ -60,7 +63,8 @@ export class RatingsController {
    * user's ratings.
    */
   @Patch(':id')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('WORKER')
   async updateRating(
     @Param('id') ratingId: string,
     @Body() updateRatingDto: UpdateRatingDto,
@@ -114,7 +118,8 @@ export class RatingsController {
    * Get all ratings submitted by the current user
    */
   @Get('my')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('WORKER')
   async getMyRatings(@Request() req: any) {
     const userId = req.user.id;
     return this.ratingsService.getMyRatings(userId);
@@ -126,7 +131,8 @@ export class RatingsController {
    * SECURITY: userId is extracted from JWT if available, not from query params.
    */
   @Get(':id')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('WORKER')
   async getRatingById(
     @Param('id') ratingId: string,
     @Request() req: any

@@ -374,11 +374,14 @@ model Offer {
   shortlistedAt    DateTime?
   counteredAt      DateTime?
   currentVersionId String?        @unique
+  counterOfferForId String?       @map("counter_offer_for_id")
   source           String?
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
   conversation     Conversation?
   currentVersion   OfferVersion?  @relation("CurrentVersion", fields: [currentVersionId], references: [id])
+  counterOfferFor  Offer?          @relation("CounterOfferChain", fields: [counterOfferForId], references: [id])
+  counterOffers    Offer[]         @relation("CounterOfferChain")
   employer         Employer       @relation(fields: [employerId], references: [id])
   worker           Worker         @relation(fields: [workerId], references: [id])
   versions         OfferVersion[]
@@ -391,6 +394,7 @@ model Offer {
   @@index([submittedAt])
   @@index([expiresAt])
   @@index([workerId, status])
+  @@index([counterOfferForId])
 }
 
 model OfferVersion {

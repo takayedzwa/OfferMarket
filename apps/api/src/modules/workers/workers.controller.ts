@@ -438,7 +438,10 @@ export class WorkersController {
   @Delete('me')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('WORKER')
-  async deleteProfile(@Request() req: any) {
-    return this.workersService.deleteWorkerProfile(req.user.id);
+  async deleteProfile(
+    @Request() req: any,
+    @Query('force') force?: string
+  ) {
+    return this.workersService.deleteWorkerProfile(req.user.id, force === 'true');
   }
 }

@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
-import { Availability, ProfileVisibility, SkillLevel, EmploymentType, WorkScheduleType, IndustryType, CareerPriority, Specialization, WorkAuthorization } from '@prisma/client';
+import { Availability, ProfileVisibility, SkillLevel, EmploymentType, WorkScheduleType, IndustryType, CareerPriority, Specialization, WorkAuthorization, OfferStatus } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RegionsService } from '../common/regions.service';
 import { CreateWorkerDto, UpdateWorkerDto, CreateProfileSkillDto, UpdateProfileSkillDto, CreateCertificationDto, UpdateCertificationDto, CreateWorkerLanguageDto, UpdateWorkerLanguageDto, CreateEducationDto, UpdateEducationDto, CreateProjectExperienceDto, UpdateProjectExperienceDto } from './dto/worker.dto';
@@ -254,63 +254,72 @@ export class WorkersService {
   // ============================================================================
 
   async createWorkerProfile(userId: string, createDto: CreateWorkerDto) {
-    // Check if worker profile already exists for this user
+    // Check if worker profile already exists for this user (fast-fail for normal case)
     const existing = await this.prisma.worker.findUnique({ where: { userId } });
     if (existing) {
       throw new BadRequestException('Worker profile already exists for this user');
     }
 
-    return this.prisma.$transaction(async (tx) => {
-      // Generate anonymous public ID
-      const publicId = await this.generateWorkerPublicId(tx);
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        // Generate anonymous public ID
+        const publicId = await this.generateWorkerPublicId(tx);
 
-      // Calculate profile completeness
-      const completeness = this.calculateCompleteness(createDto);
+        // Calculate profile completeness
+        const completeness = this.calculateCompleteness(createDto);
 
-      // Validate regionId references an existing Region
-      let regionId: string | null = null;
-      if (createDto.regionId && createDto.regionId.trim()) {
-        const regionExists = await tx.region.findUnique({ where: { id: createDto.regionId } });
-        if (regionExists) {
-          regionId = createDto.regionId;
+        // Validate regionId references an existing Region
+        let regionId: string | null = null;
+        if (createDto.regionId && createDto.regionId.trim()) {
+          const regionExists = await tx.region.findUnique({ where: { id: createDto.regionId } });
+          if (regionExists) {
+            regionId = createDto.regionId;
+          }
         }
-      }
 
-      const worker = await tx.worker.create({
-        data: {
-          userId,
-          publicId,
-          regionId,
-          country: createDto.country || 'NL',
-          yearsOfExperience: createDto.yearsOfExperience,
-          primaryTrade: createDto.primaryTrade,
-          headline: createDto.headline,
-          summary: createDto.summary,
-          specializations: (createDto.specializations || []) as Specialization[],
-          availability: createDto.availability as Availability || Availability.NOT_AVAILABLE,
-          noticePeriodDays: createDto.noticePeriodDays,
-          desiredSalaryMin: createDto.desiredSalaryMin,
-          desiredSalaryMax: createDto.desiredSalaryMax,
-          desiredHourlyRate: createDto.desiredHourlyRate,
-          employmentTypes: (createDto.employmentTypes || []) as EmploymentType[],
-          travelDistanceKm: createDto.travelDistanceKm || 30,
-          hasDrivingLicense: createDto.hasDrivingLicense || false,
-          hasOwnVehicle: createDto.hasOwnVehicle || false,
-          workAuthorization: createDto.workAuthorization as WorkAuthorization || null,
-          workSchedulePrefs: (createDto.workSchedulePrefs || []) as WorkScheduleType[],
-          industryPrefs: (createDto.industryPrefs || []) as IndustryType[],
-          careerPriorities: (createDto.careerPriorities || []) as CareerPriority[],
-          profileVisibility: createDto.profileVisibility as ProfileVisibility || ProfileVisibility.ALL_VERIFIED,
-          isProfileComplete: completeness >= 90,
-          profileCompletenessPct: completeness,
-        },
-        include: {
-          region: true
-        }
+        const worker = await tx.worker.create({
+          data: {
+            userId,
+            publicId,
+            regionId,
+            country: createDto.country || 'NL',
+            yearsOfExperience: createDto.yearsOfExperience,
+            primaryTrade: createDto.primaryTrade,
+            headline: createDto.headline,
+            summary: createDto.summary,
+            specializations: (createDto.specializations || []) as Specialization[],
+            availability: createDto.availability as Availability || Availability.NOT_AVAILABLE,
+            noticePeriodDays: createDto.noticePeriodDays,
+            desiredSalaryMin: createDto.desiredSalaryMin,
+            desiredSalaryMax: createDto.desiredSalaryMax,
+            desiredHourlyRate: createDto.desiredHourlyRate,
+            employmentTypes: (createDto.employmentTypes || []) as EmploymentType[],
+            travelDistanceKm: createDto.travelDistanceKm || 30,
+            hasDrivingLicense: createDto.hasDrivingLicense || false,
+            hasOwnVehicle: createDto.hasOwnVehicle || false,
+            workAuthorization: createDto.workAuthorization as WorkAuthorization || null,
+            workSchedulePrefs: (createDto.workSchedulePrefs || []) as WorkScheduleType[],
+            industryPrefs: (createDto.industryPrefs || []) as IndustryType[],
+            careerPriorities: (createDto.careerPriorities || []) as CareerPriority[],
+            profileVisibility: createDto.profileVisibility as ProfileVisibility || ProfileVisibility.ALL_VERIFIED,
+            isProfileComplete: completeness >= 90,
+            profileCompletenessPct: completeness,
+          },
+          include: {
+            region: true
+          }
+        });
+
+        return worker;
       });
-
-      return worker;
-    });
+    } catch (error: any) {
+      // Handle race condition: two concurrent requests both pass the findUnique check
+      // but the unique constraint on userId catches the duplicate
+      if (error.code === 'P2002' && error.meta?.target?.includes('userId')) {
+        throw new BadRequestException('Worker profile already exists for this user');
+      }
+      throw error;
+    }
   }
 
   // ============================================================================
@@ -1061,16 +1070,43 @@ export class WorkersService {
   // user account as DELETED so it can no longer authenticate.
   // ============================================================================
 
-  async deleteWorkerProfile(workerId: string) {
-    const worker = await this.prisma.worker.findUnique({ where: { id: workerId } });
+  async deleteWorkerProfile(userId: string, force: boolean = false) {
+    const worker = await this.prisma.worker.findUnique({ where: { userId } });
     if (!worker) {
       throw new NotFoundException('Worker profile not found');
     }
 
+    // Check for active offers that would be orphaned by deletion
+    const activeOfferStatuses: OfferStatus[] = ['SUBMITTED', 'VIEWED', 'SHORTLISTED', 'COUNTERED'];
+    const activeOffers = await this.prisma.offer.count({
+      where: {
+        workerId: worker.id,
+        status: { in: activeOfferStatuses },
+      },
+    });
+
+    if (activeOffers > 0 && !force) {
+      throw new BadRequestException(
+        `Cannot delete profile: you have ${activeOffers} active offer(s). ` +
+        'Please withdraw or resolve them before deleting your profile.'
+      );
+    }
+
     return this.prisma.$transaction(async (tx) => {
+      // If force flag is set, transition active offers to EXPIRED
+      if (force && activeOffers > 0) {
+        await tx.offer.updateMany({
+          where: {
+            workerId: worker.id,
+            status: { in: activeOfferStatuses },
+          },
+          data: { status: 'EXPIRED' },
+        });
+      }
+
       // 1. Soft-delete the worker profile and hide visibility
       const updated = await tx.worker.update({
-        where: { id: workerId },
+        where: { id: worker.id },
         data: {
           deletedAt: new Date(),
           profileVisibility: 'HIDDEN',
@@ -1079,12 +1115,12 @@ export class WorkersService {
 
       // 2. Remove all visible-company grants (no longer needed)
       await tx.visibleCompany.deleteMany({
-        where: { workerId },
+        where: { workerId: worker.id },
       });
 
       // 3. Remove all blocked-company entries
       await tx.blockedCompany.deleteMany({
-        where: { workerId },
+        where: { workerId: worker.id },
       });
 
       // 4. Mark user account as DELETED to prevent further authentication
