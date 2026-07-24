@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
-import { Availability, ProfileVisibility, SkillLevel, EmploymentType, WorkScheduleType, IndustryType, CareerPriority, Specialization, WorkAuthorization } from '@prisma/client';
+import { Availability, ProfileVisibility, SkillLevel, EmploymentType, WorkScheduleType, IndustryType, CareerPriority, Specialization, WorkAuthorization, OfferStatus } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RegionsService } from '../common/regions.service';
 import { CreateWorkerDto, UpdateWorkerDto, CreateProfileSkillDto, UpdateProfileSkillDto, CreateCertificationDto, UpdateCertificationDto, CreateWorkerLanguageDto, UpdateWorkerLanguageDto, CreateEducationDto, UpdateEducationDto, CreateProjectExperienceDto, UpdateProjectExperienceDto } from './dto/worker.dto';
@@ -76,6 +76,7 @@ export class WorkersService {
     employmentTypes?: string[];
     page?: number;
     limit?: number;
+    employerId?: string;
   }) {
     const {
       trade,
@@ -92,13 +93,39 @@ export class WorkersService {
       languageFilter,
       employmentTypes,
       page = 1,
-      limit = 20
+      limit = 20,
+      employerId,
     } = filters;
 
     const where: any = {
       deletedAt: null,
-      profileVisibility: 'ALL_VERIFIED'
     };
+
+    // SECURITY: Exclude workers who have blocked the searching employer.
+    // This prevents employers from finding workers who have explicitly
+    // blocked them, even if the worker's profile visibility is ALL_VERIFIED.
+    if (employerId) {
+      where.blockedCompanies = {
+        none: { employerId },
+      };
+    }
+
+    // Visibility filter: show ALL_VERIFIED workers, plus SELECTED_COMPANIES workers
+    // that have explicitly granted visibility to this employer.
+    if (employerId) {
+      where.OR = [
+        { profileVisibility: 'ALL_VERIFIED' },
+        {
+          profileVisibility: 'SELECTED_COMPANIES',
+          visibleCompanies: {
+            some: { employerId },
+          },
+        },
+      ];
+    } else {
+      // No employer context — only show ALL_VERIFIED workers
+      where.profileVisibility = 'ALL_VERIFIED';
+    }
 
     if (trade) {
       where.primaryTrade = trade;
@@ -227,63 +254,72 @@ export class WorkersService {
   // ============================================================================
 
   async createWorkerProfile(userId: string, createDto: CreateWorkerDto) {
-    // Check if worker profile already exists for this user
+    // Check if worker profile already exists for this user (fast-fail for normal case)
     const existing = await this.prisma.worker.findUnique({ where: { userId } });
     if (existing) {
       throw new BadRequestException('Worker profile already exists for this user');
     }
 
-    return this.prisma.$transaction(async (tx) => {
-      // Generate anonymous public ID
-      const publicId = await this.generateWorkerPublicId(tx);
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        // Generate anonymous public ID
+        const publicId = await this.generateWorkerPublicId(tx);
 
-      // Calculate profile completeness
-      const completeness = this.calculateCompleteness(createDto);
+        // Calculate profile completeness
+        const completeness = this.calculateCompleteness(createDto);
 
-      // Validate regionId references an existing Region
-      let regionId: string | null = null;
-      if (createDto.regionId && createDto.regionId.trim()) {
-        const regionExists = await tx.region.findUnique({ where: { id: createDto.regionId } });
-        if (regionExists) {
-          regionId = createDto.regionId;
+        // Validate regionId references an existing Region
+        let regionId: string | null = null;
+        if (createDto.regionId && createDto.regionId.trim()) {
+          const regionExists = await tx.region.findUnique({ where: { id: createDto.regionId } });
+          if (regionExists) {
+            regionId = createDto.regionId;
+          }
         }
-      }
 
-      const worker = await tx.worker.create({
-        data: {
-          userId,
-          publicId,
-          regionId,
-          country: createDto.country || 'NL',
-          yearsOfExperience: createDto.yearsOfExperience,
-          primaryTrade: createDto.primaryTrade,
-          headline: createDto.headline,
-          summary: createDto.summary,
-          specializations: (createDto.specializations || []) as Specialization[],
-          availability: createDto.availability as Availability || Availability.NOT_AVAILABLE,
-          noticePeriodDays: createDto.noticePeriodDays,
-          desiredSalaryMin: createDto.desiredSalaryMin,
-          desiredSalaryMax: createDto.desiredSalaryMax,
-          desiredHourlyRate: createDto.desiredHourlyRate,
-          employmentTypes: (createDto.employmentTypes || []) as EmploymentType[],
-          travelDistanceKm: createDto.travelDistanceKm || 30,
-          hasDrivingLicense: createDto.hasDrivingLicense || false,
-          hasOwnVehicle: createDto.hasOwnVehicle || false,
-          workAuthorization: createDto.workAuthorization as WorkAuthorization || null,
-          workSchedulePrefs: (createDto.workSchedulePrefs || []) as WorkScheduleType[],
-          industryPrefs: (createDto.industryPrefs || []) as IndustryType[],
-          careerPriorities: (createDto.careerPriorities || []) as CareerPriority[],
-          profileVisibility: createDto.profileVisibility as ProfileVisibility || ProfileVisibility.ALL_VERIFIED,
-          isProfileComplete: completeness >= 90,
-          profileCompletenessPct: completeness,
-        },
-        include: {
-          region: true
-        }
+        const worker = await tx.worker.create({
+          data: {
+            userId,
+            publicId,
+            regionId,
+            country: createDto.country || 'NL',
+            yearsOfExperience: createDto.yearsOfExperience,
+            primaryTrade: createDto.primaryTrade,
+            headline: createDto.headline,
+            summary: createDto.summary,
+            specializations: (createDto.specializations || []) as Specialization[],
+            availability: createDto.availability as Availability || Availability.NOT_AVAILABLE,
+            noticePeriodDays: createDto.noticePeriodDays,
+            desiredSalaryMin: createDto.desiredSalaryMin,
+            desiredSalaryMax: createDto.desiredSalaryMax,
+            desiredHourlyRate: createDto.desiredHourlyRate,
+            employmentTypes: (createDto.employmentTypes || []) as EmploymentType[],
+            travelDistanceKm: createDto.travelDistanceKm || 30,
+            hasDrivingLicense: createDto.hasDrivingLicense || false,
+            hasOwnVehicle: createDto.hasOwnVehicle || false,
+            workAuthorization: createDto.workAuthorization as WorkAuthorization || null,
+            workSchedulePrefs: (createDto.workSchedulePrefs || []) as WorkScheduleType[],
+            industryPrefs: (createDto.industryPrefs || []) as IndustryType[],
+            careerPriorities: (createDto.careerPriorities || []) as CareerPriority[],
+            profileVisibility: createDto.profileVisibility as ProfileVisibility || ProfileVisibility.ALL_VERIFIED,
+            isProfileComplete: completeness >= 90,
+            profileCompletenessPct: completeness,
+          },
+          include: {
+            region: true
+          }
+        });
+
+        return worker;
       });
-
-      return worker;
-    });
+    } catch (error: any) {
+      // Handle race condition: two concurrent requests both pass the findUnique check
+      // but the unique constraint on userId catches the duplicate
+      if (error.code === 'P2002' && error.meta?.target?.includes('userId')) {
+        throw new BadRequestException('Worker profile already exists for this user');
+      }
+      throw error;
+    }
   }
 
   // ============================================================================
@@ -310,6 +346,17 @@ export class WorkersService {
               select: {
                 id: true,
                 companyName: true
+              }
+            }
+          }
+        },
+        visibleCompanies: {
+          include: {
+            employer: {
+              select: {
+                id: true,
+                companyName: true,
+                companyTradeName: true
               }
             }
           }
@@ -378,7 +425,24 @@ export class WorkersService {
     }
 
     if (worker.profileVisibility === 'SELECTED_COMPANIES') {
-      throw new NotFoundException('Profile not found');
+      // Worker has selected specific companies that can view their profile.
+      // Only allow access if the viewer is one of those companies.
+      if (!viewerEmployerId) {
+        throw new NotFoundException('Profile not found');
+      }
+
+      const isVisible = await this.prisma.visibleCompany.findUnique({
+        where: {
+          workerId_employerId: {
+            workerId: worker.id,
+            employerId: viewerEmployerId,
+          },
+        },
+      });
+
+      if (!isVisible) {
+        throw new NotFoundException('Profile not found');
+      }
     }
 
     return this.buildAnonymousProfile(worker);
@@ -447,12 +511,31 @@ export class WorkersService {
   }
 
   // ============================================================================
+  // SUB-RESOURCE LIMITS
+  // SECURITY: Prevent profile bloat / abuse by capping the number of each
+  // sub-resource type. These limits are generous enough for real profiles
+  // but prevent DoS via unlimited creation.
+  // ============================================================================
+
+  private static readonly MAX_SKILLS = 20;
+  private static readonly MAX_CERTIFICATIONS = 15;
+  private static readonly MAX_LANGUAGES = 10;
+  private static readonly MAX_EDUCATION = 10;
+  private static readonly MAX_PROJECT_EXPERIENCES = 15;
+
+  // ============================================================================
   // PROFILE SKILL CRUD
   // ============================================================================
 
   async addProfileSkill(userId: string, dto: CreateProfileSkillDto) {
     const worker = await this.prisma.worker.findUnique({ where: { userId } });
     if (!worker) throw new NotFoundException('Worker profile not found');
+
+    // Enforce maximum skills limit
+    const currentCount = await this.prisma.profileSkill.count({ where: { profileId: worker.id } });
+    if (currentCount >= WorkersService.MAX_SKILLS) {
+      throw new BadRequestException(`Maximum of ${WorkersService.MAX_SKILLS} skills reached`);
+    }
 
     // Resolve skillId: either provided directly, or look up/create by name
     let skillId = dto.skillId;
@@ -499,6 +582,7 @@ export class WorkersService {
     });
 
     await this.recalculateCompleteness(userId);
+    await this.recalculateSafetyScore(userId);
     return profileSkill;
   }
 
@@ -526,6 +610,7 @@ export class WorkersService {
     });
 
     await this.recalculateCompleteness(userId);
+    await this.recalculateSafetyScore(userId);
     return result;
   }
 
@@ -540,6 +625,7 @@ export class WorkersService {
 
     await this.prisma.profileSkill.delete({ where: { id: skillEntryId } });
     await this.recalculateCompleteness(userId);
+    await this.recalculateSafetyScore(userId);
     return { deleted: true };
   }
 
@@ -550,6 +636,12 @@ export class WorkersService {
   async addCertification(userId: string, dto: CreateCertificationDto) {
     const worker = await this.prisma.worker.findUnique({ where: { userId } });
     if (!worker) throw new NotFoundException('Worker profile not found');
+
+    // Enforce maximum certifications limit
+    const currentCount = await this.prisma.certification.count({ where: { profileId: worker.id } });
+    if (currentCount >= WorkersService.MAX_CERTIFICATIONS) {
+      throw new BadRequestException(`Maximum of ${WorkersService.MAX_CERTIFICATIONS} certifications reached`);
+    }
 
     const certification = await this.prisma.certification.create({
       data: {
@@ -624,6 +716,12 @@ export class WorkersService {
     const worker = await this.prisma.worker.findUnique({ where: { userId } });
     if (!worker) throw new NotFoundException('Worker profile not found');
 
+    // Enforce maximum languages limit
+    const currentCount = await this.prisma.workerLanguage.count({ where: { workerId: worker.id } });
+    if (currentCount >= WorkersService.MAX_LANGUAGES) {
+      throw new BadRequestException(`Maximum of ${WorkersService.MAX_LANGUAGES} languages reached`);
+    }
+
     const language = await this.prisma.workerLanguage.create({
       data: {
         workerId: worker.id,
@@ -633,6 +731,7 @@ export class WorkersService {
     });
 
     await this.recalculateCompleteness(userId);
+    await this.recalculateSafetyScore(userId);
     return language;
   }
 
@@ -662,6 +761,7 @@ export class WorkersService {
 
     await this.prisma.workerLanguage.delete({ where: { id: languageId } });
     await this.recalculateCompleteness(userId);
+    await this.recalculateSafetyScore(userId);
     return { deleted: true };
   }
 
@@ -672,6 +772,12 @@ export class WorkersService {
   async addEducation(userId: string, dto: CreateEducationDto) {
     const worker = await this.prisma.worker.findUnique({ where: { userId } });
     if (!worker) throw new NotFoundException('Worker profile not found');
+
+    // Enforce maximum education limit
+    const currentCount = await this.prisma.education.count({ where: { workerId: worker.id } });
+    if (currentCount >= WorkersService.MAX_EDUCATION) {
+      throw new BadRequestException(`Maximum of ${WorkersService.MAX_EDUCATION} education entries reached`);
+    }
 
     const education = await this.prisma.education.create({
       data: {
@@ -684,6 +790,7 @@ export class WorkersService {
     });
 
     await this.recalculateCompleteness(userId);
+    await this.recalculateSafetyScore(userId);
     return education;
   }
 
@@ -719,6 +826,7 @@ export class WorkersService {
 
     await this.prisma.education.delete({ where: { id: educationId } });
     await this.recalculateCompleteness(userId);
+    await this.recalculateSafetyScore(userId);
     return { deleted: true };
   }
 
@@ -729,6 +837,12 @@ export class WorkersService {
   async addProjectExperience(userId: string, dto: CreateProjectExperienceDto) {
     const worker = await this.prisma.worker.findUnique({ where: { userId } });
     if (!worker) throw new NotFoundException('Worker profile not found');
+
+    // Enforce maximum project experiences limit
+    const currentCount = await this.prisma.projectExperience.count({ where: { workerId: worker.id } });
+    if (currentCount >= WorkersService.MAX_PROJECT_EXPERIENCES) {
+      throw new BadRequestException(`Maximum of ${WorkersService.MAX_PROJECT_EXPERIENCES} project experiences reached`);
+    }
 
     const project = await this.prisma.projectExperience.create({
       data: {
@@ -744,6 +858,7 @@ export class WorkersService {
     });
 
     await this.recalculateCompleteness(userId);
+    await this.recalculateSafetyScore(userId);
     return project;
   }
 
@@ -782,6 +897,7 @@ export class WorkersService {
 
     await this.prisma.projectExperience.delete({ where: { id: projectId } });
     await this.recalculateCompleteness(userId);
+    await this.recalculateSafetyScore(userId);
     return { deleted: true };
   }
 
@@ -868,24 +984,152 @@ export class WorkersService {
   // UPDATE PROFILE VISIBILITY
   // ============================================================================
 
-  async updateVisibility(workerId: string, visibility: 'ALL_VERIFIED' | 'SELECTED_COMPANIES' | 'HIDDEN') {
+  async updateVisibility(userId: string, visibility: 'ALL_VERIFIED' | 'SELECTED_COMPANIES' | 'HIDDEN') {
+    const worker = await this.prisma.worker.findUnique({ where: { userId } });
+    if (!worker) {
+      throw new NotFoundException('Worker profile not found');
+    }
     return this.prisma.worker.update({
-      where: { id: workerId },
+      where: { id: worker.id },
       data: { profileVisibility: visibility }
     });
   }
 
   // ============================================================================
-  // DELETE WORKER PROFILE (Soft Delete)
+  // VISIBLE COMPANIES (SELECTED_COMPANIES Visibility)
   // ============================================================================
 
-  async deleteWorkerProfile(workerId: string) {
-    return this.prisma.worker.update({
-      where: { id: workerId },
-      data: {
-        deletedAt: new Date(),
-        profileVisibility: 'HIDDEN'
+  async addVisibleCompany(userId: string, employerId: string) {
+    const worker = await this.prisma.worker.findUnique({ where: { userId } });
+    if (!worker) {
+      throw new NotFoundException('Worker profile not found');
+    }
+
+    const employer = await this.prisma.employer.findUnique({
+      where: { id: employerId }
+    });
+    if (!employer) {
+      throw new NotFoundException('Employer not found');
+    }
+
+    return this.prisma.visibleCompany.upsert({
+      where: {
+        workerId_employerId: {
+          workerId: worker.id,
+          employerId
+        }
+      },
+      create: {
+        workerId: worker.id,
+        employerId
+      },
+      update: {}
+    });
+  }
+
+  async removeVisibleCompany(userId: string, employerId: string) {
+    const worker = await this.prisma.worker.findUnique({ where: { userId } });
+    if (!worker) {
+      throw new NotFoundException('Worker profile not found');
+    }
+
+    return this.prisma.visibleCompany.delete({
+      where: {
+        workerId_employerId: {
+          workerId: worker.id,
+          employerId
+        }
       }
+    });
+  }
+
+  async getVisibleCompanies(userId: string) {
+    const worker = await this.prisma.worker.findUnique({ where: { userId } });
+    if (!worker) {
+      throw new NotFoundException('Worker profile not found');
+    }
+
+    return this.prisma.visibleCompany.findMany({
+      where: { workerId: worker.id },
+      include: {
+        employer: {
+          select: {
+            id: true,
+            companyName: true,
+            companyTradeName: true
+          }
+        }
+      }
+    });
+  }
+
+  // ============================================================================
+  // DELETE WORKER PROFILE (Soft Delete with Cascade)
+  // SECURITY: Soft-deletes the worker profile and cascades: hides profile
+  // visibility, removes visible-companies grants, blocks, and marks the
+  // user account as DELETED so it can no longer authenticate.
+  // ============================================================================
+
+  async deleteWorkerProfile(userId: string, force: boolean = false) {
+    const worker = await this.prisma.worker.findUnique({ where: { userId } });
+    if (!worker) {
+      throw new NotFoundException('Worker profile not found');
+    }
+
+    // Check for active offers that would be orphaned by deletion
+    const activeOfferStatuses: OfferStatus[] = ['SUBMITTED', 'VIEWED', 'SHORTLISTED', 'COUNTERED'];
+    const activeOffers = await this.prisma.offer.count({
+      where: {
+        workerId: worker.id,
+        status: { in: activeOfferStatuses },
+      },
+    });
+
+    if (activeOffers > 0 && !force) {
+      throw new BadRequestException(
+        `Cannot delete profile: you have ${activeOffers} active offer(s). ` +
+        'Please withdraw or resolve them before deleting your profile.'
+      );
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      // If force flag is set, transition active offers to EXPIRED
+      if (force && activeOffers > 0) {
+        await tx.offer.updateMany({
+          where: {
+            workerId: worker.id,
+            status: { in: activeOfferStatuses },
+          },
+          data: { status: 'EXPIRED' },
+        });
+      }
+
+      // 1. Soft-delete the worker profile and hide visibility
+      const updated = await tx.worker.update({
+        where: { id: worker.id },
+        data: {
+          deletedAt: new Date(),
+          profileVisibility: 'HIDDEN',
+        },
+      });
+
+      // 2. Remove all visible-company grants (no longer needed)
+      await tx.visibleCompany.deleteMany({
+        where: { workerId: worker.id },
+      });
+
+      // 3. Remove all blocked-company entries
+      await tx.blockedCompany.deleteMany({
+        where: { workerId: worker.id },
+      });
+
+      // 4. Mark user account as DELETED to prevent further authentication
+      await tx.user.update({
+        where: { id: worker.userId },
+        data: { status: 'DELETED' },
+      });
+
+      return updated;
     });
   }
 
@@ -1246,21 +1490,14 @@ export class WorkersService {
 
   // ============================================================================
   // HELPER: Generate Worker Public ID
+  // SECURITY: Uses PostgreSQL sequence for atomic increment, preventing race
+  // conditions where concurrent requests could generate duplicate IDs.
   // ============================================================================
 
   private async generateWorkerPublicId(tx: any): Promise<string> {
-    const lastWorker = await tx.worker.findFirst({
-      orderBy: { createdAt: 'desc' }
-    });
-
-    let sequence = 1;
-    if (lastWorker && lastWorker.publicId) {
-      const match = lastWorker.publicId.match(/(\d+)$/);
-      if (match) {
-        sequence = parseInt(match[1]) + 1;
-      }
-    }
-
+    // Use a PostgreSQL sequence for atomic, race-safe ID generation
+    const result = await tx.$queryRaw`SELECT nextval('worker_public_id_seq') as seq`;
+    const sequence = Number(result[0].seq);
     return `W-${String(sequence).padStart(6, '0')}`;
   }
 }

@@ -128,9 +128,13 @@ export default function WorkerDashboard() {
                     </div>
                     <div>
                       <div className="font-medium text-gray-900">
-                        {profile.desiredSalaryMin ? `€${profile.desiredSalaryMin.toLocaleString()} - €${profile.desiredSalaryMax?.toLocaleString() || '∞'}` : "Not set"}
+                        {profile.desiredSalaryMin && profile.desiredSalaryMax
+                          ? `€${profile.desiredSalaryMin.toLocaleString()} – €${profile.desiredSalaryMax.toLocaleString()}`
+                          : profile.desiredSalaryMin
+                            ? `From €${profile.desiredSalaryMin.toLocaleString()}`
+                            : "Not set"}
                       </div>
-                      <div className="text-sm text-gray-500">Expected Salary</div>
+                      <div className="text-sm text-gray-500">Desired Salary Range</div>
                     </div>
                   </div>
 

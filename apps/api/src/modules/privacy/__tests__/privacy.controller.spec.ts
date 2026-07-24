@@ -279,7 +279,7 @@ describe('PrivacyController', () => {
       const dto = { restricted: true };
       const result = await controller.requestRestriction(req, dto);
 
-      expect(privacyService.setProcessingRestriction).toHaveBeenCalledWith('jwt-user-1', true);
+      expect(privacyService.setProcessingRestriction).toHaveBeenCalledWith('jwt-user-1', true, undefined);
       // Response should have ISO string date, not Date object
       expect(result.processingRestrictedAt).toBe(restrictedAt.toISOString());
     });

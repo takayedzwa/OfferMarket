@@ -196,14 +196,22 @@ export class AnonymousProfilePipe implements PipeTransform {
     }
   }
 
+  /**
+   * SECURITY: Uses exact-match or anchored-word patterns instead of
+   * simple substring matching to avoid false positives like "companyVehicle"
+   * being flagged as identifying (just because it contains "company").
+   */
   private isIdentifyingField(fieldName: string): boolean {
-    const identifyingPatterns = [
+    const lowerField = fieldName.toLowerCase();
+
+    // Exact matches — fields that are ALWAYS identifying
+    const exactMatches: Set<string> = new Set([
       'email',
       'phone',
       'mobile',
       'address',
       'street',
-      'postal',
+      'postalcode',
       'zipcode',
       'postcode',
       'employer',
@@ -211,11 +219,49 @@ export class AnonymousProfilePipe implements PipeTransform {
       'name',
       'firstname',
       'lastname',
-      'surname'
+      'surname',
+      'fullname',
+      'username',
+      'password',
+      'passwordhash',
+      'ssn',
+      'birthdate',
+      'dateofbirth',
+      'nationalid',
+      'passportnumber',
+    ]);
+    if (exactMatches.has(lowerField)) return true;
+
+    // Word-boundary patterns — catch camelCase/slug variants without
+    // false-triggering on compound words like "companyVehicle" or "hasDrivingLicense".
+    // e.g. "companyName" matches (company + Name), but "companyVehicle" does NOT match
+    // because "vehicle" is not an identifying word.
+    const identifyingWords = [
+      'email', 'phone', 'mobile', 'address', 'street', 'postal',
+      'zipcode', 'postcode', 'employer', 'company', 'name',
+      'firstname', 'lastname', 'surname', 'fullname', 'username',
+      'password', 'ssn', 'birthdate', 'dateofbirth', 'nationalid',
+      'passportnumber', 'photo', 'avatar',
     ];
 
-    const lowerField = fieldName.toLowerCase();
-    return identifyingPatterns.some(pattern => lowerField.includes(pattern));
+    // Split camelCase into words and check if an identifying word is followed
+    // by another identifying word or stands alone as the last word.
+    const words = lowerField.replace(/([a-z])([A-Z])/g, '$1 $2').toLowerCase().split(/[^a-z0-9]+/);
+
+    for (let i = 0; i < words.length; i++) {
+      if (identifyingWords.includes(words[i])) {
+        // If it's a standalone match or followed by another identifying word, flag it.
+        // e.g., "companyName" → words = ["company", "name"] → both identifying → FLAG
+        // e.g., "companyVehicle" → words = ["company", "vehicle"] → "vehicle" is not identifying → NO FLAG
+        const isLastWord = i === words.length - 1;
+        const nextWordIsIdentifying = !isLastWord && identifyingWords.includes(words[i + 1]);
+        if (isLastWord || nextWordIsIdentifying) {
+          return true;
+        }
+      }
+    }
+
+    return false;
   }
 
   private looksLikeEmail(value: string): boolean {

@@ -19,6 +19,112 @@ enum Availability {
   NOT_AVAILABLE = "NOT_AVAILABLE",
 }
 
+// ============================================================================
+// Visible Companies Manager Component
+// ============================================================================
+// Allows workers to manage which employers can see their profile when
+// visibility is set to SELECTED_COMPANIES.
+// ============================================================================
+
+function VisibleCompaniesManager() {
+  const [visibleCompanies, setVisibleCompanies] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [adding, setAdding] = useState(false);
+  const [employerIdToAdd, setEmployerIdToAdd] = useState("");
+  const [error, setError] = useState("");
+
+  const fetchVisibleCompanies = useCallback(async () => {
+    try {
+      const response = await workersApi.getVisibleCompanies();
+      setVisibleCompanies(response.data || []);
+    } catch (err) {
+      console.error("Failed to fetch visible companies:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchVisibleCompanies();
+  }, [fetchVisibleCompanies]);
+
+  const handleAdd = async () => {
+    if (!employerIdToAdd.trim()) return;
+    setAdding(true);
+    setError("");
+    try {
+      await workersApi.addVisibleCompany(employerIdToAdd.trim());
+      setEmployerIdToAdd("");
+      await fetchVisibleCompanies();
+    } catch (err: any) {
+      setError(err.response?.data?.message || "Failed to add company");
+    } finally {
+      setAdding(false);
+    }
+  };
+
+  const handleRemove = async (employerId: string) => {
+    try {
+      await workersApi.removeVisibleCompany(employerId);
+      await fetchVisibleCompanies();
+    } catch (err) {
+      console.error("Failed to remove visible company:", err);
+    }
+  };
+
+  if (loading) {
+    return <p className="text-sm text-gray-500">Loading visible companies...</p>;
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="flex gap-2">
+        <input
+          type="text"
+          value={employerIdToAdd}
+          onChange={(e) => setEmployerIdToAdd(e.target.value)}
+          placeholder="Enter employer ID to grant access"
+          className="flex-1 px-3 py-2 border border-yellow-300 rounded-lg text-sm focus:ring-2 focus:ring-yellow-500 focus:border-transparent outline-none"
+        />
+        <button
+          type="button"
+          onClick={handleAdd}
+          disabled={adding || !employerIdToAdd.trim()}
+          className="px-4 py-2 bg-yellow-600 text-white text-sm rounded-lg hover:bg-yellow-700 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {adding ? "Adding..." : "Add"}
+        </button>
+      </div>
+      {error && <p className="text-sm text-red-600">{error}</p>}
+      {visibleCompanies.length > 0 ? (
+        <ul className="space-y-2">
+          {visibleCompanies.map((vc: any) => (
+            <li key={vc.id} className="flex items-center justify-between p-2 bg-white border border-yellow-200 rounded-lg">
+              <span className="text-sm text-gray-900">
+                {vc.employer?.companyName || vc.employerId}
+                {vc.employer?.companyTradeName && (
+                  <span className="text-gray-500 ml-1">({vc.employer.companyTradeName})</span>
+                )}
+              </span>
+              <button
+                type="button"
+                onClick={() => handleRemove(vc.employerId)}
+                className="text-red-600 hover:text-red-700 text-sm"
+              >
+                Remove
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-sm text-yellow-700">
+          No companies have been granted access yet. Add employers above to allow them to view your profile.
+        </p>
+      )}
+    </div>
+  );
+}
+
 enum SkillLevel {
   BEGINNER = "BEGINNER",
   INTERMEDIATE = "INTERMEDIATE",
@@ -1463,6 +1569,15 @@ export default function EditWorkerProfile() {
                   </label>
                 ))}
               </div>
+              {formData.profileVisibility === "SELECTED_COMPANIES" && (
+                <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <h4 className="font-medium text-yellow-800 mb-2">Manage Visible Companies</h4>
+                  <p className="text-sm text-yellow-700 mb-3">
+                    Add employers who are allowed to view your profile. Only these employers will see your profile in search results and direct links.
+                  </p>
+                  <VisibleCompaniesManager />
+                </div>
+              )}
               <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
                 <h4 className="font-medium text-green-800 mb-2">Privacy Guarantee</h4>
                 <ul className="text-sm text-green-700 space-y-1">

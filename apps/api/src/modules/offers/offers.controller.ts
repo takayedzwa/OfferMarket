@@ -1,5 +1,7 @@
 import { Controller, Get, Post, Patch, Delete, Body, Param, Query, BadRequestException, UseGuards, Request } from '@nestjs/common';
 import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
+import { RolesGuard } from '../../guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
 import { OffersService } from './offers.service';
 import { OfferValidationPipe } from './pipes/offer-validation.pipe';
 import { CreateOfferDto } from './dto/create-offer.dto';
@@ -24,7 +26,8 @@ export class OffersController {
    * - No "competitive salary" allowed
    */
   @Post()
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('EMPLOYER')
   async createOffer(
     @Body(new OfferValidationPipe()) createOfferDto: any,
     @Query('employerId') employerId: string
@@ -37,7 +40,7 @@ export class OffersController {
   }
 
   // ===========================================================================
-  // VIEW OFFER (Worker)
+  // VIEW OFFER (Worker or Employer)
   // ===========================================================================
 
   /**
@@ -46,7 +49,8 @@ export class OffersController {
    * View offer details (worker perspective)
    */
   @Get(':id')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('WORKER', 'EMPLOYER')
   async getOffer(
     @Param('id') id: string,
     @Request() req: any
@@ -56,7 +60,7 @@ export class OffersController {
   }
 
   // ===========================================================================
-  // ACCEPT OFFER (Worker) - THE MOMENT OF TRUTH
+  // ACCEPT OFFER (Worker only) - THE MOMENT OF TRUTH
   // ===========================================================================
 
   /**
@@ -68,7 +72,8 @@ export class OffersController {
    * - Invoice generated
    */
   @Post(':id/accept')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('WORKER')
   async acceptOffer(
     @Param('id') id: string,
     @Request() req: any
@@ -78,14 +83,15 @@ export class OffersController {
   }
 
   // ===========================================================================
-  // REJECT OFFER (Worker)
+  // REJECT OFFER (Worker only)
   // ===========================================================================
 
   /**
    * POST /offers/:id/reject
    */
   @Post(':id/reject')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('WORKER')
   async rejectOffer(
     @Param('id') id: string,
     @Request() req: any,
@@ -97,14 +103,15 @@ export class OffersController {
   }
 
   // ===========================================================================
-  // SHORTLIST OFFER (Worker)
+  // SHORTLIST OFFER (Worker only)
   // ===========================================================================
 
   /**
    * POST /offers/:id/shortlist
    */
   @Post(':id/shortlist')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('WORKER')
   async shortlistOffer(
     @Param('id') id: string,
     @Request() req: any
@@ -114,14 +121,15 @@ export class OffersController {
   }
 
   // ===========================================================================
-  // COUNTER OFFER (Worker)
+  // COUNTER OFFER (Worker only)
   // ===========================================================================
 
   /**
    * POST /offers/:id/counter
    */
   @Post(':id/counter')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('WORKER')
   async counterOffer(
     @Param('id') id: string,
     @Request() req: any,
@@ -132,14 +140,15 @@ export class OffersController {
   }
 
   // ===========================================================================
-  // WITHDRAW OFFER (Employer)
+  // WITHDRAW OFFER (Employer only)
   // ===========================================================================
 
   /**
    * POST /offers/:id/withdraw
    */
   @Post(':id/withdraw')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('EMPLOYER')
   async withdrawOffer(
     @Param('id') id: string,
     @Query('employerId') employerId: string,
@@ -153,7 +162,7 @@ export class OffersController {
   }
 
   // ===========================================================================
-  // LIST OFFERS
+  // LIST OFFERS (Worker or Employer)
   // ===========================================================================
 
   /**
@@ -162,7 +171,8 @@ export class OffersController {
    * List offers based on user role
    */
   @Get()
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('WORKER', 'EMPLOYER')
   async listOffers(
     @Query('workerId') workerId: string,
     @Query('employerId') employerId: string,
@@ -187,7 +197,8 @@ export class OffersController {
    * List offers for the authenticated worker
    */
   @Get('worker/me')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('WORKER')
   async listOffersForWorkerMe(
     @Request() req: any,
     @Query('status') status?: string
@@ -203,7 +214,8 @@ export class OffersController {
    * View offer details (employer perspective)
    */
   @Get(':id/detail')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('EMPLOYER')
   async getOfferDetail(
     @Param('id') id: string,
     @Query('employerId') employerId: string
@@ -221,7 +233,8 @@ export class OffersController {
    * Update an offer (employer only - creates new version)
    */
   @Patch(':id')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('EMPLOYER')
   async updateOffer(
     @Param('id') id: string,
     @Query('employerId') employerId: string,
@@ -240,7 +253,8 @@ export class OffersController {
    * Submit a DRAFT offer to the worker (employer only)
    */
   @Post(':id/submit')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('EMPLOYER')
   async submitOffer(
     @Param('id') id: string,
     @Query('employerId') employerId: string

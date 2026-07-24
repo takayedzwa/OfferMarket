@@ -105,7 +105,7 @@ export class SupportService {
     return ticket;
   }
 
-  async createTicket(data: CreateTicketDto) {
+  async createTicket(data: CreateTicketDto & { userId: string }) {
     const year = new Date().getFullYear();
     const count = await this.prisma.supportTicket.count();
     const ticketNumber = `SUP-${year}-${String(count + 1).padStart(6, '0')}`;

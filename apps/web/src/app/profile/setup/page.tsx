@@ -689,6 +689,11 @@ export default function SetupWorkerProfile() {
                   <div>
                     <p className="font-medium text-gray-900">Selected Companies Only</p>
                     <p className="text-sm text-gray-600">Only employers you approve can view your profile</p>
+                    {formData.profileVisibility === "SELECTED_COMPANIES" && (
+                      <p className="text-sm text-yellow-700 mt-2 bg-yellow-50 p-2 rounded">
+                        ⚠️ Your profile will be hidden from all employers until you grant access to specific companies. You can manage this after profile creation in your profile settings.
+                      </p>
+                    )}
                   </div>
                 </label>
                 <label className="flex items-start gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50">

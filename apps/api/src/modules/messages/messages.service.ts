@@ -133,8 +133,12 @@ export class MessagesService {
       }
     });
 
-    // Update conversation — increment ONLY the recipient's unread count
-    const unreadUpdate = conversation.participant1Id === recipientId
+    // Update conversation — increment ONLY the recipient's unread count.
+    // SECURITY: Determine whether the recipient is a worker or employer by
+    // checking their role, rather than assuming participant1=worker.
+    const recipientUser = await this.prisma.user.findUnique({ where: { id: recipientId } });
+    const recipientIsWorker = recipientUser?.role === 'WORKER';
+    const unreadUpdate = recipientIsWorker
       ? { unreadCountWorker: { increment: 1 } }
       : { unreadCountEmployer: { increment: 1 } };
 
@@ -172,8 +176,12 @@ export class MessagesService {
       throw new NotFoundException('Conversation not found');
     }
 
-    // Determine which unread count to reset
-    const unreadReset = userId === conversation.participant1Id
+    // Determine which unread count to reset.
+    // SECURITY: Resolve role from the user record instead of assuming
+    // participant1=worker, so role assignment changes don't break this.
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    const isWorker = user?.role === 'WORKER';
+    const unreadReset = isWorker
       ? { unreadCountWorker: 0 }
       : { unreadCountEmployer: 0 };
 
@@ -212,7 +220,11 @@ export class MessagesService {
       throw new NotFoundException('Conversation not found');
     }
 
-    const updateData = userId === conversation.participant1Id
+    // SECURITY: Resolve role from the user record instead of assuming
+    // participant1=worker.
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    const isWorker = user?.role === 'WORKER';
+    const updateData = isWorker
       ? { isArchivedWorker: true }
       : { isArchivedEmployer: true };
 

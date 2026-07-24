@@ -221,7 +221,7 @@ export class PrivacyController {
     @Body() dto: SetProcessingRestrictionDto,
   ) {
     const userId = this.getAuthenticatedUserId(req);
-    const flags = await this.privacyService.setProcessingRestriction(userId, dto.restricted);
+    const flags = await this.privacyService.setProcessingRestriction(userId, dto.restricted, dto.reason);
     return {
       processingRestricted: flags.processingRestricted,
       processingRestrictedAt: flags.processingRestrictedAt?.toISOString() ?? null,

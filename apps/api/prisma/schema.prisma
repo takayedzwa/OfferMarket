@@ -46,6 +46,8 @@ model User {
   resolvedTickets      SupportTicket[]       @relation("ResolvedSupportTickets")
   suspiciousActivities SuspiciousActivity[]
   blacklistEntries     BlacklistEntry[]      @relation("BlacklistedUser")
+  verificationCodes    VerificationCode[]
+  blacklistedTokens    BlacklistedToken[]
   consents             Consent[]
   dataSubjectRequests  DataSubjectRequest[]
   gdprFlags            UserGdprFlags?
@@ -99,6 +101,33 @@ model PasswordResetToken {
   @@index([expiresAt])
 }
 
+model VerificationCode {
+  id        String   @id @default(uuid())
+  userId    String
+  type      String   // "EMAIL" or "PHONE"
+  codeHash  String   // SHA-256 hash of the verification code
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, type, expiresAt])
+  @@index([codeHash])
+}
+
+model BlacklistedToken {
+  id        String   @id @default(uuid())
+  jti       String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([jti])
+  @@index([expiresAt])
+}
+
 model Worker {
   id                      String              @id @default(uuid())
   userId                  String              @unique
@@ -135,6 +164,7 @@ model Worker {
   updatedAt               DateTime            @updatedAt
   deletedAt               DateTime?
   blockedCompanies        BlockedCompany[]
+  visibleCompanies        VisibleCompany[]
   certifications          Certification[]
   offersReceived          Offer[]
   skills                  ProfileSkill[]
@@ -293,6 +323,7 @@ model Employer {
   updatedAt            DateTime                   @updatedAt
   deletedAt            DateTime?
   blockedBy            BlockedCompany[]
+  visibleTo            VisibleCompany[]
   user                 User                       @relation(fields: [userId], references: [id], onDelete: Cascade)
   offersSent           Offer[]
   ratings              Rating[]
@@ -343,11 +374,14 @@ model Offer {
   shortlistedAt    DateTime?
   counteredAt      DateTime?
   currentVersionId String?        @unique
+  counterOfferForId String?       @map("counter_offer_for_id")
   source           String?
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
   conversation     Conversation?
   currentVersion   OfferVersion?  @relation("CurrentVersion", fields: [currentVersionId], references: [id])
+  counterOfferFor  Offer?          @relation("CounterOfferChain", fields: [counterOfferForId], references: [id])
+  counterOffers    Offer[]         @relation("CounterOfferChain")
   employer         Employer       @relation(fields: [employerId], references: [id])
   worker           Worker         @relation(fields: [workerId], references: [id])
   versions         OfferVersion[]
@@ -360,6 +394,7 @@ model Offer {
   @@index([submittedAt])
   @@index([expiresAt])
   @@index([workerId, status])
+  @@index([counterOfferForId])
 }
 
 model OfferVersion {
@@ -464,6 +499,19 @@ model BlockedCompany {
   workerId   String
   employerId String
   reason     String?
+  createdAt  DateTime @default(now())
+  employer   Employer @relation(fields: [employerId], references: [id], onDelete: Cascade)
+  worker     Worker   @relation(fields: [workerId], references: [id], onDelete: Cascade)
+
+  @@unique([workerId, employerId])
+  @@index([workerId])
+  @@index([employerId])
+}
+
+model VisibleCompany {
+  id         String   @id @default(uuid())
+  workerId   String
+  employerId String
   createdAt  DateTime @default(now())
   employer   Employer @relation(fields: [employerId], references: [id], onDelete: Cascade)
   worker     Worker   @relation(fields: [workerId], references: [id], onDelete: Cascade)

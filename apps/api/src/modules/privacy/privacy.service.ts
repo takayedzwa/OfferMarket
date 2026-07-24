@@ -910,7 +910,7 @@ export class PrivacyService {
    * Set or remove processing restriction on user data.
    * When restricted, only storage is allowed — no further processing.
    */
-  async setProcessingRestriction(userId: string, restricted: boolean) {
+  async setProcessingRestriction(userId: string, restricted: boolean, reason?: string) {
     const flags = await this.prisma.userGdprFlags.upsert({
       where: { userId },
       create: {
@@ -932,6 +932,7 @@ export class PrivacyService {
         entityType: 'user',
         entityId: userId,
         legalBasis: restricted ? 'GDPR_ARTICLE_18' : 'GDPR_ARTICLE_18_WITHDRAWAL',
+        changes: reason ? { reason } : undefined,
       },
     });
 

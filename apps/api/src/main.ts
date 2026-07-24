@@ -3,6 +3,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { SecurityHeadersMiddleware } from './middleware/security-headers.middleware';
 import { DataMinimizationInterceptor } from './interceptors/data-minimization.interceptor';
+import { SanitizeInputPipe } from './pipes/sanitize-input.pipe';
 import { Reflector } from '@nestjs/core';
 
 async function bootstrap() {
@@ -17,6 +18,13 @@ async function bootstrap() {
   // GDPR: Security headers middleware — adds security headers
   // to all responses to protect personal data from injection attacks
   app.use(new SecurityHeadersMiddleware().use);
+
+  // XSS: Global sanitization pipe — strips all HTML tags from string values
+  // in request bodies before validation. Prevents stored XSS attacks.
+  // Must run before ValidationPipe so sanitized values are validated.
+  app.useGlobalPipes(
+    new SanitizeInputPipe(),
+  );
 
   // Global validation pipe — whitelist strips unknown properties to prevent
   // mass assignment attacks (GDPR Art. 5(1)(f) data integrity).

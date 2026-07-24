@@ -10,11 +10,13 @@ import { IsInt, IsOptional, Min, Max } from 'class-validator';
 export class CounterOfferDto {
   @IsInt()
   @Min(20000)
+  @Max(200000)
   @IsOptional()
   salaryMin?: number;
 
   @IsInt()
   @Min(20000)
+  @Max(200000)
   @IsOptional()
   salaryMax?: number;
 

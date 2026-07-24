@@ -24,19 +24,78 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Response interceptor for error handling
+// Response interceptor for error handling with automatic token refresh
+let isRefreshing = false;
+let failedQueue: Array<{ resolve: (value: any) => void; reject: (reason: any) => void }> = [];
+
+const processQueue = (error: any, token: string | null = null) => {
+  failedQueue.forEach(({ resolve, reject }) => {
+    if (error) {
+      reject(error);
+    } else {
+      resolve(token);
+    }
+  });
+  failedQueue = [];
+};
+
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      // Token expired, redirect to login
-      if (typeof window !== 'undefined') {
+  async (error) => {
+    const originalRequest = error.config;
+
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      if (isRefreshing) {
+        // Queue this request until the refresh completes
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        }).then((token) => {
+          originalRequest.headers.Authorization = `Bearer ${token}`;
+          return api(originalRequest);
+        });
+      }
+
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      const refreshToken = localStorage.getItem('refreshToken');
+      if (!refreshToken) {
+        // No refresh token — redirect to login
         localStorage.removeItem('accessToken');
-        localStorage.removeItem('userId');
-        localStorage.removeItem('userRole');
-        window.location.href = '/login';
+        localStorage.removeItem('refreshToken');
+        if (typeof window !== 'undefined') {
+          window.location.href = '/login';
+        }
+        return Promise.reject(error);
+      }
+
+      try {
+        const response = await api.post('/auth/refresh', { refreshToken });
+        const newAccessToken = response.data.accessToken;
+        const newRefreshToken = response.data.refreshToken;
+
+        localStorage.setItem('accessToken', newAccessToken);
+        if (newRefreshToken) {
+          localStorage.setItem('refreshToken', newRefreshToken);
+        }
+
+        processQueue(null, newAccessToken);
+
+        originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+        return api(originalRequest);
+      } catch (refreshError) {
+        processQueue(refreshError, null);
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+        if (typeof window !== 'undefined') {
+          window.location.href = '/login';
+        }
+        return Promise.reject(refreshError);
+      } finally {
+        isRefreshing = false;
       }
     }
+
     return Promise.reject(error);
   }
 );
@@ -61,11 +120,14 @@ export const authApi = {
   resetPassword: (token: string, newPassword: string) =>
     api.post('/auth/reset-password', { token, newPassword }),
 
+  // Refresh the access token using a valid refresh token
+  refreshToken: (refreshToken: string) =>
+    api.post('/auth/refresh', { refreshToken }),
+
   logout: () => {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('accessToken');
-      localStorage.removeItem('userId');
-      localStorage.removeItem('userRole');
+      localStorage.removeItem('refreshToken');
     }
   },
 };
@@ -131,22 +193,15 @@ export const workersApi = {
   searchWorkers: (params?: any) => api.get('/workers/search', { params }),
 
   // Get my private profile
-  getMyProfile: () => {
-    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
-    return api.get('/workers/me', { params: { userId } });
-  },
+  // SECURITY: userId is no longer sent as a query param. The backend extracts
+  // it from the JWT token, preventing IDOR attacks.
+  getMyProfile: () => api.get('/workers/me'),
 
   // Create worker profile
-  createProfile: (data: any) => {
-    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
-    return api.post('/workers', data, { params: { userId } });
-  },
+  createProfile: (data: any) => api.post('/workers', data),
 
   // Update worker profile
-  updateProfile: (data: any) => {
-    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
-    return api.patch('/workers/me', data, { params: { userId } });
-  },
+  updateProfile: (data: any) => api.patch('/workers/me', data),
 
   // Get public profile (anonymous - for employers viewing)
   getPublicProfile: (publicId: string, employerId?: string) =>
@@ -156,96 +211,51 @@ export const workersApi = {
   // PROFILE SKILLS CRUD
   // ============================================================================
 
-  addSkill: (data: any) => {
-    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
-    return api.post('/workers/me/skills', data, { params: { userId } });
-  },
+  addSkill: (data: any) => api.post('/workers/me/skills', data),
 
-  updateSkill: (id: string, data: any) => {
-    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
-    return api.patch(`/workers/me/skills/${id}`, data, { params: { userId } });
-  },
+  updateSkill: (id: string, data: any) => api.patch(`/workers/me/skills/${id}`, data),
 
-  removeSkill: (id: string) => {
-    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
-    return api.delete(`/workers/me/skills/${id}`, { params: { userId } });
-  },
+  removeSkill: (id: string) => api.delete(`/workers/me/skills/${id}`),
 
   // ============================================================================
   // CERTIFICATIONS CRUD
   // ============================================================================
 
-  addCertification: (data: any) => {
-    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
-    return api.post('/workers/me/certifications', data, { params: { userId } });
-  },
+  addCertification: (data: any) => api.post('/workers/me/certifications', data),
 
-  updateCertification: (id: string, data: any) => {
-    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
-    return api.patch(`/workers/me/certifications/${id}`, data, { params: { userId } });
-  },
+  updateCertification: (id: string, data: any) => api.patch(`/workers/me/certifications/${id}`, data),
 
-  removeCertification: (id: string) => {
-    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
-    return api.delete(`/workers/me/certifications/${id}`, { params: { userId } });
-  },
+  removeCertification: (id: string) => api.delete(`/workers/me/certifications/${id}`),
 
   // ============================================================================
   // LANGUAGES CRUD
   // ============================================================================
 
-  addLanguage: (data: any) => {
-    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
-    return api.post('/workers/me/languages', data, { params: { userId } });
-  },
+  addLanguage: (data: any) => api.post('/workers/me/languages', data),
 
-  updateLanguage: (id: string, data: any) => {
-    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
-    return api.patch(`/workers/me/languages/${id}`, data, { params: { userId } });
-  },
+  updateLanguage: (id: string, data: any) => api.patch(`/workers/me/languages/${id}`, data),
 
-  removeLanguage: (id: string) => {
-    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
-    return api.delete(`/workers/me/languages/${id}`, { params: { userId } });
-  },
+  removeLanguage: (id: string) => api.delete(`/workers/me/languages/${id}`),
 
   // ============================================================================
   // EDUCATION CRUD
   // ============================================================================
 
-  addEducation: (data: any) => {
-    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
-    return api.post('/workers/me/education', data, { params: { userId } });
-  },
+  addEducation: (data: any) => api.post('/workers/me/education', data),
 
-  updateEducation: (id: string, data: any) => {
-    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
-    return api.patch(`/workers/me/education/${id}`, data, { params: { userId } });
-  },
+  updateEducation: (id: string, data: any) => api.patch(`/workers/me/education/${id}`, data),
 
-  removeEducation: (id: string) => {
-    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
-    return api.delete(`/workers/me/education/${id}`, { params: { userId } });
-  },
+  removeEducation: (id: string) => api.delete(`/workers/me/education/${id}`),
 
   // ============================================================================
   // PROJECT EXPERIENCE CRUD
   // ============================================================================
 
-  addProjectExperience: (data: any) => {
-    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
-    return api.post('/workers/me/projects', data, { params: { userId } });
-  },
+  addProjectExperience: (data: any) => api.post('/workers/me/projects', data),
 
-  updateProjectExperience: (id: string, data: any) => {
-    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
-    return api.patch(`/workers/me/projects/${id}`, data, { params: { userId } });
-  },
+  updateProjectExperience: (id: string, data: any) => api.patch(`/workers/me/projects/${id}`, data),
 
-  removeProjectExperience: (id: string) => {
-    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
-    return api.delete(`/workers/me/projects/${id}`, { params: { userId } });
-  },
+  removeProjectExperience: (id: string) => api.delete(`/workers/me/projects/${id}`),
 
   // ============================================================================
   // PRIVACY & VISIBILITY
@@ -266,6 +276,22 @@ export const workersApi = {
   updateVisibility: (visibility: 'ALL_VERIFIED' | 'SELECTED_COMPANIES' | 'HIDDEN') =>
     api.patch('/workers/me/visibility', { visibility }),
 
+  // ============================================================================
+  // VISIBLE COMPANIES (SELECTED_COMPANIES Visibility)
+  // ============================================================================
+
+  // Add a company to the visible companies list
+  addVisibleCompany: (employerId: string) =>
+    api.post('/workers/me/visible-companies', { employerId }),
+
+  // Remove a company from the visible companies list
+  removeVisibleCompany: (employerId: string) =>
+    api.delete(`/workers/me/visible-companies/${employerId}`),
+
+  // Get all visible companies
+  getVisibleCompanies: () =>
+    api.get('/workers/me/visible-companies'),
+
   // Delete profile
   deleteProfile: () => api.delete('/workers/me'),
 };
@@ -275,35 +301,55 @@ export const workersApi = {
 // ============================================================================
 
 export const employersApi = {
-  // Get my profile
-  getMyProfile: () => {
-    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
-    return api.get('/employers/me', { params: { userId } });
-  },
+  // SECURITY: userId is no longer sent as a query param. The backend extracts
+  // it from the JWT token, preventing IDOR attacks.
+  getMyProfile: () => api.get('/employers/me'),
 
   // Create employer profile
-  createProfile: (data: any) => {
-    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
-    return api.post('/employers', data, { params: { userId } });
-  },
+  createProfile: (data: any) => api.post('/employers', data),
 
   // Update employer profile
-  updateProfile: (data: any) => {
-    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
-    return api.patch('/employers/me', data, { params: { userId } });
-  },
+  updateProfile: (data: any) => api.patch('/employers/me', data),
 
   // Get verification status
-  getVerificationStatus: () => {
-    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
-    return api.get('/employers/me/verification', { params: { userId } });
-  },
+  getVerificationStatus: () => api.get('/employers/me/verification'),
 
   // Get company details
-  getMyCompany: () => {
-    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
-    return api.get('/employers/me', { params: { userId } });
-  },
+  getMyCompany: () => api.get('/employers/me'),
+};
+
+// ============================================================================
+// RATINGS API
+// SECURITY: All authenticated endpoints use the JWT token for userId.
+// No userId query params are sent — the backend extracts identity from the token.
+// ============================================================================
+
+export const ratingsApi = {
+  // Create a rating (authenticated)
+  createRating: (data: any) => api.post('/ratings', data),
+
+  // Get my ratings (authenticated)
+  getMyRatings: () => api.get('/ratings/my'),
+
+  // Get employer ratings (public)
+  getEmployerRatings: (employerId: string, limit: number = 5, offset: number = 0) =>
+    api.get(`/ratings/employer/${employerId}`, { params: { limit, offset } }),
+
+  // Get employer rating stats (public)
+  getEmployerRatingStats: (employerId: string) =>
+    api.get(`/ratings/employer/${employerId}/stats`),
+
+  // Get employer trust score (public)
+  getEmployerTrustScore: (employerId: string) =>
+    api.get(`/ratings/employer/${employerId}/trust-score`),
+
+  // Update a rating (authenticated)
+  updateRating: (ratingId: string, data: any) =>
+    api.patch(`/ratings/${ratingId}`, data),
+
+  // Get rating by ID (authenticated)
+  getRatingById: (ratingId: string) =>
+    api.get(`/ratings/${ratingId}`),
 };
 
 // ============================================================================
@@ -449,35 +495,25 @@ export const conversationsApi = {
 
 export const notificationsApi = {
   // Get notifications for current user
+  // SECURITY: userId is no longer passed as a query param. The backend
+  // extracts it from the JWT token, preventing IDOR attacks.
   getNotifications: (params?: { unreadOnly?: boolean; page?: number; limit?: number }) => {
-    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
-    return api.get('/notifications', {
-      params: { userId, ...params },
-    });
+    return api.get('/notifications', { params });
   },
 
   // Get unread count
   getUnreadCount: () => {
-    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
-    return api.get('/notifications/unread-count', {
-      params: { userId },
-    });
+    return api.get('/notifications/unread-count');
   },
 
   // Mark a single notification as read
   markAsRead: (notificationId: string) => {
-    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
-    return api.patch(`/notifications/${notificationId}/read`, null, {
-      params: { userId },
-    });
+    return api.patch(`/notifications/${notificationId}/read`);
   },
 
   // Mark all notifications as read
   markAllAsRead: () => {
-    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
-    return api.patch('/notifications/read-all', null, {
-      params: { userId },
-    });
+    return api.patch('/notifications/read-all');
   },
 };
 

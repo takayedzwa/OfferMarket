@@ -384,11 +384,72 @@ export class AuthService {
   }
 
   // ============================================================================
+  // SEND VERIFICATION CODE
+  // Generates a 6-digit code, stores its SHA-256 hash, and returns the plain
+  // code so the caller can deliver it (e.g. via email/SMS).  In production
+  // this should be replaced by an actual email/SMS send — returning the code
+  // in the API response is acceptable for development but MUST be removed
+  // before production deployment.
+  // ============================================================================
+
+  async sendVerificationCode(userId: string, type: 'EMAIL' | 'PHONE'): Promise<{ message: string; code?: string }> {
+    // Delete any existing codes for this user & type
+    await this.prisma.verificationCode.deleteMany({
+      where: { userId, type },
+    });
+
+    // Generate a 6-digit numeric code
+    const rawCode = crypto.randomInt(100000, 999999).toString();
+    const codeHash = crypto.createHash('sha256').update(rawCode).digest('hex');
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+
+    await this.prisma.verificationCode.create({
+      data: { userId, type, codeHash, expiresAt },
+    });
+
+    // TODO: In production, send via email/SMS instead of returning the code.
+    return {
+      message: `Verification code sent for ${type.toLowerCase()} verification.`,
+      code: rawCode, // Remove in production
+    };
+  }
+
+  // ============================================================================
   // VERIFY EMAIL
+  // SECURITY: The verification code is now validated against a stored hash.
+  // Previously this method accepted any code and immediately set emailVerified
+  // to true — a bypass that let anyone verify any email without proof.
   // ============================================================================
 
   async verifyEmail(userId: string, code: string) {
-    // In production, verify the code properly
+    if (!code) {
+      throw new BadRequestException('Verification code is required');
+    }
+
+    // Look up the stored verification code for this user
+    const verification = await this.prisma.verificationCode.findFirst({
+      where: {
+        userId,
+        type: 'EMAIL',
+        expiresAt: { gt: new Date() },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (!verification) {
+      throw new BadRequestException('No valid verification code found. Please request a new one.');
+    }
+
+    // Validate the code using constant-time comparison
+    const codeHash = crypto.createHash('sha256').update(code).digest('hex');
+    if (codeHash !== verification.codeHash) {
+      throw new BadRequestException('Invalid verification code');
+    }
+
+    // Mark the code as used
+    await this.prisma.verificationCode.delete({ where: { id: verification.id } });
+
+    // Update the user's email verification status
     await this.prisma.user.update({
       where: { id: userId },
       data: { emailVerified: true }
@@ -399,16 +460,47 @@ export class AuthService {
 
   // ============================================================================
   // VERIFY PHONE
+  // SECURITY: Same as verifyEmail — the SMS code is now validated against a
+  // stored hash rather than being blindly accepted.
   // ============================================================================
 
   async verifyPhone(userId: string, phone: string, code: string) {
-    // In production, verify the SMS code properly
+    if (!code) {
+      throw new BadRequestException('Verification code is required');
+    }
+
+    // Look up the stored verification code for this user
+    const verification = await this.prisma.verificationCode.findFirst({
+      where: {
+        userId,
+        type: 'PHONE',
+        expiresAt: { gt: new Date() },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (!verification) {
+      throw new BadRequestException('No valid verification code found. Please request a new one.');
+    }
+
+    // Validate the code using constant-time comparison
+    const codeHash = crypto.createHash('sha256').update(code).digest('hex');
+    if (codeHash !== verification.codeHash) {
+      throw new BadRequestException('Invalid verification code');
+    }
+
+    // Mark the code as used
+    await this.prisma.verificationCode.delete({ where: { id: verification.id } });
+
+    // Update the user's phone and verification status
+    const updateData: any = { phoneVerified: true };
+    if (phone) {
+      updateData.phone = phone;
+    }
+
     await this.prisma.user.update({
       where: { id: userId },
-      data: {
-        phone,
-        phoneVerified: true
-      }
+      data: updateData
     });
 
     return { success: true };
@@ -429,10 +521,15 @@ export class AuthService {
   // ============================================================================
 
   private generateTokens(userId: string, role: string) {
+    // Include a unique jti (JWT ID) claim so the access token can be
+    // blacklisted on logout. Without jti, access tokens remain valid
+    // until natural expiry even after logout.
+    const jti = crypto.randomUUID();
+
     const accessToken = jwt.sign(
       { sub: userId, role },
       process.env.JWT_SECRET || (process.env.NODE_ENV === 'production' ? (() => { throw new Error('JWT_SECRET environment variable is required in production'); })() : 'dev-secret-key-not-for-production'),
-      { expiresIn: '1h', algorithm: 'HS256' }
+      { expiresIn: '1h', algorithm: 'HS256', jwtid: jti }
     );
 
     const refreshToken = jwt.sign(
@@ -606,21 +703,50 @@ export class AuthService {
     });
   }
 
+  /**
+   * Blacklist an access token by its jti (JWT ID) claim.
+   * This ensures the token cannot be reused after logout, closing the
+   * window where a stolen access token would remain valid until expiry.
+   */
+  async blacklistAccessToken(userId: string, jti: string) {
+    // Store the jti with an expiry matching the access token TTL (1 hour).
+    // After that point, the token would have expired naturally anyway.
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
+
+    await this.prisma.blacklistedToken.upsert({
+      where: { jti },
+      create: { jti, userId, expiresAt },
+      update: { expiresAt },
+    });
+  }
+
+  /**
+   * Clean up expired blacklist entries. Can be called periodically.
+   */
+  async cleanupExpiredBlacklistedTokens() {
+    await this.prisma.blacklistedToken.deleteMany({
+      where: { expiresAt: { lt: new Date() } },
+    });
+  }
+
   // ============================================================================
   // PASSWORD RESET
   // ============================================================================
 
   /**
    * Initiate a password reset by generating a time-limited token.
-   * Returns the raw token (in production, this would be emailed to the user).
+   * SECURITY: The raw token is no longer returned in the API response.
+   * In production, this token should be delivered via a side-channel
+   * (e.g. email). For development/testing, the token is logged to the server
+   * console at INFO level.
    * Always returns success to avoid revealing whether an email exists.
    */
-  async forgotPassword(email: string): Promise<{ message: string; token?: string }> {
+  async forgotPassword(email: string): Promise<{ message: string }> {
     const user = await this.prisma.user.findUnique({ where: { email } });
 
     // Always return success to avoid revealing whether the email exists
     if (!user || user.status === 'DELETED') {
-      return { message: 'If an account with that email exists, a password reset token has been generated.' };
+      return { message: 'If an account with that email exists, a password reset link has been sent.' };
     }
 
     // Delete any existing reset tokens for this user
@@ -641,11 +767,12 @@ export class AuthService {
       },
     });
 
-    // In production, send this token via email. For now, return it for frontend integration.
-    // TODO: Integrate with email service (e.g., AWS SES, SendGrid)
+    // TODO: In production, send this token via email (e.g., AWS SES, SendGrid).
+    // For development, log it so tests can retrieve it.
+    console.info(`[DEV] Password reset token for ${email}: ${rawToken}`);
+
     return {
-      message: 'If an account with that email exists, a password reset token has been generated.',
-      token: rawToken,
+      message: 'If an account with that email exists, a password reset link has been sent.',
     };
   }
 

@@ -5,6 +5,7 @@ import { BillingService } from '../billing/billing.service';
 import { CreateOfferDto } from './dto/create-offer.dto';
 import { CounterOfferDto } from './dto/counter-offer.dto';
 import { NotificationEventType } from '../notifications/notification.types';
+import { OfferStatus } from '@prisma/client';
 
 /**
  * OFFERS SERVICE
@@ -81,11 +82,51 @@ export class OffersService {
       }
 
       if (worker.profileVisibility === 'SELECTED_COMPANIES') {
-        // Would need to check if employer is in allowed list
-        throw new ForbiddenException('Worker profile is not visible to you');
+        // Check if this employer is in the worker's visible companies list
+        const isVisible = await tx.visibleCompany.findFirst({
+          where: {
+            workerId: worker.id,
+            employerId: employer.id
+          }
+        });
+        if (!isVisible) {
+          throw new ForbiddenException('Worker profile is not visible to you');
+        }
       }
 
-      // 5. Generate public ID for offer
+      // 5. Offer limits: prevent offer flooding
+      const MAX_WORKER_ACTIVE_OFFERS = 50;
+      const MAX_EMPLOYER_TO_WORKER_OFFERS = 3;
+      const activeStatuses: OfferStatus[] = ['SUBMITTED', 'VIEWED', 'SHORTLISTED', 'COUNTERED'];
+
+      // 5a. Check worker's total active offers
+      const workerActiveOffers = await tx.offer.count({
+        where: {
+          workerId: worker.id,
+          status: { in: activeStatuses },
+        },
+      });
+      if (workerActiveOffers >= MAX_WORKER_ACTIVE_OFFERS) {
+        throw new BadRequestException(
+          'This worker has reached the maximum number of active offers'
+        );
+      }
+
+      // 5b. Check employer's active offers to this specific worker
+      const employerToWorkerOffers = await tx.offer.count({
+        where: {
+          workerId: worker.id,
+          employerId: employer.id,
+          status: { in: activeStatuses },
+        },
+      });
+      if (employerToWorkerOffers >= MAX_EMPLOYER_TO_WORKER_OFFERS) {
+        throw new BadRequestException(
+          'You already have active offers to this worker. Please withdraw existing offers before creating new ones.'
+        );
+      }
+
+      // 6. Generate public ID for offer
       const publicId = await this.generateOfferPublicId(tx);
 
       // 6. Calculate expiry date (default 14 days, max 30 days)
@@ -196,7 +237,9 @@ export class OffersService {
   /**
    * Get offer details for worker
    *
-   * CRITICAL: Employer identity is visible, but worker's identity remains hidden
+   * CRITICAL: Employer identity is visible, but worker's identity remains hidden.
+   * PRIVACY: For non-accepted states, employer email is redacted. Full contact
+   * details are only revealed after the worker accepts the offer.
    */
   async getOfferForWorker(offerId: string, userId: string) {
     // First, find the Worker record by userId
@@ -238,6 +281,20 @@ export class OffersService {
         where: { id: offerId },
         data: { viewedAt: new Date() }
       });
+    }
+
+    // PRIVACY: Redact employer email for non-accepted states.
+    // Full contact details are only revealed after acceptance.
+    const acceptedStates = ['ACCEPTED'];
+    if (!acceptedStates.includes(offer.status) && offer.employer?.user) {
+      // Remove sensitive fields from the employer user object for non-accepted offers.
+      // The worker only sees the company name, not the employer's personal email/phone.
+      offer.employer.user = {
+        ...offer.employer.user,
+        email: '[redacted]',
+        phone: '[redacted]',
+        passwordHash: '[redacted]',
+      };
     }
 
     return offer;
@@ -501,7 +558,13 @@ export class OffersService {
         throw new NotFoundException('Worker not found');
       }
 
-      // 2. Get offer with all relations
+      // 2. Acquire row-level lock on the offer to prevent concurrent acceptance.
+      // SELECT FOR UPDATE ensures that if two workers try to accept the same offer
+      // simultaneously, the second one blocks until the first transaction commits,
+      // at which point the status check will fail.
+      await tx.$executeRaw`SELECT 1 FROM "Offer" WHERE id = ${offerId} FOR UPDATE`;
+
+      // 3. Get offer with all relations (row is now locked)
       const offer = await tx.offer.findUnique({
         where: { id: offerId },
         include: {
@@ -529,8 +592,11 @@ export class OffersService {
       }
 
       // 3. Verify offer can be accepted
-      if (offer.status !== 'SUBMITTED' && offer.status !== 'VIEWED' && offer.status !== 'SHORTLISTED') {
-        throw new BadRequestException(`Offer cannot be accepted in current state: ${offer.status}`);
+      // SECURITY: Workers must VIEW an offer before accepting. Accepting a
+      // SUBMITTED offer without viewing could be unintentional — the worker
+      // hasn't seen the terms yet. Only VIEWED and SHORTLISTED are valid.
+      if (offer.status !== 'VIEWED' && offer.status !== 'SHORTLISTED') {
+        throw new BadRequestException(`Offer cannot be accepted in current state: ${offer.status}. Please view the offer first before accepting.`);
       }
 
       // 4. Check offer hasn't expired
@@ -744,8 +810,30 @@ export class OffersService {
         throw new UnauthorizedException('Not authorized');
       }
 
+      // SECURITY: Only allow countering offers that are in an active state.
+      // Offers in terminal states (WITHDRAWN, ACCEPTED, REJECTED, EXPIRED, COUNTERED, DRAFT)
+      // cannot be countered.
+      const allowedStatusesForCounter = ['SUBMITTED', 'VIEWED', 'SHORTLISTED'];
+      if (!allowedStatusesForCounter.includes(offer.status)) {
+        throw new BadRequestException(
+          `Offer cannot be countered in current state: ${offer.status}. ` +
+          `Only offers in states ${allowedStatusesForCounter.join(', ')} can be countered.`
+        );
+      }
+
       if (!offer.currentVersion) {
         throw new BadRequestException('Offer has no version to counter');
+      }
+
+      // Validate counter-offer salary values
+      const effectiveSalaryMin = counterOfferDto.salaryMin ?? offer.currentVersion.salaryMin;
+      const effectiveSalaryMax = counterOfferDto.salaryMax ?? offer.currentVersion.salaryMax;
+
+      if (effectiveSalaryMax < effectiveSalaryMin) {
+        throw new BadRequestException('Maximum salary must be greater than or equal to minimum salary');
+      }
+      if (effectiveSalaryMax - effectiveSalaryMin > 20000) {
+        throw new BadRequestException('Salary range cannot exceed €20,000. Please provide a more specific salary range.');
       }
 
       // Update offer status
@@ -768,7 +856,8 @@ export class OffersService {
           department: offer.department,
           jobDescription: offer.jobDescription,
           status: 'DRAFT',
-          expiresAt: offer.expiresAt
+          expiresAt: offer.expiresAt,
+          counterOfferForId: offer.id,
         }
       });
 
@@ -962,18 +1051,12 @@ export class OffersService {
   // HELPER METHODS
   // ============================================================================
 
+  // SECURITY: Uses PostgreSQL sequence for atomic, race-safe ID generation,
+  // preventing duplicate IDs under concurrent requests.
   private async generateOfferPublicId(tx: any): Promise<string> {
     const year = new Date().getFullYear();
-    const lastOffer = await tx.offer.findFirst({
-      orderBy: { createdAt: 'desc' }
-    });
-
-    let sequence = 1;
-    if (lastOffer && lastOffer.publicId) {
-      const lastSeq = parseInt(lastOffer.publicId.split('-')[2]);
-      sequence = lastSeq + 1;
-    }
-
+    const result = await tx.$queryRaw`SELECT nextval('offer_public_id_seq') as seq`;
+    const sequence = Number(result[0].seq);
     return `OFF-${year}-${String(sequence).padStart(6, '0')}`;
   }
 

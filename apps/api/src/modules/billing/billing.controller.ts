@@ -3,6 +3,8 @@ import { BillingService } from './billing.service';
 import { ListInvoicesQueryDto, AdminListInvoicesQueryDto } from './dto/list-invoices-query.dto';
 import { MarkInvoicePaidDto } from './dto/mark-invoice-paid.dto';
 import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
+import { RolesGuard } from '../../guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
 import { AdminGuard } from '../../guards/admin.guard';
 
 @Controller('billing')
@@ -14,7 +16,8 @@ export class BillingController {
   // ---------------------------------------------------------------------------
 
   @Get('invoices')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('EMPLOYER')
   async getMyInvoices(
     @Request() req: any,
     @Query() query: ListInvoicesQueryDto,
@@ -29,7 +32,8 @@ export class BillingController {
   }
 
   @Get('invoices/summary')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('EMPLOYER')
   async getMyInvoiceSummary(@Request() req: any) {
     const employer = await this.billingService.getEmployerByUserId(req.user.id);
     if (!employer) {
@@ -40,7 +44,8 @@ export class BillingController {
   }
 
   @Get('invoices/:id')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('EMPLOYER')
   async getInvoiceDetail(@Param('id') id: string, @Request() req: any) {
     const employer = await this.billingService.getEmployerByUserId(req.user.id);
     const employerId = employer?.id;

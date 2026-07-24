@@ -1,4 +1,4 @@
-import { Controller, Post, Body, BadRequestException, Get, Query, Headers, Request, UseGuards } from '@nestjs/common';
+import { Controller, Post, Body, BadRequestException, Get, Request, UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
 import { AuthService } from './auth.service';
@@ -27,8 +27,18 @@ export class AuthController {
   // GET CURRENT USER
   // ============================================================================
 
+  // ============================================================================
+  // GET CURRENT USER
+  // ============================================================================
+  // SECURITY: This endpoint now requires JWT authentication. The userId and
+  // userRole are extracted from the verified JWT token, preventing IDOR where
+  // any authenticated user could retrieve any other user's profile data.
+  // ============================================================================
+
   @Get('me')
-  async getMe(@Query('userId') userId: string, @Query('userRole') userRole: string) {
+  @UseGuards(JwtAuthGuard)
+  async getMe(@Request() req: any) {
+    const userId = req.user.id;
     const user = await this.authService.getUserById(userId);
     if (!user) {
       return { error: 'User not found' };
@@ -106,29 +116,56 @@ export class AuthController {
   }
 
   // ============================================================================
+  // SEND VERIFICATION CODE
+  // SECURITY: Authenticated users request a code for their own email/phone.
+  // The code is stored as a SHA-256 hash; the raw code is returned for
+  // development convenience (MUST be removed before production).
+  // ============================================================================
+
+  @Post('send-verification-code')
+  @UseGuards(JwtAuthGuard)
+  @Throttle({ short: { ttl: 60000, limit: 5 } })
+  async sendVerificationCode(
+    @Request() req: any,
+    @Body('type') type: 'EMAIL' | 'PHONE',
+  ) {
+    const userId = req.user.id;
+    return this.authService.sendVerificationCode(userId, type || 'EMAIL');
+  }
+
+  // ============================================================================
   // VERIFY EMAIL
+  // SECURITY: userId is now extracted from the JWT token instead of the request
+  // body, preventing IDOR attacks where any authenticated user could verify
+  // another user's email. The verification code is also validated against a
+  // stored hash rather than being blindly accepted.
   // ============================================================================
 
   @Post('verify-email')
+  @UseGuards(JwtAuthGuard)
   @Throttle({ short: { ttl: 60000, limit: 10 } })
   async verifyEmail(
-    @Body('userId') userId: string,
+    @Request() req: any,
     @Body('code') code: string
   ) {
+    const userId = req.user.id;
     return this.authService.verifyEmail(userId, code);
   }
 
   // ============================================================================
   // VERIFY PHONE
+  // SECURITY: Same as verify-email — userId comes from JWT, code is validated.
   // ============================================================================
 
   @Post('verify-phone')
+  @UseGuards(JwtAuthGuard)
   @Throttle({ short: { ttl: 60000, limit: 10 } })
   async verifyPhone(
-    @Body('userId') userId: string,
+    @Request() req: any,
     @Body('phone') phone: string,
     @Body('code') code: string
   ) {
+    const userId = req.user.id;
     return this.authService.verifyPhone(userId, phone, code);
   }
 
@@ -146,14 +183,26 @@ export class AuthController {
   }
 
   // ============================================================================
-  // LOGOUT (revoke all refresh tokens)
+  // LOGOUT (revoke refresh tokens + blacklist access token)
+  // SECURITY: Both refresh tokens and the current access token are revoked.
+  // Previously, only refresh tokens were revoked, leaving access tokens
+  // valid for up to 1 hour after logout.
   // ============================================================================
 
   @Post('logout')
   @UseGuards(JwtAuthGuard)
   async logout(@Request() req: any) {
     const userId = req.user?.id || req.user?.sub || req.user?.userId;
+    const jti = req.user?.jti;
+
+    // Revoke all refresh tokens
     await this.authService.revokeAllRefreshTokens(userId);
+
+    // Blacklist the current access token so it can't be reused
+    if (jti) {
+      await this.authService.blacklistAccessToken(userId, jti);
+    }
+
     return { message: 'Logged out successfully' };
   }
 

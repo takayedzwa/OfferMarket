@@ -1,10 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { WorkersController } from '../workers.controller';
 import { WorkersService } from '../workers.service';
+import { PrismaService } from '../../../prisma/prisma.service';
 
 describe('WorkersController', () => {
   let controller: WorkersController;
   let workersService: Partial<WorkersService>;
+  let prismaService: Partial<PrismaService>;
 
   beforeEach(async () => {
     workersService = {
@@ -14,10 +16,15 @@ describe('WorkersController', () => {
       }),
     };
 
+    prismaService = {
+      employer: { findUnique: jest.fn().mockResolvedValue({ id: 'employer-1' }) } as any,
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       controllers: [WorkersController],
       providers: [
         { provide: WorkersService, useValue: workersService },
+        { provide: PrismaService, useValue: prismaService },
       ],
     }).compile();
 
@@ -29,11 +36,13 @@ describe('WorkersController', () => {
   });
 
   // Helper to call searchWorkers with named params in the correct position order:
-  // trade, regionId, availability, minExperience, maxExperience,
+  // req, trade, regionId, availability, minExperience, maxExperience,
   // specializations, hasDrivingLicense, workAuthorization, skillIds,
   // certificationNames, language, languageMinLevel, employmentTypes, page, limit
   function callSearch(params: Record<string, string | undefined> = {}) {
+    const req = { user: { id: 'user-1', role: 'WORKER' } };
     return controller.searchWorkers(
+      req,
       params.trade,
       params.regionId,
       params.availability,

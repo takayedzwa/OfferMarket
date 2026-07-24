@@ -1,5 +1,7 @@
 import { Controller, Get, Post, Patch, Body, Query, Param, UseGuards, BadRequestException, DefaultValuePipe, ParseIntPipe, Request } from '@nestjs/common';
 import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
+import { RolesGuard } from '../../guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
 import { EmployersService } from './employers.service';
 
 @Controller('employers')
@@ -7,28 +9,32 @@ export class EmployersController {
   constructor(private readonly employersService: EmployersService) {}
 
   @Post()
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('EMPLOYER')
   async createProfile(@Body() createDto: any, @Request() req: any) {
     const userId = req.user.id;
     return this.employersService.createEmployerProfile(userId, createDto);
   }
 
   @Get('me')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('EMPLOYER')
   async getMyProfile(@Request() req: any) {
     const userId = req.user.id;
     return this.employersService.getEmployerProfile(userId);
   }
 
   @Patch('me')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('EMPLOYER')
   async updateProfile(@Body() updateDto: any, @Request() req: any) {
     const userId = req.user.id;
     return this.employersService.updateEmployerProfile(userId, updateDto);
   }
 
   @Get('me/verification')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('EMPLOYER')
   async getVerificationStatus(@Request() req: any) {
     const userId = req.user.id;
     return this.employersService.getVerificationStatus(userId);
