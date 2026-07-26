@@ -1,6 +1,5 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "../contexts/AuthContext";
@@ -16,22 +15,16 @@ interface NavbarProps {
 
 export default function Navbar({ variant = "default" }: NavbarProps) {
   const pathname = usePathname();
-  const { user, logout } = useAuth();
+  const { user, loading: authLoading, logout } = useAuth();
 
-  // Read localStorage after mount to avoid hydration mismatch
-  const [userRole, setUserRole] = useState<string | null>(null);
-  const [authInfo, setAuthInfo] = useState<{ accessToken: string | null; userId: string | null }>({ accessToken: null, userId: null });
-
-  useEffect(() => {
-    setUserRole(localStorage.getItem("userRole"));
-    setAuthInfo({
-      accessToken: localStorage.getItem("accessToken"),
-      userId: localStorage.getItem("userId"),
-    });
-  }, []);
-
-  // Use localStorage auth state as fallback when AuthContext is still loading
-  const isAuthenticated = user || (authInfo.accessToken && authInfo.userId && userRole);
+  // SECURITY: role/identity come from AuthContext (resolved from the JWT via
+  // /auth/me), not localStorage. Commit f730b33 stopped storing userId/userRole
+  // in localStorage (tokens only), but this Navbar still read them — so the
+  // role-gated menus (Dashboard, Offers, Messages, etc.) never appeared.
+  // Typed as string to accommodate roles like SUPPORT that the User type union
+  // doesn't list. `authLoading` avoids a "Sign In" flash while /auth/me resolves.
+  const userRole: string | null = user?.role ?? null;
+  const isAuthenticated = !!user;
   const isAdmin = userRole === "ADMIN";
   const isSupport = userRole === "SUPPORT" || isAdmin;
 
@@ -145,10 +138,10 @@ export default function Navbar({ variant = "default" }: NavbarProps) {
 
           {/* User Menu */}
           <div className="flex items-center gap-4">
-            {isAuthenticated ? (
+            {authLoading ? null : isAuthenticated ? (
               <>
                 {/* Notification bell */}
-                <NotificationBell userId={authInfo.userId} />
+                <NotificationBell userId={user?.id ?? null} />
 
                 <div className="text-sm text-gray-600 hidden sm:block">
                   <span className="text-gray-500">Welcome, </span>

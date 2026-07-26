@@ -1218,7 +1218,7 @@ model InvoiceLineItem {
 
 model Consent {
   id          String        @id @default(uuid())
-  userId      String
+  userId      String? // Nullable: anonymous (cookie) consent has no User
   consentType ConsentType
   status      ConsentStatus @default(GIVEN)
   version     String // Policy version (e.g., "2026-07-v1")
@@ -1230,7 +1230,7 @@ model Consent {
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([consentType, status])

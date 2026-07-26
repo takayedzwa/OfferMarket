@@ -32,7 +32,7 @@ import {
 export default function OfferDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [offer, setOffer] = useState<Offer | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState("");
@@ -45,7 +45,7 @@ export default function OfferDetailPage() {
   const [showRateModal, setShowRateModal] = useState(false);
   const [hasRated, setHasRated] = useState(false);
 
-  const userRole = typeof window !== "undefined" ? localStorage.getItem("userRole") : null;
+  const userRole: string | null = user?.role ?? null;
 
   // Load selected offers for comparison
   useEffect(() => {
@@ -108,12 +108,13 @@ export default function OfferDetailPage() {
 
   useEffect(() => {
     async function loadOffer() {
+      // Wait for AuthContext to resolve role before choosing the API branch.
+      if (authLoading) return;
       try {
-        const userId = localStorage.getItem("userId");
         let response;
 
         if (userRole === "EMPLOYER") {
-          response = await offersApi.getEmployerOfferDetail(params.id as string, userId!);
+          response = await offersApi.getEmployerOfferDetail(params.id as string);
         } else {
           response = await offersApi.getOffer(params.id as string);
         }
@@ -132,7 +133,7 @@ export default function OfferDetailPage() {
     }
 
     loadOffer();
-  }, [params.id, userRole]);
+  }, [params.id, userRole, authLoading]);
 
   const loadEmployerRatings = async (employerId: string) => {
     setLoadingRatings(true);

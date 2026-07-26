@@ -94,8 +94,12 @@ export class PrivacyController {
     const ipAddress = req?.ip || req?.headers?.['x-forwarded-for']?.split(',')[0];
     const userAgent = req?.headers?.['user-agent'];
 
+    // SECURITY/FIX: Anonymous cookie consent has no User. Pass null so the
+    // Consent row is stored with a NULL user reference. Previously this passed
+    // the literal string 'anonymous', which violated the Consent.userId
+    // foreign key to User.id (Prisma P2003) and returned HTTP 500.
     return this.privacyService.recordConsent(
-      'anonymous',
+      null,
       dto.consentType,
       dto.legalBasis,
       dto.version,

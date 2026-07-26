@@ -1,5 +1,14 @@
 import { PipeTransform, Injectable } from '@nestjs/common';
-import sanitizeHtml from 'sanitize-html';
+// sanitize-html is a CommonJS module that exports the sanitization function
+// directly (module.exports = fn, with no `.default`). This project's tsconfig
+// does NOT enable esModuleInterop, so the `import sanitizeHtml from
+// 'sanitize-html'` form compiles to a bare `require` + `.default` access — and
+// `.default` is undefined at runtime. That crashed this global XSS pipe with
+// "(0, sanitize_html_1.default) is not a function" and returned HTTP 500 on
+// every request body (including the cookie-consent endpoints). Use the
+// TypeScript CJS import form, which compiles to a direct `require` and binds
+// to the function itself.
+import sanitizeHtml = require('sanitize-html');
 
 /**
  * XSS SANITIZATION PIPE

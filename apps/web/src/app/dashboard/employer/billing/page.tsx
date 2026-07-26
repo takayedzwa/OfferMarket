@@ -37,7 +37,7 @@ type FilterTab = "all" | "unpaid" | "paid";
 
 export default function EmployerBillingPage() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [summary, setSummary] = useState<{ unpaidCount: number; outstandingCents: number; nextDueDate: string | null } | null>(null);
   const [loading, setLoading] = useState(true);
@@ -46,14 +46,16 @@ export default function EmployerBillingPage() {
   const [totalPages, setTotalPages] = useState(1);
 
   useEffect(() => {
-    const userRole = typeof window !== "undefined" ? localStorage.getItem("userRole") : null;
-    if (userRole !== "EMPLOYER" && userRole !== "ADMIN") {
+    // SECURITY: role comes from AuthContext (JWT via /auth/me), not localStorage.
+    if (authLoading) return;
+    const role = user?.role;
+    if (role !== "EMPLOYER" && role !== "ADMIN") {
       router.push("/login");
       return;
     }
 
     loadData();
-  }, [user, activeTab, page]);
+  }, [user, authLoading, activeTab, page]);
 
   async function loadData() {
     try {

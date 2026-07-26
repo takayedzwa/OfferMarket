@@ -10,7 +10,7 @@ import { Offer } from "../../lib/types";
 import { Briefcase, Euro, MapPin, Calendar, Filter, Search, GitCompare, X } from "lucide-react";
 
 function OffersContent() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const searchParams = useSearchParams();
   const [offers, setOffers] = useState<Offer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -20,12 +20,9 @@ function OffersContent() {
   const [showCompareBar, setShowCompareBar] = useState(false);
   const router = useRouter();
 
-  const [userRole, setUserRole] = useState<string | null>(null);
+  const userRole: string | null = user?.role ?? null;
 
   useEffect(() => {
-    const role = localStorage.getItem("userRole");
-    setUserRole(role);
-
     // Load previously selected offers for comparison from sessionStorage
     const saved = sessionStorage.getItem("selectedForCompare");
     if (saved) {
@@ -33,10 +30,10 @@ function OffersContent() {
     }
 
     async function loadOffers() {
-      const accessToken = localStorage.getItem("accessToken");
-      const userId = localStorage.getItem("userId");
-
-      if (!accessToken || !userId) {
+      // SECURITY: identity/role come from AuthContext (JWT via /auth/me), not
+      // localStorage. The login page stores only tokens.
+      if (authLoading) return;
+      if (!user) {
         router.push("/login");
         return;
       }
@@ -44,10 +41,10 @@ function OffersContent() {
       try {
         let response;
 
-        if (role === "WORKER") {
+        if (userRole === "WORKER") {
           response = await offersApi.getWorkerOffers();
         } else {
-          response = await offersApi.getEmployerOffers(userId);
+          response = await offersApi.getEmployerOffers();
         }
 
         setOffers(response.data);
@@ -59,7 +56,7 @@ function OffersContent() {
     }
 
     loadOffers();
-  }, []);
+  }, [user, authLoading, userRole, router]);
 
   // Persist selected offers to sessionStorage
   useEffect(() => {

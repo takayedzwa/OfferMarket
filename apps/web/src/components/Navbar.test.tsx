@@ -58,6 +58,11 @@ jest.mock('lucide-react', () => ({
   Award: () => 'AwardIcon',
   BadgeCheck: () => 'BadgeCheckIcon',
   CheckCircle: () => 'CheckCircleIcon',
+  Lock: () => 'LockIcon',
+  Flag: () => 'FlagIcon',
+  Bell: () => 'BellIcon',
+  Check: () => 'CheckIcon',
+  CheckCheck: () => 'CheckCheckIcon',
 }));
 
 // --- Tests ---
@@ -318,29 +323,29 @@ describe('Navbar', () => {
   });
 
   // ============================================================================
-  // FALLBACK AUTH VIA LOCALSTORAGE
+  // LOADING STATE (no localStorage fallback)
   // ============================================================================
 
-  describe('Fallback auth via localStorage', () => {
-    it('should show authenticated state when localStorage has tokens but AuthContext has no user', async () => {
-      // Simulates the case where AuthContext hasn't loaded yet but localStorage has auth data
+  describe('Loading state', () => {
+    it('should suppress the user menu while AuthContext is loading (no sign-in flash)', () => {
+      // SECURITY: role/identity now come solely from AuthContext (resolved from
+      // the JWT via /auth/me). There is no localStorage fallback anymore, so
+      // while /auth/me is still resolving we render neither the authenticated
+      // menu nor the Sign In / Get Started buttons — avoiding a sign-in flash.
       mockUseAuth.mockReturnValue({
         user: null,
-        loading: true, // Still loading
+        loading: true,
         logout: mockLogout,
         refreshUser: jest.fn(),
       });
       localStorage.setItem('accessToken', 'test-token');
-      localStorage.setItem('userId', 'user-1');
-      localStorage.setItem('userRole', 'WORKER');
 
       render(<Navbar />);
 
-      // After useEffect populates localStorage values, the fallback auth kicks in:
-      // isAuthenticated = user || (authInfo.accessToken && authInfo.userId && userRole)
-      await waitFor(() => {
-        expect(screen.getByText('Sign out')).toBeInTheDocument();
-      });
+      // Neither the authed nor the unauthed user menu should be shown.
+      expect(screen.queryByText('Sign out')).not.toBeInTheDocument();
+      expect(screen.queryByText('Sign In')).not.toBeInTheDocument();
+      expect(screen.queryByText('Get Started')).not.toBeInTheDocument();
     });
   });
 });

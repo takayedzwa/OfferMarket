@@ -49,7 +49,7 @@ export class PrivacyService {
    * Tracks IP address and user agent for audit trail.
    */
   async recordConsent(
-    userId: string,
+    userId: string | null,
     consentType: ConsentType,
     legalBasis: LegalBasis,
     version: string,

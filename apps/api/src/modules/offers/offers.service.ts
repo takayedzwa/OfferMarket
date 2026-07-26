@@ -8,6 +8,25 @@ import { NotificationEventType } from '../notifications/notification.types';
 import { OfferStatus } from '@prisma/client';
 
 /**
+ * SECURITY (E-C3): The fields an employer is allowed to see on a worker before
+ * the offer is accepted. Workers are anonymized until acceptance — never
+ * expose `userId`, internal `id`, consent fields, or `deletedAt`. The employer
+ * only sees the anonymous public handle and the profile metadata relevant to
+ * the offer.
+ */
+const ANONYMIZED_WORKER_SELECT = {
+  select: {
+    publicId: true,
+    specializations: true,
+    availability: true,
+    regionId: true,
+    profileVisibility: true,
+    reputationScore: true,
+    isProfileComplete: true,
+  },
+};
+
+/**
  * OFFERS SERVICE
  *
  * Core primitive: STRUCTURED OFFERS
@@ -313,7 +332,7 @@ export class OffersService {
     const offer = await this.prisma.offer.findUnique({
       where: { id: offerId },
       include: {
-        worker: true,
+        worker: ANONYMIZED_WORKER_SELECT,
         currentVersion: true,
         versions: {
           orderBy: { version: 'desc' }
@@ -450,7 +469,7 @@ export class OffersService {
         include: {
           currentVersion: true,
           versions: { orderBy: { version: 'desc' } },
-          worker: true
+          worker: ANONYMIZED_WORKER_SELECT
         }
       });
     });
@@ -527,7 +546,7 @@ export class OffersService {
         include: {
           currentVersion: true,
           versions: { orderBy: { version: 'desc' } },
-          worker: true,
+          worker: ANONYMIZED_WORKER_SELECT,
           employer: true
         }
       });
@@ -936,7 +955,17 @@ export class OffersService {
   // WITHDRAW OFFER (Employer only)
   // ============================================================================
 
-  async withdrawOffer(offerId: string, employerId: string, reason?: string) {
+  async withdrawOffer(offerId: string, userId: string, reason?: string) {
+    // SECURITY (E-C1): Resolve the employer from the authenticated user, not
+    // from a client-supplied id, so an employer can only withdraw its own offers.
+    const employer = await this.prisma.employer.findUnique({
+      where: { userId }
+    });
+
+    if (!employer) {
+      throw new NotFoundException('Employer not found');
+    }
+
     const offer = await this.prisma.offer.findUnique({
       where: { id: offerId }
     });
@@ -945,8 +974,8 @@ export class OffersService {
       throw new NotFoundException('Offer not found');
     }
 
-    if (offer.employerId !== employerId) {
-      throw new UnauthorizedException('Not authorized');
+    if (offer.employerId !== employer.id) {
+      throw new ForbiddenException('Not authorized to withdraw this offer');
     }
 
     if (offer.status === 'ACCEPTED') {
@@ -1040,7 +1069,7 @@ export class OffersService {
     return this.prisma.offer.findMany({
       where,
       include: {
-        worker: true,
+        worker: ANONYMIZED_WORKER_SELECT,
         currentVersion: true
       },
       orderBy: { submittedAt: 'desc' }

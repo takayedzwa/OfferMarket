@@ -51,6 +51,7 @@ interface ComparisonItem {
 function CompareOffersContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { user, loading: authLoading } = useAuth();
   const [offers, setOffers] = useState<Offer[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -65,15 +66,15 @@ function CompareOffersContent() {
         return;
       }
 
+      // SECURITY: identity comes from AuthContext (JWT via /auth/me), not
+      // localStorage. The login page stores only tokens.
+      if (authLoading) return;
+      if (!user) {
+        router.push("/login");
+        return;
+      }
+
       try {
-        const accessToken = localStorage.getItem("accessToken");
-        const userId = localStorage.getItem("userId");
-
-        if (!accessToken || !userId) {
-          router.push("/login");
-          return;
-        }
-
         // Load all offers
         const response = await offersApi.getWorkerOffers();
         const selectedOffers = response.data.filter((offer: Offer) =>
@@ -95,7 +96,7 @@ function CompareOffersContent() {
     }
 
     loadOffers();
-  }, [searchParams, router]);
+  }, [searchParams, router, user, authLoading]);
 
   if (loading) {
     return (

@@ -20,15 +20,20 @@ interface DashboardStats {
 
 export default function AdminDashboard() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const accessToken = localStorage.getItem('accessToken');
+    // SECURITY: role comes from AuthContext (JWT via /auth/me), not localStorage.
+    // Wait for auth to resolve, then require both a token and the ADMIN role
+    // before calling the admin-only endpoint; non-admins are redirected rather
+    // than relying on a backend 401.
+    if (authLoading) return;
 
-    if (!accessToken) {
+    const accessToken = localStorage.getItem('accessToken');
+    if (!accessToken || !user || user.role !== 'ADMIN') {
       router.push('/login');
       return;
     }
@@ -57,7 +62,7 @@ export default function AdminDashboard() {
         }
         setLoading(false);
       });
-  }, [user, router]);
+  }, [user, authLoading, router]);
 
   if (loading) {
     return (

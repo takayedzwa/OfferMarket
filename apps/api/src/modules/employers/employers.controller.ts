@@ -1,8 +1,10 @@
-import { Controller, Get, Post, Patch, Body, Query, Param, UseGuards, BadRequestException, DefaultValuePipe, ParseIntPipe, Request } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Body, Query, Param, UseGuards, DefaultValuePipe, ParseIntPipe, Request } from '@nestjs/common';
 import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
 import { RolesGuard } from '../../guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { EmployersService } from './employers.service';
+import { CreateEmployerProfileDto } from './dto/create-employer-profile.dto';
+import { UpdateEmployerProfileDto } from './dto/update-employer-profile.dto';
 
 @Controller('employers')
 export class EmployersController {
@@ -11,7 +13,7 @@ export class EmployersController {
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('EMPLOYER')
-  async createProfile(@Body() createDto: any, @Request() req: any) {
+  async createProfile(@Body() createDto: CreateEmployerProfileDto, @Request() req: any) {
     const userId = req.user.id;
     return this.employersService.createEmployerProfile(userId, createDto);
   }
@@ -27,7 +29,7 @@ export class EmployersController {
   @Patch('me')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('EMPLOYER')
-  async updateProfile(@Body() updateDto: any, @Request() req: any) {
+  async updateProfile(@Body() updateDto: UpdateEmployerProfileDto, @Request() req: any) {
     const userId = req.user.id;
     return this.employersService.updateEmployerProfile(userId, updateDto);
   }

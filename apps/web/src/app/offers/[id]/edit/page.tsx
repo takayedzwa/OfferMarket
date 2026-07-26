@@ -86,8 +86,7 @@ function EditOfferContent() {
   useEffect(() => {
     async function loadOffer() {
       try {
-        const userId = localStorage.getItem("userId");
-        const response = await offersApi.getEmployerOfferDetail(params.id as string, userId!);
+        const response = await offersApi.getEmployerOfferDetail(params.id as string);
         const offerData = response.data;
         setOffer(offerData);
 
@@ -187,17 +186,15 @@ function EditOfferContent() {
     setError("");
 
     try {
-      const userId = localStorage.getItem("userId");
-
       if (submitOffer) {
         // First save changes, then submit
         const offerData = buildOfferData();
-        await offersApi.updateOffer(params.id as string, userId!, offerData);
+        await offersApi.updateOffer(params.id as string, offerData);
         // Then submit the offer
-        await offersApi.submitOffer(params.id as string, userId!);
+        await offersApi.submitOffer(params.id as string);
       } else {
         const offerData = buildOfferData();
-        await offersApi.updateOffer(params.id as string, userId!, offerData);
+        await offersApi.updateOffer(params.id as string, offerData);
       }
 
       router.push(`/offers/${params.id}`);
