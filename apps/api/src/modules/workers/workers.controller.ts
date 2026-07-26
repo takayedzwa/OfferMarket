@@ -39,7 +39,8 @@ export class WorkersController {
   // ===========================================================================
 
   @Get('search')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('EMPLOYER')
   async searchWorkers(
     @Request() req: any,
     @Query('trade') trade?: string,
@@ -344,12 +345,24 @@ export class WorkersController {
   // GET PUBLIC PROFILE (Anonymous - for employers)
   // ===========================================================================
 
+  // SECURITY (E-H7): The public worker profile is an employer-facing view of
+  // anonymized candidate data. It must not be reachable by unauthenticated
+  // users (enumeration) nor by other workers. Require JWT + EMPLOYER role,
+  // and resolve the acting employer from the verified JWT — never from the
+  // `employerId` query param, which previously let a caller impersonate any
+  // employer (IDOR) for the SELECTED_COMPANIES / blocked-company checks.
   @Get(':publicId')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('EMPLOYER')
   async getPublicProfile(
     @Param('publicId') publicId: string,
-    @Query('employerId') employerId?: string
+    @Request() req: any,
   ) {
-    return this.workersService.getPublicProfile(publicId, employerId);
+    const employer = await this.prisma.employer.findUnique({
+      where: { userId: req.user.id },
+      select: { id: true },
+    });
+    return this.workersService.getPublicProfile(publicId, employer?.id);
   }
 
   // ===========================================================================

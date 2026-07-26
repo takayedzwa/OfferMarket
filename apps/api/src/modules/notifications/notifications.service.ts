@@ -213,6 +213,26 @@ export class NotificationsService {
     channelSms?: boolean;
   }) {
     try {
+      // SECURITY (E-H8): GDPR Article 18 — a user who has restricted processing
+      // of their data must not have new notifications generated about them
+      // (that is itself processing). The global ProcessingRestrictionGuard only
+      // covers the *acting* user's writes; it does not protect the *recipient*
+      // of an async notification. Skip delivery for restricted recipients,
+      // except for a small allowlist of legally-required security notices
+      // (e.g. a personal data breach) that must reach the user regardless.
+      const RESTRICTION_EXEMPT_TYPES = [NotificationEventType.BREACH_NOTIFICATION];
+      if (!RESTRICTION_EXEMPT_TYPES.includes(data.notificationType as NotificationEventType)) {
+        const flags = await this.prisma.userGdprFlags.findUnique({
+          where: { userId: data.userId },
+          select: { processingRestricted: true },
+        });
+        if (flags?.processingRestricted) {
+          this.logger.debug(
+            `Skipping notification "${data.notificationType}" for user ${data.userId} (processing restriction active)`,
+          );
+          return undefined;
+        }
+      }
       // 1. Persist to DB
       const notification = await this.prisma.notification.create({
         data: {

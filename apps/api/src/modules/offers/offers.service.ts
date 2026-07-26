@@ -82,6 +82,21 @@ export class OffersService {
         throw new NotFoundException('Worker not found');
       }
 
+      // 2.5 SECURITY (E-H8): GDPR Article 18 — if the worker has restricted
+      // processing of their data, an employer must not create an offer against
+      // them (creating the offer, storing it, and notifying the worker are all
+      // processing of the worker's data). The global ProcessingRestrictionGuard
+      // only checks the *acting* user (the employer), not the *target* worker,
+      // so the check must happen here. Reuse the generic "cannot make offer"
+      // message so the restriction is not leaked to the employer.
+      const workerGdprFlags = await tx.userGdprFlags.findUnique({
+        where: { userId: worker.userId },
+        select: { processingRestricted: true },
+      });
+      if (workerGdprFlags?.processingRestricted) {
+        throw new ForbiddenException('Cannot make offer to this worker');
+      }
+
       // 3. CRITICAL: Check if worker has blocked this employer
       const isBlocked = await tx.blockedCompany.findFirst({
         where: {

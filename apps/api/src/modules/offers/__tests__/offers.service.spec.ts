@@ -19,6 +19,7 @@ class MockPrismaService {
   offer = { findUnique: jest.fn(), findMany: jest.fn(), update: jest.fn(), count: jest.fn(), create: jest.fn() };
   blockedCompany = { findFirst: jest.fn() };
   visibleCompany = { findFirst: jest.fn() };
+  userGdprFlags = { findUnique: jest.fn() };
 
   $queryRaw = jest.fn();
   $transaction = jest.fn(async (fn: (tx: any) => Promise<any>) => {
@@ -28,6 +29,7 @@ class MockPrismaService {
       offer: this.offer,
       blockedCompany: this.blockedCompany,
       visibleCompany: this.visibleCompany,
+      userGdprFlags: this.userGdprFlags,
       $queryRaw: this.$queryRaw,
     };
     return fn(mockTx);
@@ -245,6 +247,34 @@ describe('OffersService', () => {
         NotificationEventType.OFFER_RECEIVED,
         expect.objectContaining({ recipientUserId: 'worker-user-1' }),
       );
+    });
+
+    // E-H8: a worker who has exercised their GDPR Article 18 right to restrict
+    // processing must not have an offer created against them — creating the
+    // offer and notifying them is processing of their data. The check happens
+    // at the service layer because the global guard only covers the *acting*
+    // user (the employer), not the *target* worker.
+    it('throws ForbiddenException when the target worker has restricted processing (E-H8)', async () => {
+      prisma.employer.findUnique.mockResolvedValue({
+        id: 'employer-a',
+        userId: 'user-a',
+        verificationStatus: 'BASIC_VERIFIED',
+        companyName: 'Acme',
+      });
+      prisma.worker.findUnique.mockResolvedValue({
+        id: 'worker-1',
+        userId: 'worker-user-1',
+        deletedAt: null,
+        profileVisibility: 'ALL_VERIFIED',
+      });
+      prisma.userGdprFlags.findUnique.mockResolvedValue({ processingRestricted: true });
+
+      await expect(service.createOffer('user-a', baseDto as any)).rejects.toThrow(ForbiddenException);
+      // The restriction reason is not leaked — the generic message is used.
+      await expect(prisma.userGdprFlags.findUnique.mock.calls[0][0].where).toEqual({ userId: 'worker-user-1' });
+      // No offer or notification is created for the restricted worker.
+      expect(prisma.offer.create).not.toHaveBeenCalled();
+      expect(eventEmitter.emit).not.toHaveBeenCalled();
     });
   });
 });
