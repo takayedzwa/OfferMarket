@@ -118,7 +118,7 @@ export class NotificationsService {
       category: 'offer',
       title: 'Counter-Offer Received',
       body: `The candidate has submitted a counter-offer for ${payload.jobTitle}`,
-      actionUrl: `/offers/${payload.counterOfferId}`,
+      actionUrl: `/offers/${payload.offerId}`,
       channelEmail: true,
     });
   }

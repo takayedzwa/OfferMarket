@@ -635,6 +635,17 @@ export class AuthService {
       throw new ForbiddenException('Refresh token has been revoked. Please log in again.');
     }
 
+    // SECURITY (E-M2): A refresh token that verifies cryptographically but is NOT
+    // tracked in the DB must not be honored. Previously, a null storedToken fell
+    // through to "issue a new pair", which let an unknown/untracked token (a
+    // forged token, a token from before rotation tracking, or one whose row was
+    // deleted on logout/password change) be replayed into a fresh session. Only
+    // tokens whose hash is present and active may rotate. Anything else forces a
+    // clean re-login.
+    if (!storedToken) {
+      throw new UnauthorizedException('Invalid or expired refresh token');
+    }
+
     // Verify user still exists and is active
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
@@ -657,16 +668,15 @@ export class AuthService {
       throw new UnauthorizedException('Account has been suspended');
     }
 
-    // Step 4: Revoke the old token and issue a new pair in the same family
-    const familyId = storedToken?.familyId || crypto.randomUUID();
+    // Step 4: Revoke the old token and issue a new pair in the same family.
+    // storedToken is guaranteed non-null here — null tokens are rejected above.
+    const familyId = storedToken.familyId;
 
     // Revoke the old token
-    if (storedToken) {
-      await this.prisma.refreshToken.update({
-        where: { id: storedToken.id },
-        data: { isRevoked: true },
-      });
-    }
+    await this.prisma.refreshToken.update({
+      where: { id: storedToken.id },
+      data: { isRevoked: true },
+    });
 
     // Issue new tokens
     const tokens = this.generateTokens(user.id, user.role);

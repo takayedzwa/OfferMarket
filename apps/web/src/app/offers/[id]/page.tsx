@@ -92,6 +92,11 @@ export default function OfferDetailPage() {
       if (status === "WITHDRAWN") return "Withdrawn";
       if (status === "EXPIRED") return "Expired";
     }
+    if (userRole === "EMPLOYER") {
+      // E-M4: a counter is now versioned on the same offer — surface a clear
+      // label prompting the employer to review and respond (Edit -> Submit).
+      if (status === "COUNTERED") return "Counter Received — Review";
+    }
     return status;
   };
 

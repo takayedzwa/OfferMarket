@@ -527,8 +527,11 @@ export class OffersService {
         throw new ForbiddenException('Not authorized to submit this offer');
       }
 
-      // 4. Check if offer can be submitted (must be DRAFT)
-      if (offer.status !== 'DRAFT') {
+      // 4. Check if offer can be submitted. A DRAFT is an initial submission; a
+      // COUNTERED offer is the employer responding to the worker's counter
+      // (optionally after editing) and sending it back (E-M4: counters are now
+      // versioned on the same offer rather than a separate DRAFT offer).
+      if (offer.status !== 'DRAFT' && offer.status !== 'COUNTERED') {
         throw new BadRequestException(`Cannot submit offer in ${offer.status} status`);
       }
 
@@ -870,7 +873,25 @@ export class OffersService {
         throw new BadRequestException('Salary range cannot exceed €20,000. Please provide a more specific salary range.');
       }
 
-      // Update offer status
+      // E-M4: The counter-offer is versioned onto the SAME offer record rather
+      // than spawning a disconnected DRAFT offer. The worker's proposed terms
+      // become a new OfferVersion (set as currentVersion) and the offer moves to
+      // COUNTERED. The employer reviews the counter (the current version) on
+      // this offer, optionally edits (another version via updateOffer), and
+      // re-submits it back to the worker (see submitOffer, which accepts the
+      // COUNTERED -> SUBMITTED transition). This keeps the negotiation on one
+      // offer with a continuous version history instead of orphan offers.
+
+      // Compute the next version number for this offer
+      const versions = await tx.offerVersion.findMany({
+        where: { offerId },
+        select: { version: true },
+        orderBy: { version: 'desc' },
+        take: 1,
+      });
+      const nextVersion = (versions[0]?.version || 0) + 1;
+
+      // Mark offer COUNTERED
       await tx.offer.update({
         where: { id: offerId },
         data: {
@@ -879,31 +900,16 @@ export class OffersService {
         }
       });
 
-      // Create new draft offer for employer to review
-      const publicId = await this.generateOfferPublicId(tx);
-      const counterOffer = await tx.offer.create({
-        data: {
-          publicId,
-          workerId: worker.id,
-          employerId: offer.employerId,
-          jobTitle: offer.jobTitle,
-          department: offer.department,
-          jobDescription: offer.jobDescription,
-          status: 'DRAFT',
-          expiresAt: offer.expiresAt,
-          counterOfferForId: offer.id,
-        }
-      });
-
+      // Create the counter version with the worker's proposed values applied
       const newVersion = await tx.offerVersion.create({
         data: {
-          offerId: counterOffer.id,
-          version: offer.currentVersion.version + 1,
+          offerId,
+          version: nextVersion,
           // Apply counter values
-          salaryMin: counterOfferDto.salaryMin || offer.currentVersion.salaryMin,
-          salaryMax: counterOfferDto.salaryMax || offer.currentVersion.salaryMax,
+          salaryMin: counterOfferDto.salaryMin ?? offer.currentVersion.salaryMin,
+          salaryMax: counterOfferDto.salaryMax ?? offer.currentVersion.salaryMax,
           signOnBonus: counterOfferDto.signOnBonus ?? offer.currentVersion.signOnBonus,
-          vacationDays: counterOfferDto.vacationDays || offer.currentVersion.vacationDays,
+          vacationDays: counterOfferDto.vacationDays ?? offer.currentVersion.vacationDays,
           // Copy unchanged fields
           salaryPeriod: offer.currentVersion.salaryPeriod,
           hourlyRate: offer.currentVersion.hourlyRate,
@@ -937,9 +943,9 @@ export class OffersService {
         }
       });
 
-      // Update offer with currentVersionId
+      // Point currentVersion at the counter version
       await tx.offer.update({
-        where: { id: counterOffer.id },
+        where: { id: offerId },
         data: { currentVersionId: newVersion.id }
       });
 
@@ -957,12 +963,20 @@ export class OffersService {
         recipientUserId: employer.userId,
         employerUserId: employer.userId,
         jobTitle: offer.jobTitle,
-        counterOfferId: counterOffer.id,
-        originalOfferId: offer.id,
-        actionUrl: `/offers/${counterOffer.id}`,
+        offerId: offer.id,
+        actionUrl: `/offers/${offer.id}`,
       });
 
-      return counterOffer;
+      // Return the countered offer with its full version history.
+      return tx.offer.findUnique({
+        where: { id: offerId },
+        include: {
+          currentVersion: true,
+          versions: { orderBy: { version: 'desc' } },
+          worker: ANONYMIZED_WORKER_SELECT,
+          employer: true,
+        },
+      });
     });
   }
 

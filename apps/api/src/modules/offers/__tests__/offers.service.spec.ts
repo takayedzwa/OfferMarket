@@ -17,6 +17,7 @@ class MockPrismaService {
   employer = { findUnique: jest.fn(), update: jest.fn(), create: jest.fn() };
   worker = { findUnique: jest.fn() };
   offer = { findUnique: jest.fn(), findMany: jest.fn(), update: jest.fn(), count: jest.fn(), create: jest.fn() };
+  offerVersion = { findMany: jest.fn(), create: jest.fn() };
   blockedCompany = { findFirst: jest.fn() };
   visibleCompany = { findFirst: jest.fn() };
   userGdprFlags = { findUnique: jest.fn() };
@@ -27,6 +28,7 @@ class MockPrismaService {
       employer: this.employer,
       worker: this.worker,
       offer: this.offer,
+      offerVersion: this.offerVersion,
       blockedCompany: this.blockedCompany,
       visibleCompany: this.visibleCompany,
       userGdprFlags: this.userGdprFlags,
@@ -275,6 +277,150 @@ describe('OffersService', () => {
       // No offer or notification is created for the restricted worker.
       expect(prisma.offer.create).not.toHaveBeenCalled();
       expect(eventEmitter.emit).not.toHaveBeenCalled();
+    });
+  });
+
+  // =========================================================================
+  // E-M4: counterOffer versions the counter onto the SAME offer (no separate
+  // DRAFT offer is created), and submitOffer accepts the COUNTERED -> SUBMITTED
+  // transition so the employer can send the (optionally revised) offer back.
+  // =========================================================================
+  describe('counterOffer', () => {
+    const currentVersion = {
+      id: 'v1',
+      version: 1,
+      salaryMin: 30000,
+      salaryMax: 40000,
+      salaryPeriod: 'year',
+      hourlyRate: null,
+      signOnBonus: 0,
+      performanceBonusPct: 0,
+      overtimeRate: null,
+      weekendRate: null,
+      contractType: 'permanent',
+      contractDurationMonths: null,
+      hoursPerWeek: 40,
+      startDateType: 'flexible',
+      startDate: null,
+      probationMonths: 2,
+      holidayAllowancePct: 8,
+      pensionContributionPct: 0,
+      trainingBudget: 0,
+      companyVehicle: 'not_provided',
+      vehicleType: null,
+      vehicleValueEst: null,
+      travelAllowanceType: 'per_km',
+      travelAllowanceValue: null,
+      phoneProvided: false,
+      toolsProvided: false,
+      scheduleType: ['daytime'],
+      onCallDetails: null,
+      remoteWorkPct: 0,
+      travelRequiredPct: 0,
+      travelRegion: null,
+      physicalRequirements: 'none',
+      requiredCertifications: ['AWS'],
+      requiredExperienceYears: 3,
+    };
+
+    it('versions the counter onto the same offer and does NOT create a new offer (E-M4)', async () => {
+      prisma.worker.findUnique.mockResolvedValue({ id: 'worker-1', userId: 'worker-user-1' });
+      prisma.offer.findUnique.mockResolvedValue({
+        id: 'offer-1',
+        workerId: 'worker-1',
+        employerId: 'employer-a',
+        status: 'SUBMITTED',
+        jobTitle: 'Engineer',
+        currentVersion,
+      });
+      prisma.offerVersion.findMany.mockResolvedValue([{ version: 1 }]);
+      prisma.offerVersion.create.mockResolvedValue({ id: 'v2', version: 2 });
+      prisma.offer.update.mockResolvedValue({});
+      prisma.employer.findUnique.mockResolvedValue({ id: 'employer-a', userId: 'employer-user-a' });
+      const counteredOffer = { id: 'offer-1', status: 'COUNTERED', currentVersionId: 'v2' };
+      // Final findUnique (return) resolves to the countered offer.
+      prisma.offer.findUnique
+        .mockResolvedValueOnce({ id: 'offer-1', workerId: 'worker-1', employerId: 'employer-a', status: 'SUBMITTED', jobTitle: 'Engineer', currentVersion })
+        .mockResolvedValueOnce(counteredOffer);
+
+      const result = await service.counterOffer('offer-1', 'worker-user-1', { salaryMin: 35000, salaryMax: 45000 });
+
+      expect(result).toEqual(counteredOffer);
+      // No new offer record is created — the counter is a version on offer-1.
+      expect(prisma.offer.create).not.toHaveBeenCalled();
+      // The new version is attached to the SAME offer, version 2, with the counter values.
+      expect(prisma.offerVersion.create.mock.calls[0][0].data).toEqual(expect.objectContaining({
+        offerId: 'offer-1',
+        version: 2,
+        salaryMin: 35000,
+        salaryMax: 45000,
+      }));
+      // Offer is marked COUNTERED and currentVersionId points at the new version.
+      expect(prisma.offer.update).toHaveBeenCalledWith({ where: { id: 'offer-1' }, data: { status: 'COUNTERED', counteredAt: expect.any(Date) } });
+      expect(prisma.offer.update).toHaveBeenCalledWith({ where: { id: 'offer-1' }, data: { currentVersionId: 'v2' } });
+      // Employer is notified about the SAME offer (deep-link, not a separate counter offer id).
+      expect(eventEmitter.emit).toHaveBeenCalledWith(
+        NotificationEventType.OFFER_COUNTERED,
+        expect.objectContaining({ offerId: 'offer-1', actionUrl: '/offers/offer-1' }),
+      );
+    });
+
+    it('rejects countering an offer that is not in an active state', async () => {
+      prisma.worker.findUnique.mockResolvedValue({ id: 'worker-1', userId: 'worker-user-1' });
+      prisma.offer.findUnique.mockResolvedValue({
+        id: 'offer-1',
+        workerId: 'worker-1',
+        employerId: 'employer-a',
+        status: 'ACCEPTED',
+        currentVersion,
+      });
+
+      await expect(service.counterOffer('offer-1', 'worker-user-1', { salaryMin: 35000, salaryMax: 45000 }))
+        .rejects.toThrow(BadRequestException);
+      expect(prisma.offerVersion.create).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('submitOffer', () => {
+    it('accepts the COUNTERED -> SUBMITTED transition so the employer can respond to a counter (E-M4)', async () => {
+      prisma.employer.findUnique.mockResolvedValue({ id: 'employer-a', userId: 'user-a', companyName: 'Acme' });
+      prisma.offer.findUnique.mockResolvedValue({
+        id: 'offer-1',
+        employerId: 'employer-a',
+        status: 'COUNTERED',
+        jobTitle: 'Engineer',
+        currentVersion: { id: 'v2', version: 2, salaryMin: 35000 },
+        worker: { userId: 'worker-user-1' },
+      });
+      prisma.offer.update.mockResolvedValue({});
+      const submitted = { id: 'offer-1', status: 'SUBMITTED' };
+      prisma.offer.findUnique
+        .mockResolvedValueOnce({
+          id: 'offer-1', employerId: 'employer-a', status: 'COUNTERED', jobTitle: 'Engineer',
+          currentVersion: { id: 'v2', version: 2, salaryMin: 35000 }, worker: { userId: 'worker-user-1' },
+        })
+        .mockResolvedValueOnce(submitted);
+
+      const result = await service.submitOffer('offer-1', 'user-a');
+
+      expect(result).toEqual(submitted);
+      expect(prisma.offer.update).toHaveBeenCalledWith({ where: { id: 'offer-1' }, data: { status: 'SUBMITTED', submittedAt: expect.any(Date) } });
+      // Worker is notified that the (revised) offer is back.
+      expect(eventEmitter.emit).toHaveBeenCalledWith(
+        NotificationEventType.OFFER_RECEIVED,
+        expect.objectContaining({ recipientUserId: 'worker-user-1', offerId: 'offer-1' }),
+      );
+    });
+
+    it('still rejects submitting from a terminal status', async () => {
+      prisma.employer.findUnique.mockResolvedValue({ id: 'employer-a', userId: 'user-a' });
+      prisma.offer.findUnique.mockResolvedValue({
+        id: 'offer-1', employerId: 'employer-a', status: 'WITHDRAWN',
+        currentVersion: { id: 'v1' }, worker: { userId: 'worker-user-1' },
+      });
+
+      await expect(service.submitOffer('offer-1', 'user-a')).rejects.toThrow(BadRequestException);
+      expect(prisma.offer.update).not.toHaveBeenCalled();
     });
   });
 });

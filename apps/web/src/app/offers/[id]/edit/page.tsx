@@ -253,7 +253,7 @@ function EditOfferContent() {
                 <Save className="w-4 h-4" />
                 {saving ? "Saving..." : "Save Changes"}
               </button>
-              {offer?.status === "DRAFT" && (
+              {(offer?.status === "DRAFT" || offer?.status === "COUNTERED") && (
                 <button
                   onClick={() => handleSave(true)}
                   disabled={isSubmitDisabled || cannotEdit}
@@ -654,7 +654,7 @@ function EditOfferContent() {
             </button>
           ) : (
             <>
-              {offer?.status === "DRAFT" ? (
+              {(offer?.status === "DRAFT" || offer?.status === "COUNTERED") ? (
                 <button
                   onClick={() => handleSave(true)}
                   disabled={isSubmitDisabled || cannotEdit}
