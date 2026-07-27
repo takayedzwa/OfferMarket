@@ -266,6 +266,15 @@ export class AdminService {
       throw new NotFoundException('Employer not found');
     }
 
+    // A-H1: only employers awaiting review can be verified. Prevent an admin
+    // from re-verifying an already-verified or already-rejected employer and
+    // overwriting the previous decision.
+    if (employer.verificationStatus !== 'PENDING') {
+      throw new BadRequestException(
+        `Employer cannot be verified in status: ${employer.verificationStatus}`,
+      );
+    }
+
     await this.prisma.employer.update({
       where: { id: employerId },
       data: {
@@ -296,6 +305,14 @@ export class AdminService {
 
     if (!employer) {
       throw new NotFoundException('Employer not found');
+    }
+
+    // A-H1: only employers awaiting review can be rejected. Prevent an admin
+    // from re-rejecting an already-verified or already-rejected employer.
+    if (employer.verificationStatus !== 'PENDING') {
+      throw new BadRequestException(
+        `Employer cannot be rejected in status: ${employer.verificationStatus}`,
+      );
     }
 
     await this.prisma.employer.update({

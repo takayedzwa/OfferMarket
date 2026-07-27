@@ -2,6 +2,7 @@ import { Controller, Get, Post, Patch, Param, Query, Body, Request, UseGuards } 
 import { BillingService } from './billing.service';
 import { ListInvoicesQueryDto, AdminListInvoicesQueryDto } from './dto/list-invoices-query.dto';
 import { MarkInvoicePaidDto } from './dto/mark-invoice-paid.dto';
+import { UpdateBillingSettingDto } from './dto/update-billing-setting.dto';
 import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
 import { RolesGuard } from '../../guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -110,9 +111,11 @@ export class BillingController {
   @Patch('admin/settings')
   @UseGuards(AdminGuard)
   async updateBillingSetting(
-    @Body() body: { key: string; value: any },
+    @Body() dto: UpdateBillingSettingDto,
     @Request() req: any,
   ) {
-    return this.billingService.updateBillingSetting(body.key, body.value, req.user.id);
+    // A-H3: validate the settings update via a DTO class rather than an inline
+    // body type, preventing arbitrary/unvalidated key/value pairs.
+    return this.billingService.updateBillingSetting(dto.key, dto.value, req.user.id);
   }
 }

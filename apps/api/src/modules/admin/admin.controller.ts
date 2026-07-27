@@ -2,6 +2,7 @@ import { Controller, Get, Post, Patch, Body, Param, Query, UseGuards, Request } 
 import { AdminGuard } from '../../guards/admin.guard';
 import { AdminService } from './admin.service';
 import { UpdateSettingsDto } from './dto/update-settings.dto';
+import { VerifyEmployerDto, RejectEmployerDto } from './dto/verify-employer.dto';
 
 @Controller('admin')
 // E-L1: AdminGuard extends AuthGuard('jwt') and self-authenticates, so it does
@@ -140,18 +141,23 @@ export class AdminController {
   async verifyEmployer(
     @Param('id') id: string,
     @Request() req: any,
-    @Body('notes') notes?: string,
+    @Body() dto: VerifyEmployerDto,
   ) {
-    return this.adminService.verifyEmployer(id, req.user.id, notes);
+    // A-H4: validate the body via a DTO class instead of reading @Body('notes')
+    // directly (no validation). The VerifyEmployerDto was previously defined
+    // but unused.
+    return this.adminService.verifyEmployer(id, req.user.id, dto.notes);
   }
 
   @Post('employers/:id/reject')
   async rejectEmployer(
     @Param('id') id: string,
     @Request() req: any,
-    @Body('reason') reason: string,
+    @Body() dto: RejectEmployerDto,
   ) {
-    return this.adminService.rejectEmployer(id, req.user.id, reason);
+    // A-H4: validate the body via a DTO class so a rejection reason is always
+    // present and recorded in the audit trail.
+    return this.adminService.rejectEmployer(id, req.user.id, dto.reason);
   }
 
   // ============================================================================

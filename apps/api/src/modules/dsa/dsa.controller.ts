@@ -255,8 +255,11 @@ export class DsaController {
     @Request() req: any,
   ) {
     const userId = req.user?.id || req.user?.sub || req.user?.userId;
-    // Get email from user record or DTO
-    const email = req.user?.email || dto.contentReportId || '';
+    // A-H6: previously this fell back to dto.contentReportId (a report ID, not
+    // an email) when the JWT had no email claim, storing a report ID as the
+    // complainant email. The service now resolves the email from the user
+    // record when it is not present here.
+    const email = req.user?.email;
     return this.dsaService.submitComplaint(userId, email, dto);
   }
 
