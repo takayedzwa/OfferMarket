@@ -367,7 +367,9 @@ export class PrivacyController {
 
   @Get('admin/requests')
   @SkipThrottle()
-  @UseGuards(JwtAuthGuard, AdminGuard)
+  // E-L1: AdminGuard extends AuthGuard('jwt') and self-authenticates, so it does
+  // not need to be paired with JwtAuthGuard — that ran JWT verification twice.
+  @UseGuards(AdminGuard)
   async getAllRequests(
     @Query('page') page: string = '1',
     @Query('limit') limit: string = '20',
@@ -384,7 +386,9 @@ export class PrivacyController {
 
   @Patch('admin/requests/:id')
   @SkipThrottle()
-  @UseGuards(JwtAuthGuard, AdminGuard)
+  // E-L1: AdminGuard extends AuthGuard('jwt') and self-authenticates, so it does
+  // not need to be paired with JwtAuthGuard — that ran JWT verification twice.
+  @UseGuards(AdminGuard)
   async processRequest(
     @Param('id') id: string,
     @Request() req: any,
@@ -396,7 +400,9 @@ export class PrivacyController {
 
   @Post('admin/requests/:id/execute-rectification')
   @SkipThrottle()
-  @UseGuards(JwtAuthGuard, AdminGuard)
+  // E-L1: AdminGuard extends AuthGuard('jwt') and self-authenticates, so it does
+  // not need to be paired with JwtAuthGuard — that ran JWT verification twice.
+  @UseGuards(AdminGuard)
   async executeRectification(
     @Param('id') id: string,
     @Request() req: any,
@@ -407,7 +413,9 @@ export class PrivacyController {
 
   @Get('admin/breaches')
   @SkipThrottle()
-  @UseGuards(JwtAuthGuard, AdminGuard)
+  // E-L1: AdminGuard extends AuthGuard('jwt') and self-authenticates, so it does
+  // not need to be paired with JwtAuthGuard — that ran JWT verification twice.
+  @UseGuards(AdminGuard)
   async getBreaches(
     @Query('page') page: string = '1',
     @Query('limit') limit: string = '20',
@@ -417,7 +425,9 @@ export class PrivacyController {
 
   @Post('admin/breaches')
   @SkipThrottle()
-  @UseGuards(JwtAuthGuard, AdminGuard)
+  // E-L1: AdminGuard extends AuthGuard('jwt') and self-authenticates, so it does
+  // not need to be paired with JwtAuthGuard — that ran JWT verification twice.
+  @UseGuards(AdminGuard)
   async reportBreach(
     @Body() dto: CreateBreachNotificationDto,
     @Request() req: any,
@@ -436,7 +446,9 @@ export class PrivacyController {
 
   @Patch('admin/breaches/:id')
   @SkipThrottle()
-  @UseGuards(JwtAuthGuard, AdminGuard)
+  // E-L1: AdminGuard extends AuthGuard('jwt') and self-authenticates, so it does
+  // not need to be paired with JwtAuthGuard — that ran JWT verification twice.
+  @UseGuards(AdminGuard)
   async updateBreach(
     @Param('id') id: string,
     @Body() dto: UpdateBreachNotificationDto,
@@ -446,7 +458,9 @@ export class PrivacyController {
 
   @Get('admin/retention-policies')
   @SkipThrottle()
-  @UseGuards(JwtAuthGuard, AdminGuard)
+  // E-L1: AdminGuard extends AuthGuard('jwt') and self-authenticates, so it does
+  // not need to be paired with JwtAuthGuard — that ran JWT verification twice.
+  @UseGuards(AdminGuard)
   async getRetentionPolicies() {
     return this.privacyService.getRetentionPolicies();
   }
@@ -457,14 +471,18 @@ export class PrivacyController {
 
   @Get('admin/processing-agreements')
   @SkipThrottle()
-  @UseGuards(JwtAuthGuard, AdminGuard)
+  // E-L1: AdminGuard extends AuthGuard('jwt') and self-authenticates, so it does
+  // not need to be paired with JwtAuthGuard — that ran JWT verification twice.
+  @UseGuards(AdminGuard)
   async getProcessingAgreements(@Query('active') active?: string) {
     return this.privacyService.getProcessingAgreements(active !== 'false');
   }
 
   @Post('admin/processing-agreements')
   @SkipThrottle()
-  @UseGuards(JwtAuthGuard, AdminGuard)
+  // E-L1: AdminGuard extends AuthGuard('jwt') and self-authenticates, so it does
+  // not need to be paired with JwtAuthGuard — that ran JWT verification twice.
+  @UseGuards(AdminGuard)
   async createProcessingAgreement(@Body() body: {
     processorName: string;
     processorType: string;
@@ -485,7 +503,9 @@ export class PrivacyController {
 
   @Patch('admin/processing-agreements/:id')
   @SkipThrottle()
-  @UseGuards(JwtAuthGuard, AdminGuard)
+  // E-L1: AdminGuard extends AuthGuard('jwt') and self-authenticates, so it does
+  // not need to be paired with JwtAuthGuard — that ran JWT verification twice.
+  @UseGuards(AdminGuard)
   async updateProcessingAgreement(
     @Param('id') id: string,
     @Body() body: {
@@ -511,21 +531,27 @@ export class PrivacyController {
 
   @Delete('admin/processing-agreements/:id')
   @SkipThrottle()
-  @UseGuards(JwtAuthGuard, AdminGuard)
+  // E-L1: AdminGuard extends AuthGuard('jwt') and self-authenticates, so it does
+  // not need to be paired with JwtAuthGuard — that ran JWT verification twice.
+  @UseGuards(AdminGuard)
   async deactivateProcessingAgreement(@Param('id') id: string) {
     return this.privacyService.deactivateProcessingAgreement(id);
   }
 
   @Get('admin/processing-activities')
   @SkipThrottle()
-  @UseGuards(JwtAuthGuard, AdminGuard)
+  // E-L1: AdminGuard extends AuthGuard('jwt') and self-authenticates, so it does
+  // not need to be paired with JwtAuthGuard — that ran JWT verification twice.
+  @UseGuards(AdminGuard)
   async getProcessingActivities() {
     return this.privacyService.getProcessingActivities();
   }
 
   @Get('admin/ropa')
   @SkipThrottle()
-  @UseGuards(JwtAuthGuard, AdminGuard)
+  // E-L1: AdminGuard extends AuthGuard('jwt') and self-authenticates, so it does
+  // not need to be paired with JwtAuthGuard — that ran JWT verification twice.
+  @UseGuards(AdminGuard)
   async getRopa() {
     const [activities, policies] = await Promise.all([
       this.privacyService.getProcessingActivities(),
@@ -536,7 +562,9 @@ export class PrivacyController {
 
   @Post('admin/seed')
   @SkipThrottle()
-  @UseGuards(JwtAuthGuard, AdminGuard)
+  // E-L1: AdminGuard extends AuthGuard('jwt') and self-authenticates, so it does
+  // not need to be paired with JwtAuthGuard — that ran JWT verification twice.
+  @UseGuards(AdminGuard)
   async seedGdprData() {
     await this.privacyService.seedRetentionPolicies();
     await this.privacyService.seedProcessingActivities();
@@ -545,7 +573,9 @@ export class PrivacyController {
 
   @Post('admin/retention/run')
   @SkipThrottle()
-  @UseGuards(JwtAuthGuard, AdminGuard)
+  // E-L1: AdminGuard extends AuthGuard('jwt') and self-authenticates, so it does
+  // not need to be paired with JwtAuthGuard — that ran JWT verification twice.
+  @UseGuards(AdminGuard)
   async runRetentionTasks() {
     const results = await this.retentionService.runAllRetentionTasks();
     return { success: true, results };
@@ -553,7 +583,9 @@ export class PrivacyController {
 
   @Get('admin/retention/status')
   @SkipThrottle()
-  @UseGuards(JwtAuthGuard, AdminGuard)
+  // E-L1: AdminGuard extends AuthGuard('jwt') and self-authenticates, so it does
+  // not need to be paired with JwtAuthGuard — that ran JWT verification twice.
+  @UseGuards(AdminGuard)
   async getRetentionStatus() {
     const pendingDeletions = await this.prisma.dataDeletionRequest.count({
       where: { status: 'CONFIRMED' },

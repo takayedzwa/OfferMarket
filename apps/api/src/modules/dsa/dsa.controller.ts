@@ -108,7 +108,9 @@ export class DsaController {
    * Supports filtering by status, category, priority, and target type.
    */
   @Get('admin/reports')
-  @UseGuards(JwtAuthGuard, AdminGuard)
+  // E-L1: AdminGuard extends AuthGuard('jwt') and self-authenticates, so it does
+  // not need to be paired with JwtAuthGuard — that ran JWT verification twice.
+  @UseGuards(AdminGuard)
   async getAllReports(
     @Query('page') page?: string,
     @Query('limit') limit?: string,
@@ -128,7 +130,9 @@ export class DsaController {
    * Get a single report with full details (admin).
    */
   @Get('admin/reports/:id')
-  @UseGuards(JwtAuthGuard, AdminGuard)
+  // E-L1: AdminGuard extends AuthGuard('jwt') and self-authenticates, so it does
+  // not need to be paired with JwtAuthGuard — that ran JWT verification twice.
+  @UseGuards(AdminGuard)
   async getReportById(@Param('id') id: string) {
     return this.dsaService.getReportById(id);
   }
@@ -137,7 +141,9 @@ export class DsaController {
    * Assign a report to a staff member (admin).
    */
   @Patch('admin/reports/:id/assign')
-  @UseGuards(JwtAuthGuard, AdminGuard)
+  // E-L1: AdminGuard extends AuthGuard('jwt') and self-authenticates, so it does
+  // not need to be paired with JwtAuthGuard — that ran JWT verification twice.
+  @UseGuards(AdminGuard)
   async assignReport(
     @Param('id') id: string,
     @Request() req: any,
@@ -151,7 +157,9 @@ export class DsaController {
    * Determine whether content violates terms or is illegal.
    */
   @Patch('admin/reports/:id/assess')
-  @UseGuards(JwtAuthGuard, AdminGuard)
+  // E-L1: AdminGuard extends AuthGuard('jwt') and self-authenticates, so it does
+  // not need to be paired with JwtAuthGuard — that ran JWT verification twice.
+  @UseGuards(AdminGuard)
   async assessReport(
     @Param('id') id: string,
     @Body() dto: AssessContentReportDto,
@@ -166,7 +174,9 @@ export class DsaController {
    * When content is restricted, a statement of reasons is required (DSA Art. 17).
    */
   @Patch('admin/reports/:id/action')
-  @UseGuards(JwtAuthGuard, AdminGuard)
+  // E-L1: AdminGuard extends AuthGuard('jwt') and self-authenticates, so it does
+  // not need to be paired with JwtAuthGuard — that ran JWT verification twice.
+  @UseGuards(AdminGuard)
   async takeAction(
     @Param('id') id: string,
     @Body() dto: TakeActionDto,
@@ -180,7 +190,9 @@ export class DsaController {
    * Resolve a content report (admin).
    */
   @Patch('admin/reports/:id/resolve')
-  @UseGuards(JwtAuthGuard, AdminGuard)
+  // E-L1: AdminGuard extends AuthGuard('jwt') and self-authenticates, so it does
+  // not need to be paired with JwtAuthGuard — that ran JWT verification twice.
+  @UseGuards(AdminGuard)
   async resolveReport(
     @Param('id') id: string,
     @Body() dto: ResolveContentReportDto,
@@ -195,7 +207,9 @@ export class DsaController {
    * DSA Art. 18: Required when suspecting criminal offences.
    */
   @Post('admin/reports/:id/escalate')
-  @UseGuards(JwtAuthGuard, AdminGuard)
+  // E-L1: AdminGuard extends AuthGuard('jwt') and self-authenticates, so it does
+  // not need to be paired with JwtAuthGuard — that ran JWT verification twice.
+  @UseGuards(AdminGuard)
   async escalateToAuthorities(
     @Param('id') id: string,
     @Body() dto: EscalateToAuthoritiesDto,
@@ -214,7 +228,9 @@ export class DsaController {
    * DSA Art. 17: Affected users must receive a clear statement of reasons.
    */
   @Post('admin/reports/:id/statement-of-reasons')
-  @UseGuards(JwtAuthGuard, AdminGuard)
+  // E-L1: AdminGuard extends AuthGuard('jwt') and self-authenticates, so it does
+  // not need to be paired with JwtAuthGuard — that ran JWT verification twice.
+  @UseGuards(AdminGuard)
   async createStatementOfReasons(
     @Param('id') reportId: string,
     @Body() dto: CreateStatementOfReasonsDto,
@@ -293,7 +309,9 @@ export class DsaController {
    * Admin: list all complaints.
    */
   @Get('admin/complaints')
-  @UseGuards(JwtAuthGuard, AdminGuard)
+  // E-L1: AdminGuard extends AuthGuard('jwt') and self-authenticates, so it does
+  // not need to be paired with JwtAuthGuard — that ran JWT verification twice.
+  @UseGuards(AdminGuard)
   async getAllComplaints(
     @Query('page') page?: string,
     @Query('limit') limit?: string,
@@ -316,7 +334,9 @@ export class DsaController {
    * DSA Art. 23: Platforms may suspend users who frequently submit unfounded notices.
    */
   @Post('admin/misuse/:userId')
-  @UseGuards(JwtAuthGuard, AdminGuard)
+  // E-L1: AdminGuard extends AuthGuard('jwt') and self-authenticates, so it does
+  // not need to be paired with JwtAuthGuard — that ran JWT verification twice.
+  @UseGuards(AdminGuard)
   async flagMisuse(
     @Param('userId') userId: string,
     @Body() dto: FlagMisuseDto,
@@ -330,7 +350,9 @@ export class DsaController {
    * Get a user's misuse status.
    */
   @Get('admin/misuse/:userId')
-  @UseGuards(JwtAuthGuard, AdminGuard)
+  // E-L1: AdminGuard extends AuthGuard('jwt') and self-authenticates, so it does
+  // not need to be paired with JwtAuthGuard — that ran JWT verification twice.
+  @UseGuards(AdminGuard)
   async getUserMisuseStatus(@Param('userId') userId: string) {
     return this.dsaService.getUserMisuseStatus(userId);
   }
@@ -339,7 +361,9 @@ export class DsaController {
    * Lift a misuse flag (e.g., temporary suspension expired).
    */
   @Patch('admin/misuse/:recordId/lift')
-  @UseGuards(JwtAuthGuard, AdminGuard)
+  // E-L1: AdminGuard extends AuthGuard('jwt') and self-authenticates, so it does
+  // not need to be paired with JwtAuthGuard — that ran JWT verification twice.
+  @UseGuards(AdminGuard)
   async liftMisuseFlag(
     @Param('recordId') recordId: string,
     @Request() req: any,
@@ -365,7 +389,9 @@ export class DsaController {
    * Admin: generate a transparency report for a given period.
    */
   @Post('admin/transparency/generate')
-  @UseGuards(JwtAuthGuard, AdminGuard)
+  // E-L1: AdminGuard extends AuthGuard('jwt') and self-authenticates, so it does
+  // not need to be paired with JwtAuthGuard — that ran JWT verification twice.
+  @UseGuards(AdminGuard)
   async generateTransparencyReport(
     @Body() body: { periodStart: string; periodEnd: string },
   ) {

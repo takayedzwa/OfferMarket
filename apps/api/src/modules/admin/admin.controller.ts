@@ -1,11 +1,12 @@
 import { Controller, Get, Post, Patch, Body, Param, Query, UseGuards, Request } from '@nestjs/common';
-import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
 import { AdminGuard } from '../../guards/admin.guard';
 import { AdminService } from './admin.service';
 import { UpdateSettingsDto } from './dto/update-settings.dto';
 
 @Controller('admin')
-@UseGuards(JwtAuthGuard, AdminGuard)
+// E-L1: AdminGuard extends AuthGuard('jwt') and self-authenticates, so it does
+// not need to be paired with JwtAuthGuard — that ran JWT verification twice.
+@UseGuards(AdminGuard)
 export class AdminController {
   constructor(private readonly adminService: AdminService) {}
 
