@@ -78,7 +78,13 @@ export class AdminService {
     ]);
 
     return {
-      users,
+      // A-C3: strip credential/2FA secrets from the list response —
+      // findMany with `include` returns all scalar fields by default.
+      users: users.map((u: any) => {
+        delete u.passwordHash;
+        delete u.twoFactorSecret;
+        return u;
+      }),
       pagination: {
         page,
         limit,
@@ -123,6 +129,13 @@ export class AdminService {
     if (!user) {
       throw new NotFoundException('User not found');
     }
+
+    // A-C3: findUnique with `include` returns all scalar fields by default,
+    // which would leak passwordHash and twoFactorSecret through the admin
+    // user-detail endpoint. Strip credential/2FA secrets before returning.
+    // (Prisma disallows top-level select+include together, so we scrub here.)
+    delete (user as any).passwordHash;
+    delete (user as any).twoFactorSecret;
 
     return user;
   }

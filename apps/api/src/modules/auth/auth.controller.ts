@@ -1,6 +1,7 @@
 import { Controller, Post, Body, BadRequestException, Get, Request, UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
+import { AdminGuard } from '../../guards/admin.guard';
 import { AuthService } from './auth.service';
 import { RegisterWorkerDto, RegisterEmployerDto, RegisterAdminDto, RegisterSupportDto } from './dto/auth.dto';
 import { ForgotPasswordDto, ResetPasswordDto } from './dto/reset-password.dto';
@@ -77,11 +78,18 @@ export class AuthController {
   // ============================================================================
   // REGISTER SUPPORT (Admin only)
   // ============================================================================
+  // SECURITY: This endpoint now requires an authenticated ADMIN JWT. The
+  // admin's identity is taken from the verified token (req.user.id) rather
+  // than the request body, preventing IDOR where anyone who knew an admin's
+  // user ID could create a SUPPORT account. AdminGuard both authenticates the
+  // JWT and enforces the ADMIN role.
+  // ============================================================================
 
   @Post('register/support')
+  @UseGuards(AdminGuard)
   @Throttle({ short: { ttl: 60000, limit: 5 } })
-  async registerSupport(@Body() dto: RegisterSupportDto) {
-    return this.authService.registerSupport(dto.email, dto.password, dto.adminUserId);
+  async registerSupport(@Body() dto: RegisterSupportDto, @Request() req: any) {
+    return this.authService.registerSupport(dto.email, dto.password, req.user.id);
   }
 
   // ============================================================================

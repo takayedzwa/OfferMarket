@@ -77,6 +77,10 @@ export class RegisterSupportDto {
   @Matches(PASSWORD_REGEX, { message: PASSWORD_MSG })
   password!: string;
 
+  // A-C2: deprecated — the admin's identity is now taken from the JWT
+  // (req.user.id) by the controller, not from the request body. Kept optional
+  // for backward compatibility but no longer trusted or required.
+  @IsOptional()
   @IsString()
-  adminUserId!: string;
+  adminUserId?: string;
 }
