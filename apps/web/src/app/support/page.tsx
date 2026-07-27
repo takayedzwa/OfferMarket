@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useAuth } from "../../contexts/AuthContext";
 import { Ticket, Users, Clock, CheckCircle, AlertCircle, MessageSquare, ArrowRight } from "lucide-react";
 
 interface SupportStats {
@@ -15,6 +16,7 @@ interface SupportStats {
 
 export default function SupportDashboardPage() {
   const router = useRouter();
+  const { user, loading: authLoading } = useAuth();
   const [stats, setStats] = useState<SupportStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [recentTickets, setRecentTickets] = useState<any[]>([]);
@@ -31,8 +33,10 @@ export default function SupportDashboardPage() {
   };
 
   useEffect(() => {
+    // SECURITY: role comes from AuthContext (JWT via /auth/me), not localStorage.
+    if (authLoading) return;
     const token = localStorage.getItem('accessToken');
-    const userRole = localStorage.getItem('userRole');
+    const userRole: string | null = user?.role ?? null;
 
     if (!token || (userRole !== 'SUPPORT' && userRole !== 'ADMIN')) {
       router.push('/');
@@ -61,7 +65,7 @@ export default function SupportDashboardPage() {
         if (data) setRecentTickets(data.tickets || []);
       })
       .catch(() => {});
-  }, [router]);
+  }, [router, user, authLoading]);
 
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {

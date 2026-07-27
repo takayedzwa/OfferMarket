@@ -118,8 +118,9 @@ export class AuthController {
   // ============================================================================
   // SEND VERIFICATION CODE
   // SECURITY: Authenticated users request a code for their own email/phone.
-  // The code is stored as a SHA-256 hash; the raw code is returned for
-  // development convenience (MUST be removed before production).
+  // The code is stored as a SHA-256 hash and delivered via the MailService
+  // (email side channel). The raw code is NEVER returned in the API response —
+  // in dev/test it is retrievable from the MailService in-memory outbox.
   // ============================================================================
 
   @Post('send-verification-code')

@@ -1,11 +1,31 @@
-import { Injectable, NotFoundException, BadRequestException, UnauthorizedException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, UnauthorizedException, ForbiddenException, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../../prisma/prisma.service';
 import { BillingService } from '../billing/billing.service';
 import { CreateOfferDto } from './dto/create-offer.dto';
 import { CounterOfferDto } from './dto/counter-offer.dto';
 import { NotificationEventType } from '../notifications/notification.types';
 import { OfferStatus } from '@prisma/client';
+
+/**
+ * SECURITY (E-C3): The fields an employer is allowed to see on a worker before
+ * the offer is accepted. Workers are anonymized until acceptance — never
+ * expose `userId`, internal `id`, consent fields, or `deletedAt`. The employer
+ * only sees the anonymous public handle and the profile metadata relevant to
+ * the offer.
+ */
+const ANONYMIZED_WORKER_SELECT = {
+  select: {
+    publicId: true,
+    specializations: true,
+    availability: true,
+    regionId: true,
+    profileVisibility: true,
+    reputationScore: true,
+    isProfileComplete: true,
+  },
+};
 
 /**
  * OFFERS SERVICE
@@ -20,11 +40,53 @@ import { OfferStatus } from '@prisma/client';
 
 @Injectable()
 export class OffersService {
+  private readonly logger = new Logger(OffersService.name);
+
   constructor(
     private prisma: PrismaService,
     private billingService: BillingService,
     private eventEmitter: EventEmitter2,
   ) {}
+
+  // ============================================================================
+  // OFFER EXPIRY (scheduled)
+  // ----------------------------------------------------------------------------
+  // Offers carry an `expiresAt` (set at creation, default 14 days) but, until
+  // now, an offer past its expiry only moved to EXPIRED lazily — when a worker
+  // tried to accept it. Offers that were never acted on stayed in SUBMITTED /
+  // VIEWED / SHORTLISTED / COUNTERED indefinitely. This cron transitions every
+  // offer past its expiresAt (and not in a terminal state) to EXPIRED.
+  // DRAFT is intentionally excluded — the employer may still be editing.
+  // ScheduleModule.forRoot() is registered globally in the privacy module, so
+  // @Cron here is picked up app-wide.
+  // ============================================================================
+
+  @Cron(CronExpression.EVERY_30_MINUTES)
+  async expireOffers(): Promise<number> {
+    const activeStatuses: OfferStatus[] = [
+      'SUBMITTED',
+      'VIEWED',
+      'SHORTLISTED',
+      'COUNTERED',
+    ];
+    try {
+      const result = await this.prisma.offer.updateMany({
+        where: {
+          expiresAt: { lt: new Date() },
+          status: { in: activeStatuses },
+        },
+        data: { status: 'EXPIRED' },
+      });
+      if (result.count) {
+        this.logger.log(`Expired ${result.count} offer(s) past their expiresAt.`);
+      }
+      return result.count;
+    } catch (error) {
+      // A cron failure must never crash the scheduler.
+      this.logger.error(`Failed to expire offers: ${error?.message ?? error}`, error?.stack);
+      return 0;
+    }
+  }
 
   // ============================================================================
   // CREATE OFFER
@@ -61,6 +123,21 @@ export class OffersService {
 
       if (!worker || worker.deletedAt) {
         throw new NotFoundException('Worker not found');
+      }
+
+      // 2.5 SECURITY (E-H8): GDPR Article 18 — if the worker has restricted
+      // processing of their data, an employer must not create an offer against
+      // them (creating the offer, storing it, and notifying the worker are all
+      // processing of the worker's data). The global ProcessingRestrictionGuard
+      // only checks the *acting* user (the employer), not the *target* worker,
+      // so the check must happen here. Reuse the generic "cannot make offer"
+      // message so the restriction is not leaked to the employer.
+      const workerGdprFlags = await tx.userGdprFlags.findUnique({
+        where: { userId: worker.userId },
+        select: { processingRestricted: true },
+      });
+      if (workerGdprFlags?.processingRestricted) {
+        throw new ForbiddenException('Cannot make offer to this worker');
       }
 
       // 3. CRITICAL: Check if worker has blocked this employer
@@ -313,7 +390,7 @@ export class OffersService {
     const offer = await this.prisma.offer.findUnique({
       where: { id: offerId },
       include: {
-        worker: true,
+        worker: ANONYMIZED_WORKER_SELECT,
         currentVersion: true,
         versions: {
           orderBy: { version: 'desc' }
@@ -450,7 +527,7 @@ export class OffersService {
         include: {
           currentVersion: true,
           versions: { orderBy: { version: 'desc' } },
-          worker: true
+          worker: ANONYMIZED_WORKER_SELECT
         }
       });
     });
@@ -493,8 +570,11 @@ export class OffersService {
         throw new ForbiddenException('Not authorized to submit this offer');
       }
 
-      // 4. Check if offer can be submitted (must be DRAFT)
-      if (offer.status !== 'DRAFT') {
+      // 4. Check if offer can be submitted. A DRAFT is an initial submission; a
+      // COUNTERED offer is the employer responding to the worker's counter
+      // (optionally after editing) and sending it back (E-M4: counters are now
+      // versioned on the same offer rather than a separate DRAFT offer).
+      if (offer.status !== 'DRAFT' && offer.status !== 'COUNTERED') {
         throw new BadRequestException(`Cannot submit offer in ${offer.status} status`);
       }
 
@@ -527,7 +607,7 @@ export class OffersService {
         include: {
           currentVersion: true,
           versions: { orderBy: { version: 'desc' } },
-          worker: true,
+          worker: ANONYMIZED_WORKER_SELECT,
           employer: true
         }
       });
@@ -836,7 +916,25 @@ export class OffersService {
         throw new BadRequestException('Salary range cannot exceed €20,000. Please provide a more specific salary range.');
       }
 
-      // Update offer status
+      // E-M4: The counter-offer is versioned onto the SAME offer record rather
+      // than spawning a disconnected DRAFT offer. The worker's proposed terms
+      // become a new OfferVersion (set as currentVersion) and the offer moves to
+      // COUNTERED. The employer reviews the counter (the current version) on
+      // this offer, optionally edits (another version via updateOffer), and
+      // re-submits it back to the worker (see submitOffer, which accepts the
+      // COUNTERED -> SUBMITTED transition). This keeps the negotiation on one
+      // offer with a continuous version history instead of orphan offers.
+
+      // Compute the next version number for this offer
+      const versions = await tx.offerVersion.findMany({
+        where: { offerId },
+        select: { version: true },
+        orderBy: { version: 'desc' },
+        take: 1,
+      });
+      const nextVersion = (versions[0]?.version || 0) + 1;
+
+      // Mark offer COUNTERED
       await tx.offer.update({
         where: { id: offerId },
         data: {
@@ -845,31 +943,16 @@ export class OffersService {
         }
       });
 
-      // Create new draft offer for employer to review
-      const publicId = await this.generateOfferPublicId(tx);
-      const counterOffer = await tx.offer.create({
-        data: {
-          publicId,
-          workerId: worker.id,
-          employerId: offer.employerId,
-          jobTitle: offer.jobTitle,
-          department: offer.department,
-          jobDescription: offer.jobDescription,
-          status: 'DRAFT',
-          expiresAt: offer.expiresAt,
-          counterOfferForId: offer.id,
-        }
-      });
-
+      // Create the counter version with the worker's proposed values applied
       const newVersion = await tx.offerVersion.create({
         data: {
-          offerId: counterOffer.id,
-          version: offer.currentVersion.version + 1,
+          offerId,
+          version: nextVersion,
           // Apply counter values
-          salaryMin: counterOfferDto.salaryMin || offer.currentVersion.salaryMin,
-          salaryMax: counterOfferDto.salaryMax || offer.currentVersion.salaryMax,
+          salaryMin: counterOfferDto.salaryMin ?? offer.currentVersion.salaryMin,
+          salaryMax: counterOfferDto.salaryMax ?? offer.currentVersion.salaryMax,
           signOnBonus: counterOfferDto.signOnBonus ?? offer.currentVersion.signOnBonus,
-          vacationDays: counterOfferDto.vacationDays || offer.currentVersion.vacationDays,
+          vacationDays: counterOfferDto.vacationDays ?? offer.currentVersion.vacationDays,
           // Copy unchanged fields
           salaryPeriod: offer.currentVersion.salaryPeriod,
           hourlyRate: offer.currentVersion.hourlyRate,
@@ -903,9 +986,9 @@ export class OffersService {
         }
       });
 
-      // Update offer with currentVersionId
+      // Point currentVersion at the counter version
       await tx.offer.update({
-        where: { id: counterOffer.id },
+        where: { id: offerId },
         data: { currentVersionId: newVersion.id }
       });
 
@@ -923,12 +1006,20 @@ export class OffersService {
         recipientUserId: employer.userId,
         employerUserId: employer.userId,
         jobTitle: offer.jobTitle,
-        counterOfferId: counterOffer.id,
-        originalOfferId: offer.id,
-        actionUrl: `/offers/${counterOffer.id}`,
+        offerId: offer.id,
+        actionUrl: `/offers/${offer.id}`,
       });
 
-      return counterOffer;
+      // Return the countered offer with its full version history.
+      return tx.offer.findUnique({
+        where: { id: offerId },
+        include: {
+          currentVersion: true,
+          versions: { orderBy: { version: 'desc' } },
+          worker: ANONYMIZED_WORKER_SELECT,
+          employer: true,
+        },
+      });
     });
   }
 
@@ -936,7 +1027,17 @@ export class OffersService {
   // WITHDRAW OFFER (Employer only)
   // ============================================================================
 
-  async withdrawOffer(offerId: string, employerId: string, reason?: string) {
+  async withdrawOffer(offerId: string, userId: string, reason?: string) {
+    // SECURITY (E-C1): Resolve the employer from the authenticated user, not
+    // from a client-supplied id, so an employer can only withdraw its own offers.
+    const employer = await this.prisma.employer.findUnique({
+      where: { userId }
+    });
+
+    if (!employer) {
+      throw new NotFoundException('Employer not found');
+    }
+
     const offer = await this.prisma.offer.findUnique({
       where: { id: offerId }
     });
@@ -945,8 +1046,8 @@ export class OffersService {
       throw new NotFoundException('Offer not found');
     }
 
-    if (offer.employerId !== employerId) {
-      throw new UnauthorizedException('Not authorized');
+    if (offer.employerId !== employer.id) {
+      throw new ForbiddenException('Not authorized to withdraw this offer');
     }
 
     if (offer.status === 'ACCEPTED') {
@@ -1040,7 +1141,7 @@ export class OffersService {
     return this.prisma.offer.findMany({
       where,
       include: {
-        worker: true,
+        worker: ANONYMIZED_WORKER_SELECT,
         currentVersion: true
       },
       orderBy: { submittedAt: 'desc' }

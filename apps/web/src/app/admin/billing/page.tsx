@@ -38,7 +38,7 @@ type Tab = "invoices" | "settings";
 
 export default function AdminBillingPage() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [activeTab, setActiveTab] = useState<Tab>("invoices");
   const [stats, setStats] = useState<BillingStats | null>(null);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -54,14 +54,14 @@ export default function AdminBillingPage() {
   const [markPaidNotes, setMarkPaidNotes] = useState("");
 
   useEffect(() => {
-    const userRole = localStorage.getItem("userRole");
-    const accessToken = localStorage.getItem("accessToken");
-    if (!accessToken || userRole !== "ADMIN") {
+    // SECURITY: role comes from AuthContext (JWT via /auth/me), not localStorage.
+    if (authLoading) return;
+    if (user?.role !== "ADMIN") {
       router.push("/login");
       return;
     }
     loadData();
-  }, [user, statusFilter, page]);
+  }, [user, authLoading, statusFilter, page]);
 
   async function loadData() {
     try {

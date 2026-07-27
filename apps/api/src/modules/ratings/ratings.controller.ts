@@ -152,7 +152,9 @@ export class RatingsController {
    * preventing IDOR attacks.
    */
   @Post(':id/flag')
-  @UseGuards(JwtAuthGuard, AdminGuard)
+  // E-L1: AdminGuard extends AuthGuard('jwt') and self-authenticates, so it does
+  // not need to be paired with JwtAuthGuard — that ran JWT verification twice.
+  @UseGuards(AdminGuard)
   async flagRating(
     @Param('id') ratingId: string,
     @Request() req: any
@@ -166,7 +168,9 @@ export class RatingsController {
    * Remove flag from a rating (admin only)
    */
   @Post(':id/unflag')
-  @UseGuards(JwtAuthGuard, AdminGuard)
+  // E-L1: AdminGuard extends AuthGuard('jwt') and self-authenticates, so it does
+  // not need to be paired with JwtAuthGuard — that ran JWT verification twice.
+  @UseGuards(AdminGuard)
   async unflagRating(@Param('id') ratingId: string) {
     return this.ratingsService.unflagRating(ratingId);
   }
@@ -176,7 +180,9 @@ export class RatingsController {
    * Toggle rating publication status (admin only)
    */
   @Patch(':id/publish')
-  @UseGuards(JwtAuthGuard, AdminGuard)
+  // E-L1: AdminGuard extends AuthGuard('jwt') and self-authenticates, so it does
+  // not need to be paired with JwtAuthGuard — that ran JWT verification twice.
+  @UseGuards(AdminGuard)
   async toggleRatingPublication(
     @Param('id') ratingId: string,
     @Body() body: { isPublished: boolean }

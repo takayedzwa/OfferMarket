@@ -20,7 +20,7 @@ import {
 
 export default function ConversationsPage() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -29,21 +29,25 @@ export default function ConversationsPage() {
   const [sending, setSending] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
-  const userRole = typeof window !== "undefined" ? localStorage.getItem("userRole") : null;
+  // SECURITY: role comes from AuthContext (resolved from the JWT via /auth/me),
+  // not from localStorage. The login page stores only tokens — it does not set
+  // userRole — so reading localStorage.getItem('userRole') always returned
+  // null and mis-routed employers as workers.
+  const userRole = user?.role;
 
   useEffect(() => {
     async function loadConversations() {
+      // Wait for AuthContext to resolve the authenticated user.
+      if (authLoading) return;
+
+      if (!user) {
+        router.push('/login');
+        return;
+      }
+
       try {
-        const userId = localStorage.getItem('userId');
-        const role = localStorage.getItem('userRole');
-        const userType = role === 'EMPLOYER' ? 'employer' : 'worker';
-
-        if (!userId || !userType) {
-          router.push('/login');
-          return;
-        }
-
-        const response = await conversationsApi.listConversations(userId, userType);
+        const userType = user.role === 'EMPLOYER' ? 'employer' : 'worker';
+        const response = await conversationsApi.listConversations(user.id, userType);
         setConversations(response.data);
       } catch (error) {
         console.error("Failed to load conversations:", error);
@@ -53,7 +57,7 @@ export default function ConversationsPage() {
     }
 
     loadConversations();
-  }, []);
+  }, [user, authLoading, router]);
 
   useEffect(() => {
     if (selectedConversation) {
@@ -63,9 +67,8 @@ export default function ConversationsPage() {
 
   const loadMessages = async (conversationId: string) => {
     try {
-      const userId = localStorage.getItem('userId');
       const response = await api.get(`/conversations/${conversationId}/messages`, {
-        params: { userId }
+        params: { userId: user?.id }
       });
       setMessages(response.data);
     } catch (error) {
@@ -79,18 +82,17 @@ export default function ConversationsPage() {
 
     setSending(true);
     try {
-      const userId = localStorage.getItem('userId');
       const response = await api.post(
         `/conversations/${selectedConversation.id}/messages`,
         { content: newMessage.trim() },
-        { params: { userId } }
+        { params: { userId: user?.id } }
       );
       setMessages((prev) => [...prev, response.data]);
       setNewMessage("");
 
       // Refresh conversations to update last message
       const userType = userRole === 'EMPLOYER' ? 'employer' : 'worker';
-      const convsResponse = await conversationsApi.listConversations(userId ?? undefined, userType);
+      const convsResponse = await conversationsApi.listConversations(user?.id, userType);
       setConversations(convsResponse.data);
     } catch (error) {
       console.error("Failed to send message:", error);

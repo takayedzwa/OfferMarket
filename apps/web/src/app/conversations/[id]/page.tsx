@@ -29,7 +29,7 @@ export default function ConversationDetailPage() {
   const router = useRouter();
   const params = useParams();
   const conversationId = params.id as string;
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
 
   const [conversation, setConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -38,26 +38,28 @@ export default function ConversationDetailPage() {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const userRole = typeof window !== "undefined" ? localStorage.getItem("userRole") : null;
+  const userRole: string | null = user?.role ?? null;
 
   useEffect(() => {
     async function loadConversation() {
-      try {
-        const userId = localStorage.getItem("userId");
-        if (!userId) {
-          router.push("/login");
-          return;
-        }
+      // SECURITY: identity comes from AuthContext (JWT via /auth/me), not
+      // localStorage. The login page stores only tokens.
+      if (authLoading) return;
+      if (!user) {
+        router.push("/login");
+        return;
+      }
 
+      try {
         const response = await api.get(`/conversations/${conversationId}`, {
-          params: { userId },
+          params: { userId: user.id },
         });
         setConversation(response.data);
 
         // Also fetch messages
         const messagesResponse = await api.get(
           `/conversations/${conversationId}/messages`,
-          { params: { userId } }
+          { params: { userId: user.id } }
         );
         setMessages(messagesResponse.data || []);
       } catch (err: any) {
@@ -75,7 +77,7 @@ export default function ConversationDetailPage() {
     if (conversationId) {
       loadConversation();
     }
-  }, [conversationId, router]);
+  }, [conversationId, router, user, authLoading]);
 
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -83,7 +85,7 @@ export default function ConversationDetailPage() {
 
     setSending(true);
     try {
-      const userId = localStorage.getItem("userId");
+      const userId = user?.id;
       const response = await api.post(
         `/conversations/${conversation.id}/messages`,
         { content: newMessage.trim() },

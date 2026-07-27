@@ -273,6 +273,9 @@ export class TrustController {
    * GET /trust/blacklist/check/:entityType/:entityId
    * Check if entity is blacklisted
    */
+  // E-L2: diagnostic/admin endpoint — restrict to staff roles rather than
+  // leaving it open to any authenticated user.
+  @Roles('ADMIN', 'SUPPORT')
   @Get('blacklist/check/:entityType/:entityId')
   async isBlacklisted(
     @Param('entityType') entityType: string,
@@ -293,6 +296,9 @@ export class TrustController {
    * POST /trust/reputation/calculate
    * Calculate reputation score
    */
+  // E-L2: reputation recalculation is an admin/diagnostic operation — restrict
+  // to staff roles rather than leaving it open to any authenticated user.
+  @Roles('ADMIN', 'SUPPORT')
   @Post('reputation/calculate')
   async calculateReputationScore(@Body() dto: CalculateReputationScoreDto) {
     return this.trustService.calculateReputationScore(dto);
@@ -336,6 +342,9 @@ export class TrustController {
    * POST /trust/detect/suspicious-login
    * Check for suspicious login
    */
+  // E-L2: automated-detection endpoints are diagnostic/admin operations —
+  // restrict to staff roles.
+  @Roles('ADMIN', 'SUPPORT')
   @Post('detect/suspicious-login')
   async checkSuspiciousLogin(
     @Body('userId') userId: string,
@@ -349,6 +358,7 @@ export class TrustController {
    * POST /trust/detect/rapid-account-creation
    * Detect rapid account creation
    */
+  @Roles('ADMIN', 'SUPPORT')
   @Post('detect/rapid-account-creation')
   async detectRapidAccountCreation(
     @Body('ipAddress') ipAddress: string,

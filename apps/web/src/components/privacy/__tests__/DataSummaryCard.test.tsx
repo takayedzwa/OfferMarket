@@ -7,7 +7,7 @@ import DataSummaryCard from '../DataSummaryCard';
 const mockGrantConsent = jest.fn().mockResolvedValue(true);
 const mockWithdrawConsent = jest.fn().mockResolvedValue(true);
 const mockUseConsent = {
-  consents: [],
+  consents: [] as any[],
   loading: false,
   error: null,
   grantConsent: mockGrantConsent,

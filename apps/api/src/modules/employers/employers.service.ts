@@ -1,6 +1,28 @@
 import { Injectable, NotFoundException, BadRequestException, BadRequestException as BadRequestExceptionAlias } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RatingsService } from '../ratings/ratings.service';
+import { CreateEmployerProfileDto } from './dto/create-employer-profile.dto';
+import { UpdateEmployerProfileDto } from './dto/update-employer-profile.dto';
+
+/**
+ * SECURITY (E-C2): The complete allowlist of fields an employer may write to
+ * their own profile. Verification, reputation, and billing fields are excluded
+ * so an employer can never self-verify or inflate their reputation score.
+ */
+const EMPLOYER_UPDATABLE_FIELDS = [
+  'companyName',
+  'companyTradeName',
+  'kvkNumber',
+  'vatNumber',
+  'companySize',
+  'industry',
+  'foundedYear',
+  'registeredAddress',
+  'businessAddress',
+  'website',
+  'phone',
+  'billingEmail',
+] as const;
 
 @Injectable()
 export class EmployersService {
@@ -9,7 +31,7 @@ export class EmployersService {
     private ratingsService: RatingsService
   ) {}
 
-  async createEmployerProfile(userId: string, createDto: any) {
+  async createEmployerProfile(userId: string, createDto: CreateEmployerProfileDto) {
     return this.prisma.$transaction(async (tx) => {
       // Verify KvK number is unique
       const existing = await tx.employer.findUnique({
@@ -20,11 +42,13 @@ export class EmployersService {
         throw new BadRequestException('An employer with this KvK number already exists');
       }
 
-      // Ensure registeredAddress is a proper JSON object
-      const registeredAddress = typeof createDto.registeredAddress === 'string'
-        ? JSON.parse(createDto.registeredAddress)
-        : createDto.registeredAddress;
-
+      // SECURITY (E-C2): Build the create payload explicitly from allowlisted
+      // fields only — never spread the DTO. verificationStatus, billingStatus
+      // and subscriptionPlan are set server-side to their defaults.
+      // registeredAddress/businessAddress are Json columns — pass plain
+      // objects (spread off the DTO instances) so Prisma accepts them as
+      // InputJsonValue. When businessAddress is absent, omit it (undefined)
+      // rather than passing `null`, which the nullable Json input rejects.
       const employer = await tx.employer.create({
         data: {
           userId,
@@ -35,18 +59,10 @@ export class EmployersService {
           companySize: createDto.companySize,
           industry: createDto.industry,
           foundedYear: createDto.foundedYear,
-          registeredAddress: registeredAddress || {
-            street: '',
-            houseNumber: '',
-            postalCode: '',
-            city: '',
-            country: 'NL'
-          },
-          businessAddress: createDto.businessAddress ? (
-            typeof createDto.businessAddress === 'string'
-              ? JSON.parse(createDto.businessAddress)
-              : createDto.businessAddress
-          ) : null,
+          registeredAddress: { ...createDto.registeredAddress },
+          businessAddress: createDto.businessAddress
+            ? { ...createDto.businessAddress }
+            : undefined,
           website: createDto.website,
           phone: createDto.phone,
           billingEmail: createDto.billingEmail,
@@ -96,7 +112,7 @@ export class EmployersService {
     };
   }
 
-  async updateEmployerProfile(userId: string, updateDto: any) {
+  async updateEmployerProfile(userId: string, updateDto: UpdateEmployerProfileDto) {
     const employer = await this.prisma.employer.findUnique({
       where: { userId }
     });
@@ -105,9 +121,32 @@ export class EmployersService {
       throw new NotFoundException('Employer profile not found');
     }
 
+    // SECURITY (E-C2): Only copy allowlisted fields into the update payload.
+    // Defense-in-depth on top of the DTO + global whitelist pipe: even if a
+    // protected field (verificationStatus, verifiedAt, reputationScore,
+    // billingStatus, subscriptionPlan, creditBalance, totalOffersSent,
+    // totalHires, offerAcceptanceRate) reached the service, it is dropped here
+    // and never passed to prisma.employer.update.
+    const data: Record<string, unknown> = {};
+    for (const field of EMPLOYER_UPDATABLE_FIELDS) {
+      if (updateDto[field] !== undefined) {
+        // Address fields are Json columns — store them as plain objects, not
+        // DTO class instances, so Prisma accepts them as InputJsonValue.
+        if (field === 'registeredAddress' || field === 'businessAddress') {
+          data[field] = { ...updateDto[field] };
+        } else {
+          data[field] = updateDto[field];
+        }
+      }
+    }
+
+    if (Object.keys(data).length === 0) {
+      return employer;
+    }
+
     return this.prisma.employer.update({
       where: { userId },
-      data: updateDto
+      data,
     });
   }
 

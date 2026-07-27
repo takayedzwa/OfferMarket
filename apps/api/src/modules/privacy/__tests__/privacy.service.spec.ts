@@ -282,7 +282,11 @@ describe('PrivacyService', () => {
   // ANONYMOUS CONSENT (Telecommunicatiewet Art. 11.7a audit trail)
   // ===========================================================================
   describe('recordConsent — anonymous (no userId)', () => {
-    const anonymousUserId = 'anonymous';
+    // FIX: anonymous cookie consent is recorded with a NULL user reference
+    // (Consent.userId is nullable). The previous implementation passed the
+    // literal string 'anonymous', which violated the Consent.userId foreign
+    // key to User.id (Prisma P2003) and returned HTTP 500.
+    const anonymousUserId = null;
     const consentType = ConsentType.COOKIE_ANALYTICS;
     const legalBasis = LegalBasis.CONSENT;
     const version = '1.0';

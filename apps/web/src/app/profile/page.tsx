@@ -24,15 +24,23 @@ import {
 
 export default function ProfilePage() {
   const router = useRouter();
-  const { user, logout } = useAuth();
+  const { user, loading: authLoading, logout } = useAuth();
   const [profile, setProfile] = useState<PrivateWorkerProfile | null>(null);
   const [employer, setEmployer] = useState<Employer | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const userRole = typeof window !== "undefined" ? localStorage.getItem("userRole") : null;
+  const userRole: string | null = user?.role ?? null;
 
   useEffect(() => {
     async function loadProfile() {
+      // SECURITY: role comes from AuthContext (JWT via /auth/me), not
+      // localStorage. The login page stores only tokens.
+      if (authLoading) return;
+      if (!user) {
+        router.push("/login");
+        return;
+      }
+
       try {
         if (userRole === "WORKER") {
           const response = await workersApi.getMyProfile();
@@ -59,7 +67,7 @@ export default function ProfilePage() {
     }
 
     loadProfile();
-  }, [userRole, router]);
+  }, [userRole, authLoading, user, router]);
 
   if (loading) {
     return (

@@ -129,7 +129,7 @@ const SPECIALIZATION_LABELS: Record<string, string> = {
 export default function WorkerProfilePage() {
   const router = useRouter();
   const params = useParams();
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
   const [loading, setLoading] = useState(true);
   const [worker, setWorker] = useState<WorkerProfile | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -142,8 +142,10 @@ export default function WorkerProfilePage() {
     const loadProfile = async () => {
       setLoading(true);
       try {
-        const employerId = localStorage.getItem("userId");
-        const res = await workersApi.getPublicProfile(publicId, employerId || undefined);
+        // SECURITY: employer identity comes from AuthContext (JWT via /auth/me),
+        // not localStorage. The login page stores only tokens.
+        const employerId = user?.id;
+        const res = await workersApi.getPublicProfile(publicId, employerId);
         setWorker(res.data);
       } catch (err: any) {
         console.error("Failed to load worker profile:", err);
@@ -154,7 +156,7 @@ export default function WorkerProfilePage() {
     };
 
     loadProfile();
-  }, [publicId]);
+  }, [publicId, user]);
 
   const getAvailabilityLabel = (availability: string) => {
     const labels: Record<string, string> = {

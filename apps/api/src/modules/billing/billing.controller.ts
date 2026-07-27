@@ -57,19 +57,19 @@ export class BillingController {
   // ---------------------------------------------------------------------------
 
   @Get('admin/invoices')
-  @UseGuards(JwtAuthGuard, AdminGuard)
+  @UseGuards(AdminGuard)
   async adminGetInvoices(@Query() query: AdminListInvoicesQueryDto) {
     return this.billingService.adminGetInvoices(query);
   }
 
   @Get('admin/invoices/:id')
-  @UseGuards(JwtAuthGuard, AdminGuard)
+  @UseGuards(AdminGuard)
   async adminGetInvoiceDetail(@Param('id') id: string) {
     return this.billingService.getInvoiceDetail(id);
   }
 
   @Post('admin/invoices/:id/mark-paid')
-  @UseGuards(JwtAuthGuard, AdminGuard)
+  @UseGuards(AdminGuard)
   async markInvoicePaid(
     @Param('id') id: string,
     @Body() dto: MarkInvoicePaidDto,
@@ -79,7 +79,7 @@ export class BillingController {
   }
 
   @Post('admin/invoices/:id/cancel')
-  @UseGuards(JwtAuthGuard, AdminGuard)
+  @UseGuards(AdminGuard)
   async cancelInvoice(
     @Param('id') id: string,
     @Body() body: { reason?: string },
@@ -89,26 +89,26 @@ export class BillingController {
   }
 
   @Post('admin/check-overdue')
-  @UseGuards(JwtAuthGuard, AdminGuard)
+  @UseGuards(AdminGuard)
   async checkOverdue() {
     const count = await this.billingService.checkOverdueInvoices();
     return { overdueCount: count };
   }
 
   @Get('admin/stats')
-  @UseGuards(JwtAuthGuard, AdminGuard)
+  @UseGuards(AdminGuard)
   async getBillingStats() {
     return this.billingService.getBillingStats();
   }
 
   @Get('admin/settings')
-  @UseGuards(JwtAuthGuard, AdminGuard)
+  @UseGuards(AdminGuard)
   async getBillingSettings() {
     return this.billingService.getBillingSettings();
   }
 
   @Patch('admin/settings')
-  @UseGuards(JwtAuthGuard, AdminGuard)
+  @UseGuards(AdminGuard)
   async updateBillingSetting(
     @Body() body: { key: string; value: any },
     @Request() req: any,

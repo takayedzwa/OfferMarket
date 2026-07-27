@@ -7,7 +7,7 @@
 export interface User {
   id: string;
   email: string;
-  role: 'WORKER' | 'EMPLOYER' | 'ADMIN';
+  role: 'WORKER' | 'EMPLOYER' | 'ADMIN' | 'SUPPORT';
   emailVerified: boolean;
   phone?: string;
   phoneVerified: boolean;

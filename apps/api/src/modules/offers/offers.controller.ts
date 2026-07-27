@@ -1,4 +1,5 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, Query, BadRequestException, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards, Request } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
 import { RolesGuard } from '../../guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -28,15 +29,16 @@ export class OffersController {
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('EMPLOYER')
+  @Throttle({ short: { ttl: 60000, limit: 10 } })
   async createOffer(
     @Body(new OfferValidationPipe()) createOfferDto: any,
-    @Query('employerId') employerId: string
+    @Request() req: any
   ) {
-    if (!employerId) {
-      throw new BadRequestException('employerId is required');
-    }
-
-    return this.offersService.createOffer(employerId, createOfferDto);
+    // SECURITY (E-C1): Derive the acting employer from the authenticated JWT,
+    // never from a query parameter — otherwise any employer could create
+    // offers on behalf of another employer (IDOR).
+    const userId = req.user.id;
+    return this.offersService.createOffer(userId, createOfferDto);
   }
 
   // ===========================================================================
@@ -151,14 +153,12 @@ export class OffersController {
   @Roles('EMPLOYER')
   async withdrawOffer(
     @Param('id') id: string,
-    @Query('employerId') employerId: string,
+    @Request() req: any,
     @Body('reason') reason?: string
   ) {
-    if (!employerId) {
-      throw new BadRequestException('employerId is required');
-    }
-
-    return this.offersService.withdrawOffer(id, employerId, reason);
+    // SECURITY (E-C1): Ownership is resolved from the JWT, not a query param.
+    const userId = req.user.id;
+    return this.offersService.withdrawOffer(id, userId, reason);
   }
 
   // ===========================================================================
@@ -174,21 +174,20 @@ export class OffersController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('WORKER', 'EMPLOYER')
   async listOffers(
-    @Query('workerId') workerId: string,
-    @Query('employerId') employerId: string,
+    @Request() req: any,
     @Query('status') status?: string
   ) {
+    // SECURITY (E-C1): Scope the listing to the authenticated user's own
+    // profile. Never accept workerId/employerId from the query string — that
+    // allowed listing any other employer's or worker's offers (IDOR).
+    const userId = req.user.id;
     const statusArray = status ? status.split(',') : undefined;
 
-    if (workerId) {
-      return this.offersService.listOffersForWorker(workerId, statusArray);
+    if (req.user.role === 'EMPLOYER') {
+      return this.offersService.listOffersForEmployer(userId, statusArray);
     }
 
-    if (employerId) {
-      return this.offersService.listOffersForEmployer(employerId, statusArray);
-    }
-
-    throw new BadRequestException('workerId or employerId is required');
+    return this.offersService.listOffersForWorker(userId, statusArray);
   }
 
   /**
@@ -218,13 +217,11 @@ export class OffersController {
   @Roles('EMPLOYER')
   async getOfferDetail(
     @Param('id') id: string,
-    @Query('employerId') employerId: string
+    @Request() req: any
   ) {
-    if (!employerId) {
-      throw new BadRequestException('employerId is required');
-    }
-
-    return this.offersService.getOfferForEmployer(id, employerId);
+    // SECURITY (E-C1): Resolve the employer from the JWT, not a query param.
+    const userId = req.user.id;
+    return this.offersService.getOfferForEmployer(id, userId);
   }
 
   /**
@@ -235,16 +232,15 @@ export class OffersController {
   @Patch(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('EMPLOYER')
+  @Throttle({ short: { ttl: 60000, limit: 20 } })
   async updateOffer(
     @Param('id') id: string,
-    @Query('employerId') employerId: string,
+    @Request() req: any,
     @Body() updateOfferDto: any
   ) {
-    if (!employerId) {
-      throw new BadRequestException('employerId is required');
-    }
-
-    return this.offersService.updateOffer(id, employerId, updateOfferDto);
+    // SECURITY (E-C1): Ownership resolved from the JWT, not a query param.
+    const userId = req.user.id;
+    return this.offersService.updateOffer(id, userId, updateOfferDto);
   }
 
   /**
@@ -255,14 +251,13 @@ export class OffersController {
   @Post(':id/submit')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('EMPLOYER')
+  @Throttle({ short: { ttl: 60000, limit: 20 } })
   async submitOffer(
     @Param('id') id: string,
-    @Query('employerId') employerId: string
+    @Request() req: any
   ) {
-    if (!employerId) {
-      throw new BadRequestException('employerId is required');
-    }
-
-    return this.offersService.submitOffer(id, employerId);
+    // SECURITY (E-C1): Ownership resolved from the JWT, not a query param.
+    const userId = req.user.id;
+    return this.offersService.submitOffer(id, userId);
   }
 }

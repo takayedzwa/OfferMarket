@@ -160,6 +160,9 @@ describe('PrivacyController', () => {
   });
 
   describe('recordAnonymousConsent', () => {
+    // FIX: the anonymous endpoint must pass NULL as the userId (Consent.userId
+    // is nullable). Passing the literal 'anonymous' violated the foreign key to
+    // User.id (Prisma P2003) and returned HTTP 500.
     it('should record consent without authentication using IP and user-agent', async () => {
       const req = {
         ip: '203.0.113.42',
@@ -175,7 +178,7 @@ describe('PrivacyController', () => {
       await controller.recordAnonymousConsent(dto, req);
 
       expect(privacyService.recordConsent).toHaveBeenCalledWith(
-        'anonymous',
+        null,
         ConsentType.COOKIE_ANALYTICS,
         LegalBasis.CONSENT,
         '1.0',
@@ -201,7 +204,7 @@ describe('PrivacyController', () => {
       await controller.recordAnonymousConsent(dto, req);
 
       expect(privacyService.recordConsent).toHaveBeenCalledWith(
-        'anonymous',
+        null,
         ConsentType.COOKIE_MARKETING,
         LegalBasis.CONSENT,
         '1.0',
@@ -222,7 +225,7 @@ describe('PrivacyController', () => {
       await controller.recordAnonymousConsent(dto, req);
 
       expect(privacyService.recordConsent).toHaveBeenCalledWith(
-        'anonymous',
+        null,
         ConsentType.COOKIE_ANALYTICS,
         LegalBasis.CONSENT,
         '1.0',

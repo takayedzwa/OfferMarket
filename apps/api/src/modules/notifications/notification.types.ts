@@ -78,8 +78,8 @@ export interface OfferRejectedPayload extends BaseNotificationPayload {
 export interface OfferCounteredPayload extends BaseNotificationPayload {
   employerUserId: string;
   jobTitle: string;
-  counterOfferId: string;
-  originalOfferId: string;
+  /** The (single) offer that was countered — counters are versioned on the same offer. */
+  offerId: string;
 }
 
 export interface OfferWithdrawnPayload extends BaseNotificationPayload {

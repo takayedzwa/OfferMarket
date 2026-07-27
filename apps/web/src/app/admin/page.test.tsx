@@ -23,9 +23,10 @@ jest.mock('next/navigation', () => ({
 const mockUseAuth = jest.fn();
 
 jest.mock('@/contexts/AuthContext', () => {
-  const { useAuth } = jest.requireActual
-    ? { useAuth: (...args: unknown[]) => mockUseAuth(...args) }
-    : { useAuth: mockUseAuth };
+  // Wrap mockUseAuth so call args are forwarded; previously this used an
+  // always-true ternary on `jest.requireActual` (a function reference), which
+  // triggered TS2774 and always picked this branch anyway.
+  const useAuth = (...args: unknown[]) => mockUseAuth(...args);
   return {
     useAuth,
     AuthProvider: ({ children }: { children: React.ReactNode }) => children,
@@ -130,9 +131,9 @@ describe('AdminDashboard', () => {
       });
     });
 
-    it('redirects to /login when no userRole in localStorage', async () => {
-      localStorage.clear();
-      localStorage.setItem('accessToken', 'test-token');
+    it('redirects to /login when AuthContext user is null', async () => {
+      setupLocalStorage(true);
+      mockUseAuth.mockReturnValue({ ...defaultAuthReturn, user: null });
 
       render(<AdminDashboard />);
 
@@ -141,10 +142,12 @@ describe('AdminDashboard', () => {
       });
     });
 
-    it('redirects to /login when userRole is not ADMIN', async () => {
-      localStorage.clear();
-      localStorage.setItem('accessToken', 'test-token');
-      localStorage.setItem('userRole', 'WORKER');
+    it('redirects to /login when user role is not ADMIN', async () => {
+      setupLocalStorage(true);
+      mockUseAuth.mockReturnValue({
+        ...defaultAuthReturn,
+        user: { ...defaultAuthReturn.user, role: 'WORKER' as const },
+      });
 
       render(<AdminDashboard />);
 

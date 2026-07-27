@@ -11,19 +11,22 @@ import { Building2, Send, Eye, UserCheck, Euro, Users } from "lucide-react";
 
 export default function EmployerDashboard() {
   const router = useRouter();
-  const { user, logout } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [employer, setEmployer] = useState<Employer | null>(null);
   const [offers, setOffers] = useState<Offer[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function loadData() {
-      // Check localStorage directly instead of waiting for AuthContext
-      const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
-      const userRole = typeof window !== 'undefined' ? localStorage.getItem('userRole') : null;
-      const accessToken = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+      // SECURITY: identity comes from AuthContext (resolved from the JWT via
+      // /auth/me), NOT from localStorage. The login page stores only tokens —
+      // it deliberately does not set userId/userRole — so the previous guard
+      // (localStorage.getItem('userId')/('userRole')) always failed and bounced
+      // employers straight back to /login. Wait for auth to resolve, then
+      // require an EMPLOYER.
+      if (authLoading) return;
 
-      if (!userId || !accessToken || userRole !== 'EMPLOYER') {
+      if (!user || user.role !== 'EMPLOYER') {
         router.push('/login');
         return;
       }
@@ -49,7 +52,7 @@ export default function EmployerDashboard() {
         // Fetch offers
         let offersData = [];
         try {
-          const offersRes = await offersApi.getEmployerOffers(userId);
+          const offersRes = await offersApi.getEmployerOffers();
           offersData = offersRes.data || [];
         } catch (err: any) {
           console.error("Failed to fetch offers:", err);
@@ -65,7 +68,7 @@ export default function EmployerDashboard() {
     }
 
     loadData();
-  }, [router]);
+  }, [user, authLoading, router]);
 
   const draftOffers = offers.filter((o) => o.status === "DRAFT");
   const submittedOffers = offers.filter((o) => o.status === "SUBMITTED" || o.status === "VIEWED");

@@ -357,7 +357,7 @@ export const ratingsApi = {
 // ============================================================================
 
 export const offersApi = {
-  // Create offer
+  // Create offer — the acting employer is derived from the JWT server-side
   createOffer: (data: any) => {
     return api.post('/offers', data);
   },
@@ -367,17 +367,17 @@ export const offersApi = {
     return api.get(`/offers/${id}`);
   },
 
-  // Get offer details (employer)
-  getEmployerOfferDetail: (id: string, employerId: string) =>
-    api.get(`/offers/${id}/detail`, { params: { employerId } }),
+  // Get offer details (employer) — ownership resolved from the JWT
+  getEmployerOfferDetail: (id: string) =>
+    api.get(`/offers/${id}/detail`),
 
-  // Update offer (employer)
-  updateOffer: (id: string, employerId: string, data: any) =>
-    api.patch(`/offers/${id}?employerId=${employerId}`, data),
+  // Update offer (employer) — ownership resolved from the JWT
+  updateOffer: (id: string, data: any) =>
+    api.patch(`/offers/${id}`, data),
 
-  // Submit offer (employer)
-  submitOffer: (id: string, employerId: string) =>
-    api.post(`/offers/${id}/submit`, null, { params: { employerId } }),
+  // Submit offer (employer) — ownership resolved from the JWT
+  submitOffer: (id: string) =>
+    api.post(`/offers/${id}/submit`),
 
   // Accept offer
   acceptOffer: (id: string) => {
@@ -399,15 +399,15 @@ export const offersApi = {
     return api.post(`/offers/${id}/counter`, data);
   },
 
-  // Withdraw offer (employer)
-  withdrawOffer: (id: string, employerId: string, reason?: string) =>
-    api.post(`/offers/${id}/withdraw?employerId=${employerId}`, { reason }),
+  // Withdraw offer (employer) — ownership resolved from the JWT
+  withdrawOffer: (id: string, reason?: string) =>
+    api.post(`/offers/${id}/withdraw`, { reason }),
 
-  // List offers (with filters)
+  // List offers (filtered by status). The scope (employer vs worker) is
+  // resolved from the authenticated user's role on the server, so workerId/
+  // employerId are no longer accepted from the client.
   listOffers: (params?: {
     status?: string;
-    workerId?: string;
-    employerId?: string;
     page?: number;
     limit?: number;
   }) => api.get('/offers', { params }),
@@ -417,9 +417,9 @@ export const offersApi = {
     return api.get('/offers/worker/me');
   },
 
-  // Get offers for employer
-  getEmployerOffers: (employerId: string) => {
-    return api.get('/offers', { params: { employerId } });
+  // Get offers for employer — scoped to the authenticated employer (JWT)
+  getEmployerOffers: () => {
+    return api.get('/offers');
   },
 };
 
