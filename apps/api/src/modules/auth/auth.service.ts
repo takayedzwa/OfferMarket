@@ -1,6 +1,8 @@
 import { Injectable, BadRequestException, UnauthorizedException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { TrustService } from '../trust/trust.service';
+import { MailService } from '../mail/mail.service';
+import { isCommonPassword } from './password-blocklist';
 import * as bcrypt from 'bcrypt';
 import * as jwt from 'jsonwebtoken';
 import * as crypto from 'crypto';
@@ -10,6 +12,7 @@ export class AuthService {
   constructor(
     private prisma: PrismaService,
     private trustService: TrustService,
+    private mailService: MailService,
   ) {}
 
   // ============================================================================
@@ -44,6 +47,14 @@ export class AuthService {
             ipAddress,
           });
         }
+      }
+
+      // Reject trivially-guessable passwords that still satisfy the DTO regex
+      // (e.g. "Password1"). The regex is the first line of defense; this is the
+      // second. Checked inside the transaction so it short-circuits before any
+      // account record is created.
+      if (isCommonPassword(password)) {
+        throw new BadRequestException('This password is too common and easily guessed. Please choose a stronger password.');
       }
 
       // Hash password
@@ -102,6 +113,14 @@ export class AuthService {
         throw new BadRequestException('Email already registered');
       }
 
+      // Reject trivially-guessable passwords that still satisfy the DTO regex
+      // (e.g. "Password1"). The regex is the first line of defense; this is the
+      // second. Checked inside the transaction so it short-circuits before any
+      // account record is created.
+      if (isCommonPassword(password)) {
+        throw new BadRequestException('This password is too common and easily guessed. Please choose a stronger password.');
+      }
+
       // Hash password
       const passwordHash = await bcrypt.hash(password, 10);
 
@@ -154,6 +173,14 @@ export class AuthService {
       const existing = await tx.user.findUnique({ where: { email } });
       if (existing) {
         throw new BadRequestException('Email already registered');
+      }
+
+      // Reject trivially-guessable passwords that still satisfy the DTO regex
+      // (e.g. "Password1"). The regex is the first line of defense; this is the
+      // second. Checked inside the transaction so it short-circuits before any
+      // account record is created.
+      if (isCommonPassword(password)) {
+        throw new BadRequestException('This password is too common and easily guessed. Please choose a stronger password.');
       }
 
       // Hash password
@@ -235,6 +262,14 @@ export class AuthService {
             ipAddress,
           });
         }
+      }
+
+      // Reject trivially-guessable passwords that still satisfy the DTO regex
+      // (e.g. "Password1"). The regex is the first line of defense; this is the
+      // second. Checked inside the transaction so it short-circuits before any
+      // account record is created.
+      if (isCommonPassword(password)) {
+        throw new BadRequestException('This password is too common and easily guessed. Please choose a stronger password.');
       }
 
       // Hash password
@@ -392,7 +427,7 @@ export class AuthService {
   // before production deployment.
   // ============================================================================
 
-  async sendVerificationCode(userId: string, type: 'EMAIL' | 'PHONE'): Promise<{ message: string; code?: string }> {
+  async sendVerificationCode(userId: string, type: 'EMAIL' | 'PHONE'): Promise<{ message: string }> {
     // Delete any existing codes for this user & type
     await this.prisma.verificationCode.deleteMany({
       where: { userId, type },
@@ -407,11 +442,24 @@ export class AuthService {
       data: { userId, type, codeHash, expiresAt },
     });
 
-    // TODO: In production, send via email/SMS instead of returning the code.
-    return {
-      message: `Verification code sent for ${type.toLowerCase()} verification.`,
-      code: rawCode, // Remove in production
-    };
+    // Deliver the code via a side channel (email now; SMS is a future hook).
+    // SECURITY: the raw code is NEVER returned in the API response — it was
+    // previously, which let anyone who could call the endpoint read another
+    // user's verification code. In dev/test the MailService captures the code
+    // in its in-memory outbox for retrieval; in production this is the swap
+    // point for a real email/SMS provider.
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { email: true, phone: true },
+    });
+    if (user) {
+      const to = type === 'EMAIL' ? user.email : user.phone;
+      if (to) {
+        this.mailService.sendVerificationCode(to, rawCode, type);
+      }
+    }
+
+    return { message: `Verification code sent for ${type.toLowerCase()} verification.` };
   }
 
   // ============================================================================
@@ -745,10 +793,10 @@ export class AuthService {
 
   /**
    * Initiate a password reset by generating a time-limited token.
-   * SECURITY: The raw token is no longer returned in the API response.
-   * In production, this token should be delivered via a side-channel
-   * (e.g. email). For development/testing, the token is logged to the server
-   * console at INFO level.
+   * SECURITY: The raw token is never returned in the API response. It is
+   * delivered via the MailService (email side channel). In dev/test the
+   * MailService captures the reset link in its in-memory outbox for
+   * retrieval; in production it is the swap point for a real provider.
    * Always returns success to avoid revealing whether an email exists.
    */
   async forgotPassword(email: string): Promise<{ message: string }> {
@@ -777,9 +825,13 @@ export class AuthService {
       },
     });
 
-    // TODO: In production, send this token via email (e.g., AWS SES, SendGrid).
-    // For development, log it so tests can retrieve it.
-    console.info(`[DEV] Password reset token for ${email}: ${rawToken}`);
+    // Deliver the reset link via email (side channel). The raw token is never
+    // returned in the API response. In dev/test the MailService captures the
+    // link in its in-memory outbox for retrieval; in production this is the
+    // swap point for a real email provider (AWS SES / SendGrid / SMTP).
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    const resetUrl = `${frontendUrl}/reset-password?token=${rawToken}`;
+    this.mailService.sendPasswordReset(user.email, resetUrl);
 
     return {
       message: 'If an account with that email exists, a password reset link has been sent.',
@@ -812,6 +864,11 @@ export class AuthService {
     // Check if token has already been used (one-time use)
     if (resetToken.usedAt) {
       throw new BadRequestException('Reset token has already been used. Please request a new one.');
+    }
+
+    // Reject trivially-guessable new passwords (same blocklist as registration).
+    if (isCommonPassword(newPassword)) {
+      throw new BadRequestException('This password is too common and easily guessed. Please choose a stronger password.');
     }
 
     // Hash the new password

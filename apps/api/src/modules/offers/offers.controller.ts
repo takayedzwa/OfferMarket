@@ -1,4 +1,5 @@
 import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards, Request } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
 import { RolesGuard } from '../../guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -28,6 +29,7 @@ export class OffersController {
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('EMPLOYER')
+  @Throttle({ short: { ttl: 60000, limit: 10 } })
   async createOffer(
     @Body(new OfferValidationPipe()) createOfferDto: any,
     @Request() req: any
@@ -230,6 +232,7 @@ export class OffersController {
   @Patch(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('EMPLOYER')
+  @Throttle({ short: { ttl: 60000, limit: 20 } })
   async updateOffer(
     @Param('id') id: string,
     @Request() req: any,
@@ -248,6 +251,7 @@ export class OffersController {
   @Post(':id/submit')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('EMPLOYER')
+  @Throttle({ short: { ttl: 60000, limit: 20 } })
   async submitOffer(
     @Param('id') id: string,
     @Request() req: any

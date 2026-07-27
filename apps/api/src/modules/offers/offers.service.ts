@@ -1,5 +1,6 @@
-import { Injectable, NotFoundException, BadRequestException, UnauthorizedException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, UnauthorizedException, ForbiddenException, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../../prisma/prisma.service';
 import { BillingService } from '../billing/billing.service';
 import { CreateOfferDto } from './dto/create-offer.dto';
@@ -39,11 +40,53 @@ const ANONYMIZED_WORKER_SELECT = {
 
 @Injectable()
 export class OffersService {
+  private readonly logger = new Logger(OffersService.name);
+
   constructor(
     private prisma: PrismaService,
     private billingService: BillingService,
     private eventEmitter: EventEmitter2,
   ) {}
+
+  // ============================================================================
+  // OFFER EXPIRY (scheduled)
+  // ----------------------------------------------------------------------------
+  // Offers carry an `expiresAt` (set at creation, default 14 days) but, until
+  // now, an offer past its expiry only moved to EXPIRED lazily — when a worker
+  // tried to accept it. Offers that were never acted on stayed in SUBMITTED /
+  // VIEWED / SHORTLISTED / COUNTERED indefinitely. This cron transitions every
+  // offer past its expiresAt (and not in a terminal state) to EXPIRED.
+  // DRAFT is intentionally excluded — the employer may still be editing.
+  // ScheduleModule.forRoot() is registered globally in the privacy module, so
+  // @Cron here is picked up app-wide.
+  // ============================================================================
+
+  @Cron(CronExpression.EVERY_30_MINUTES)
+  async expireOffers(): Promise<number> {
+    const activeStatuses: OfferStatus[] = [
+      'SUBMITTED',
+      'VIEWED',
+      'SHORTLISTED',
+      'COUNTERED',
+    ];
+    try {
+      const result = await this.prisma.offer.updateMany({
+        where: {
+          expiresAt: { lt: new Date() },
+          status: { in: activeStatuses },
+        },
+        data: { status: 'EXPIRED' },
+      });
+      if (result.count) {
+        this.logger.log(`Expired ${result.count} offer(s) past their expiresAt.`);
+      }
+      return result.count;
+    } catch (error) {
+      // A cron failure must never crash the scheduler.
+      this.logger.error(`Failed to expire offers: ${error?.message ?? error}`, error?.stack);
+      return 0;
+    }
+  }
 
   // ============================================================================
   // CREATE OFFER

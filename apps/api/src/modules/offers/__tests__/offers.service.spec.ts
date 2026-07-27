@@ -16,7 +16,7 @@ import { NotificationEventType } from '../../notifications/notification.types';
 class MockPrismaService {
   employer = { findUnique: jest.fn(), update: jest.fn(), create: jest.fn() };
   worker = { findUnique: jest.fn() };
-  offer = { findUnique: jest.fn(), findMany: jest.fn(), update: jest.fn(), count: jest.fn(), create: jest.fn() };
+  offer = { findUnique: jest.fn(), findMany: jest.fn(), update: jest.fn(), updateMany: jest.fn(), count: jest.fn(), create: jest.fn() };
   offerVersion = { findMany: jest.fn(), create: jest.fn() };
   blockedCompany = { findFirst: jest.fn() };
   visibleCompany = { findFirst: jest.fn() };
@@ -378,6 +378,36 @@ describe('OffersService', () => {
       await expect(service.counterOffer('offer-1', 'worker-user-1', { salaryMin: 35000, salaryMax: 45000 }))
         .rejects.toThrow(BadRequestException);
       expect(prisma.offerVersion.create).not.toHaveBeenCalled();
+    });
+  });
+
+  // =========================================================================
+  // Offer expiry cron: offers past their expiresAt that are still in an
+  // active (non-terminal) state are transitioned to EXPIRED. DRAFT is excluded
+  // so an employer mid-edit is not expired out from under them.
+  // =========================================================================
+  describe('expireOffers', () => {
+    it('transitions active offers past expiresAt to EXPIRED (cron)', async () => {
+      prisma.offer.updateMany.mockResolvedValue({ count: 3 });
+
+      const count = await service.expireOffers();
+
+      expect(count).toBe(3);
+      const callArg = prisma.offer.updateMany.mock.calls[0][0];
+      // Only offers whose expiresAt is in the past AND are still active.
+      expect(callArg.where.expiresAt).toEqual({ lt: expect.any(Date) });
+      expect(callArg.where.status.in).toEqual(
+        expect.arrayContaining(['SUBMITTED', 'VIEWED', 'SHORTLISTED', 'COUNTERED']),
+      );
+      expect(callArg.where.status.in).not.toContain('DRAFT');
+      expect(callArg.where.status.in).not.toContain('ACCEPTED');
+      expect(callArg.where.status.in).not.toContain('EXPIRED');
+      expect(callArg.data).toEqual({ status: 'EXPIRED' });
+    });
+
+    it('returns 0 and does not throw when the update fails', async () => {
+      prisma.offer.updateMany.mockRejectedValue(new Error('db down'));
+      await expect(service.expireOffers()).resolves.toBe(0);
     });
   });
 
