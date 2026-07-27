@@ -74,6 +74,38 @@ describe('AuthService', () => {
   });
 
   // =========================================================================
+  // registerEmployer — KvK duplicate race: two concurrent registrations with
+  // the same KvK number both pass the findUnique check; the DB @unique
+  // constraint on kvkNumber rejects the second create with Prisma P2002. The
+  // service must map that to a clean 400, not an unhandled 500.
+  // =========================================================================
+  describe('registerEmployer — KvK duplicate race (P2002)', () => {
+    it('maps a Prisma P2002 on kvkNumber to a clean BadRequestException', async () => {
+      const p2002 = Object.assign(new Error('Unique constraint failed'), {
+        code: 'P2002',
+        meta: { target: ['kvkNumber'] },
+      });
+      prisma.$transaction.mockRejectedValueOnce(p2002);
+
+      await expect(
+        service.registerEmployer('race@test.com', 'C0rrect-Horse-Battery!9q', '', {
+          name: 'Acme',
+          kvkNumber: '12345678',
+        }),
+      ).rejects.toThrow('Company with this KvK number already exists');
+
+      // Non-P2002 errors re-throw unchanged.
+      prisma.$transaction.mockRejectedValueOnce(new Error('something else'));
+      await expect(
+        service.registerEmployer('race2@test.com', 'C0rrect-Horse-Battery!9q', '', {
+          name: 'Acme',
+          kvkNumber: '87654321',
+        }),
+      ).rejects.toThrow('something else');
+    });
+  });
+
+  // =========================================================================
   // sendVerificationCode: the raw code MUST NOT be returned in the API
   // response. It is delivered via the MailService (email side channel).
   // =========================================================================

@@ -227,7 +227,8 @@ export class AuthService {
     },
     ipAddress?: string,
   ) {
-    return this.prisma.$transaction(async (tx) => {
+    try {
+      return await this.prisma.$transaction(async (tx) => {
       // Check if email already exists
       const existingByEmail = await tx.user.findUnique({ where: { email } });
       if (existingByEmail) {
@@ -326,7 +327,18 @@ export class AuthService {
         },
         tokens
       };
-    });
+      });
+    } catch (error: any) {
+      // Race condition: two concurrent registrations with the same KvK number
+      // both pass the findUnique uniqueness check before either commits. The
+      // DB-level @unique constraint on Employer.kvkNumber catches the duplicate
+      // and rejects the second create with Prisma error P2002. Map it to a
+      // clean 400 instead of surfacing as an unhandled 500.
+      if (error?.code === 'P2002' && error?.meta?.target?.includes('kvkNumber')) {
+        throw new BadRequestException('Company with this KvK number already exists');
+      }
+      throw error;
+    }
   }
 
   // ============================================================================
