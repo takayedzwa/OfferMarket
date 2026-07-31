@@ -435,6 +435,20 @@ describe('DsaService', () => {
         }),
       );
     });
+
+    it('should refuse to resolve from ASSESSMENT (action phase cannot be skipped)', async () => {
+      const mockReport = { id: 'report-1', status: ContentReportStatus.ASSESSMENT };
+      prisma.contentReport.findUnique.mockResolvedValue(mockReport);
+
+      await expect(
+        service.resolveReport('report-1', 'admin-1', {
+          resolution: ContentReportResolution.CONTENT_TAKEN_DOWN,
+          resolutionNotes: 'Resolved without action',
+        }),
+      ).rejects.toThrow(BadRequestException);
+
+      expect(prisma.contentReport.update).not.toHaveBeenCalled();
+    });
   });
 
   // ===========================================================================

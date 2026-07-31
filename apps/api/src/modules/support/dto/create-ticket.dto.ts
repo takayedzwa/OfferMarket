@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsIn, IsObject, IsBoolean } from 'class-validator';
+import { IsString, IsOptional, IsIn, IsObject, IsBoolean, IsInt, Min } from 'class-validator';
 
 export class CreateTicketDto {
   // SECURITY: userId is no longer accepted from the request body.
@@ -46,4 +46,13 @@ export class TicketReplyDto {
 export class AssignTicketDto {
   @IsString()
   assignedToId: string;
+}
+
+export class ExtendOfferExpiryDto {
+  // A-M3: the number of days to extend an offer's expiry. Must be a positive
+  // whole number — previously the service accepted any number including
+  // negatives, which would shorten the expiry instead of extending it.
+  @IsInt()
+  @Min(1)
+  days!: number;
 }

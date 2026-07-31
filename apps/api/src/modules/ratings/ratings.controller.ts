@@ -166,18 +166,23 @@ export class RatingsController {
   /**
    * POST /ratings/:id/unflag
    * Remove flag from a rating (admin only)
+   * SECURITY: adminUserId is extracted from the JWT token (not the request
+   * body/query) and recorded in the audit trail.
    */
   @Post(':id/unflag')
   // E-L1: AdminGuard extends AuthGuard('jwt') and self-authenticates, so it does
   // not need to be paired with JwtAuthGuard — that ran JWT verification twice.
   @UseGuards(AdminGuard)
-  async unflagRating(@Param('id') ratingId: string) {
-    return this.ratingsService.unflagRating(ratingId);
+  async unflagRating(@Param('id') ratingId: string, @Request() req: any) {
+    const adminUserId = req.user.id;
+    return this.ratingsService.unflagRating(ratingId, adminUserId);
   }
 
   /**
    * PATCH /ratings/:id/publish
    * Toggle rating publication status (admin only)
+   * SECURITY: adminUserId is extracted from the JWT token (not the request
+   * body/query) and recorded in the audit trail.
    */
   @Patch(':id/publish')
   // E-L1: AdminGuard extends AuthGuard('jwt') and self-authenticates, so it does
@@ -185,8 +190,10 @@ export class RatingsController {
   @UseGuards(AdminGuard)
   async toggleRatingPublication(
     @Param('id') ratingId: string,
-    @Body() body: { isPublished: boolean }
+    @Body() body: { isPublished: boolean },
+    @Request() req: any,
   ) {
-    return this.ratingsService.toggleRatingPublication(ratingId, body.isPublished);
+    const adminUserId = req.user.id;
+    return this.ratingsService.toggleRatingPublication(ratingId, body.isPublished, adminUserId);
   }
 }

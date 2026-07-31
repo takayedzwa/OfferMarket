@@ -1,11 +1,20 @@
 import { Controller, Post, Body, BadRequestException, Get, Request, UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
+import { AdminGuard } from '../../guards/admin.guard';
 import { AuthService } from './auth.service';
 import { RegisterWorkerDto, RegisterEmployerDto, RegisterAdminDto, RegisterSupportDto } from './dto/auth.dto';
 import { ForgotPasswordDto, ResetPasswordDto } from './dto/reset-password.dto';
 
 @Controller('auth')
+// SECURITY (CSRF assessment): authentication is bearer-token based — the
+// frontend stores the JWT in localStorage and sends it via the Authorization
+// header (see apps/web lib/api.ts). The API never sets or reads auth cookies
+// (no res.cookie / cookie-parser / req.cookies anywhere in src/). CSRF attacks
+// exploit browsers automatically attaching cookies to cross-site requests;
+// since no auth credential is transmitted that way, CSRF protection is not
+// applicable here. If cookie-based sessions are ever introduced, SameSite +
+// double-submit CSRF tokens must be added at that point.
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
@@ -49,7 +58,9 @@ export class AuthController {
       email: user.email,
       emailVerified: user.emailVerified,
       phoneVerified: user.phoneVerified,
-      phone: user.phone
+      phone: user.phone,
+      firstName: user.firstName,
+      lastName: user.lastName
     };
   }
 
@@ -65,8 +76,14 @@ export class AuthController {
   }
 
   // ============================================================================
-  // REGISTER ADMIN (Internal - requires admin code)
+  // REGISTER ADMIN (Bootstrap only — not for UI use)
   // ============================================================================
+  // SECURITY: This endpoint is intentionally unauthenticated and gated only by
+  // the ADMIN_REGISTRATION_CODE env secret. It exists to seed the FIRST admin
+  // before any admin exists to authenticate. Do NOT call this from the admin
+  // console — that would require shipping the secret to the browser. Once an
+  // admin exists, additional ADMIN/SUPPORT users are created via the
+  // admin-guarded, audit-logged POST /admin/users/staff endpoint instead.
 
   @Post('register/admin')
   @Throttle({ short: { ttl: 60000, limit: 5 } })
@@ -77,11 +94,18 @@ export class AuthController {
   // ============================================================================
   // REGISTER SUPPORT (Admin only)
   // ============================================================================
+  // SECURITY: This endpoint now requires an authenticated ADMIN JWT. The
+  // admin's identity is taken from the verified token (req.user.id) rather
+  // than the request body, preventing IDOR where anyone who knew an admin's
+  // user ID could create a SUPPORT account. AdminGuard both authenticates the
+  // JWT and enforces the ADMIN role.
+  // ============================================================================
 
   @Post('register/support')
+  @UseGuards(AdminGuard)
   @Throttle({ short: { ttl: 60000, limit: 5 } })
-  async registerSupport(@Body() dto: RegisterSupportDto) {
-    return this.authService.registerSupport(dto.email, dto.password, dto.adminUserId);
+  async registerSupport(@Body() dto: RegisterSupportDto, @Request() req: any) {
+    return this.authService.registerSupport(dto.email, dto.password, req.user.id);
   }
 
   // ============================================================================

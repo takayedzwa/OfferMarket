@@ -1,5 +1,5 @@
 import { Controller, Get, Post, Delete, Patch, Body, Param, Query, Request, UseGuards, Res, NotFoundException } from '@nestjs/common';
-import { SkipThrottle } from '@nestjs/throttler';
+import { SkipThrottle, Throttle } from '@nestjs/throttler';
 import type { Response } from 'express';
 import { PrivacyService } from './privacy.service';
 import { RetentionService } from './retention.service';
@@ -23,6 +23,7 @@ import {
   AutomatedDecisionObjectionDto,
 } from './dto/privacy.dto';
 import { ConsentType, ExportFormat } from '@prisma/client';
+import { parsePage, parseLimit } from '../../common/utils/pagination';
 
 @Controller('privacy')
 export class PrivacyController {
@@ -377,15 +378,16 @@ export class PrivacyController {
     @Query('requestType') requestType?: string,
     @Query('userId') userId?: string,
   ) {
+    // A-M2: clamp page/limit instead of bare parseInt().
     return this.privacyService.getAllRequests(
-      parseInt(page, 10),
-      parseInt(limit, 10),
+      parsePage(page),
+      parseLimit(limit),
       { status, requestType, userId },
     );
   }
 
   @Patch('admin/requests/:id')
-  @SkipThrottle()
+  @Throttle({ short: { ttl: 60000, limit: 20 } })
   // E-L1: AdminGuard extends AuthGuard('jwt') and self-authenticates, so it does
   // not need to be paired with JwtAuthGuard — that ran JWT verification twice.
   @UseGuards(AdminGuard)
@@ -399,7 +401,7 @@ export class PrivacyController {
   }
 
   @Post('admin/requests/:id/execute-rectification')
-  @SkipThrottle()
+  @Throttle({ short: { ttl: 60000, limit: 20 } })
   // E-L1: AdminGuard extends AuthGuard('jwt') and self-authenticates, so it does
   // not need to be paired with JwtAuthGuard — that ran JWT verification twice.
   @UseGuards(AdminGuard)
@@ -420,11 +422,11 @@ export class PrivacyController {
     @Query('page') page: string = '1',
     @Query('limit') limit: string = '20',
   ) {
-    return this.privacyService.getBreaches(parseInt(page, 10), parseInt(limit, 10));
+    return this.privacyService.getBreaches(parsePage(page), parseLimit(limit));
   }
 
   @Post('admin/breaches')
-  @SkipThrottle()
+  @Throttle({ short: { ttl: 60000, limit: 20 } })
   // E-L1: AdminGuard extends AuthGuard('jwt') and self-authenticates, so it does
   // not need to be paired with JwtAuthGuard — that ran JWT verification twice.
   @UseGuards(AdminGuard)
@@ -445,7 +447,7 @@ export class PrivacyController {
   }
 
   @Patch('admin/breaches/:id')
-  @SkipThrottle()
+  @Throttle({ short: { ttl: 60000, limit: 20 } })
   // E-L1: AdminGuard extends AuthGuard('jwt') and self-authenticates, so it does
   // not need to be paired with JwtAuthGuard — that ran JWT verification twice.
   @UseGuards(AdminGuard)

@@ -1,12 +1,22 @@
 import { Controller, Get, Post, Patch, Body, Param, Query, UseGuards, Request } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { AdminGuard } from '../../guards/admin.guard';
 import { AdminService } from './admin.service';
 import { UpdateSettingsDto } from './dto/update-settings.dto';
+import { VerifyEmployerDto, RejectEmployerDto } from './dto/verify-employer.dto';
+import { CreateStaffUserDto } from './dto/create-staff-user.dto';
+import { parsePage, parseLimit } from '../../common/utils/pagination';
 
 @Controller('admin')
 // E-L1: AdminGuard extends AuthGuard('jwt') and self-authenticates, so it does
 // not need to be paired with JwtAuthGuard — that ran JWT verification twice.
 @UseGuards(AdminGuard)
+// Rate-limit the whole admin console tighter than the global 100/min default.
+// The destructive state-changing endpoints here (suspend/ban/restore,
+// verify/reject employer, create staff, update settings) are the exact paths a
+// compromised admin session would hammer to mass-ban users; capping the class
+// at 60/min slows that blast radius. Individual endpoints can override further.
+@Throttle({ short: { ttl: 60000, limit: 60 } })
 export class AdminController {
   constructor(private readonly adminService: AdminService) {}
 
@@ -31,9 +41,10 @@ export class AdminController {
     @Query('status') status?: string,
     @Query('search') search?: string,
   ) {
+    // A-M2: clamp page/limit to a safe range instead of bare parseInt().
     return this.adminService.getUsers(
-      page ? parseInt(page) : 1,
-      limit ? parseInt(limit) : 20,
+      parsePage(page),
+      parseLimit(limit),
       { role, status, search },
     );
   }
@@ -70,6 +81,20 @@ export class AdminController {
   }
 
   // ============================================================================
+  // STAFF CREATION (Admin only — create ADMIN or SUPPORT users from console)
+  // ============================================================================
+
+  @Post('users/staff')
+  async createStaffUser(
+    @Body() dto: CreateStaffUserDto,
+    @Request() req: any,
+  ) {
+    // AdminGuard (class-level) authenticates the JWT and enforces ADMIN role.
+    // The creator's identity comes from req.user.id and is audit-logged.
+    return this.adminService.createStaffUser(dto, req.user.id);
+  }
+
+  // ============================================================================
   // EMPLOYER VERIFICATION
   // ============================================================================
 
@@ -79,50 +104,19 @@ export class AdminController {
     @Query('limit') limit?: string,
     @Query('verificationStatus') verificationStatus?: string,
   ) {
-    const skip = (page ? parseInt(page) : 1) - 1;
-    const take = limit ? parseInt(limit) : 20;
-
-    const where: any = {};
-    if (verificationStatus) {
-      where.verificationStatus = verificationStatus;
-    }
-
-    const [employers, total] = await Promise.all([
-      this.adminService['prisma'].employer.findMany({
-        where,
-        skip: skip * take,
-        take,
-        include: { user: true },
-        orderBy: { createdAt: 'desc' },
-      }),
-      this.adminService['prisma'].employer.count({ where }),
-    ]);
-
-    return {
-      employers,
-      pagination: {
-        page: page ? parseInt(page) : 1,
-        limit: limit ? parseInt(limit) : 20,
-        total,
-        totalPages: Math.ceil(total / (limit ? parseInt(limit) : 20)),
-      },
-    };
+    // A-M1: delegate to the service instead of reaching into
+    // adminService['prisma'] from the controller. A-M2: clamped pagination.
+    return this.adminService.getEmployers(
+      parsePage(page),
+      parseLimit(limit),
+      verificationStatus,
+    );
   }
 
   @Get('employers/:id')
   async getEmployer(@Param('id') id: string) {
-    return this.adminService['prisma'].employer.findUnique({
-      where: { id },
-      include: {
-        user: true,
-        offersSent: {
-          include: { worker: true },
-          orderBy: { createdAt: 'desc' },
-          take: 10,
-        },
-        ratings: true,
-      },
-    });
+    // A-M1: no direct prisma access from the controller.
+    return this.adminService.getEmployer(id);
   }
 
   @Get('verification-queue')
@@ -131,8 +125,8 @@ export class AdminController {
     @Query('limit') limit?: string,
   ) {
     return this.adminService.getVerificationQueue(
-      page ? parseInt(page) : 1,
-      limit ? parseInt(limit) : 20,
+      parsePage(page),
+      parseLimit(limit),
     );
   }
 
@@ -140,18 +134,23 @@ export class AdminController {
   async verifyEmployer(
     @Param('id') id: string,
     @Request() req: any,
-    @Body('notes') notes?: string,
+    @Body() dto: VerifyEmployerDto,
   ) {
-    return this.adminService.verifyEmployer(id, req.user.id, notes);
+    // A-H4: validate the body via a DTO class instead of reading @Body('notes')
+    // directly (no validation). The VerifyEmployerDto was previously defined
+    // but unused.
+    return this.adminService.verifyEmployer(id, req.user.id, dto.notes);
   }
 
   @Post('employers/:id/reject')
   async rejectEmployer(
     @Param('id') id: string,
     @Request() req: any,
-    @Body('reason') reason: string,
+    @Body() dto: RejectEmployerDto,
   ) {
-    return this.adminService.rejectEmployer(id, req.user.id, reason);
+    // A-H4: validate the body via a DTO class so a rejection reason is always
+    // present and recorded in the audit trail.
+    return this.adminService.rejectEmployer(id, req.user.id, dto.reason);
   }
 
   // ============================================================================
@@ -180,15 +179,18 @@ export class AdminController {
     @Query('page') page?: string,
     @Query('limit') limit?: string,
     @Query('userId') userId?: string,
+    @Query('adminId') adminId?: string,
     @Query('action') action?: string,
     @Query('entityType') entityType?: string,
     @Query('dateFrom') dateFrom?: string,
     @Query('dateTo') dateTo?: string,
   ) {
+    // A-L6: adminId filters the audit log to entries performed by a given
+    // admin (recorded as userId on the AuditLog row).
     return this.adminService.getAuditLogs(
-      page ? parseInt(page) : 1,
-      limit ? parseInt(limit) : 50,
-      { userId, action, entityType, dateFrom, dateTo },
+      parsePage(page),
+      parseLimit(limit, 50),
+      { userId, adminId, action, entityType, dateFrom, dateTo },
     );
   }
 
@@ -200,8 +202,8 @@ export class AdminController {
   ) {
     return this.adminService.getAdminActions(
       adminId,
-      page ? parseInt(page) : 1,
-      limit ? parseInt(limit) : 50,
+      parsePage(page),
+      parseLimit(limit, 50),
     );
   }
 
@@ -218,8 +220,8 @@ export class AdminController {
     @Query('employerId') employerId?: string,
   ) {
     return this.adminService.getAllOffers(
-      page ? parseInt(page) : 1,
-      limit ? parseInt(limit) : 20,
+      parsePage(page),
+      parseLimit(limit),
       { status, workerId, employerId },
     );
   }

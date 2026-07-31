@@ -585,30 +585,69 @@ export class RatingsService {
    * Flag a rating for review (admin function)
    */
   async flagRating(ratingId: string, adminUserId: string) {
-    return this.prisma.rating.update({
+    const rating = await this.prisma.rating.update({
       where: { id: ratingId },
       data: { flaggedAt: new Date() }
     });
+
+    // A-H2: record an admin audit trail for the moderation action.
+    await this.prisma.adminAction.create({
+      data: {
+        adminId: adminUserId,
+        action: 'RATING_FLAGGED',
+        entityType: 'rating',
+        entityId: ratingId,
+        details: { employerId: rating.employerId },
+      },
+    });
+
+    return rating;
   }
 
   /**
    * Unflag a rating (admin function)
    */
-  async unflagRating(ratingId: string) {
-    return this.prisma.rating.update({
+  async unflagRating(ratingId: string, adminUserId: string) {
+    const rating = await this.prisma.rating.update({
       where: { id: ratingId },
       data: { flaggedAt: null }
     });
+
+    // A-H2: record an admin audit trail for the moderation action.
+    await this.prisma.adminAction.create({
+      data: {
+        adminId: adminUserId,
+        action: 'RATING_UNFLAGGED',
+        entityType: 'rating',
+        entityId: ratingId,
+        details: { employerId: rating.employerId },
+      },
+    });
+
+    return rating;
   }
 
   /**
    * Toggle rating publication status (admin function)
    */
-  async toggleRatingPublication(ratingId: string, isPublished: boolean) {
-    return this.prisma.rating.update({
+  async toggleRatingPublication(ratingId: string, isPublished: boolean, adminUserId: string) {
+    const rating = await this.prisma.rating.update({
       where: { id: ratingId },
       data: { isPublished }
     });
+
+    // A-H2: record an admin audit trail for the publication change.
+    await this.prisma.adminAction.create({
+      data: {
+        adminId: adminUserId,
+        action: 'RATING_PUBLICATION_TOGGLED',
+        entityType: 'rating',
+        entityId: ratingId,
+        details: { isPublished, employerId: rating.employerId },
+      },
+    });
+
+    return rating;
   }
 
   // ============================================================================

@@ -1,4 +1,4 @@
-import { IsOptional, IsString, IsInt, Min } from 'class-validator';
+import { IsOptional, IsString, IsInt, Min, Max } from 'class-validator';
 import { Transform } from 'class-transformer';
 
 export class ListInvoicesQueryDto {
@@ -20,6 +20,7 @@ export class ListInvoicesQueryDto {
   @Transform(({ value }) => parseInt(value, 10))
   @IsInt()
   @Min(1)
+  @Max(100)
   limit?: number = 20;
 }
 
@@ -42,5 +43,6 @@ export class AdminListInvoicesQueryDto {
   @Transform(({ value }) => parseInt(value, 10))
   @IsInt()
   @Min(1)
+  @Max(100)
   limit?: number = 20;
 }

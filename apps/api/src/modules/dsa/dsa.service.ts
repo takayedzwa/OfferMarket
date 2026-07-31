@@ -261,6 +261,16 @@ export class DsaService {
     const report = await this.prisma.contentReport.findUnique({ where: { id: reportId } });
     if (!report) throw new NotFoundException('Report not found');
 
+    // A-H5: only reports under assessment (or already acted on, to re-act)
+    // can have an action taken. Terminal states (RESOLVED/DISMISSED/ESCALATED)
+    // and the initial RECEIVED state are rejected to enforce the state machine.
+    if (
+      report.status !== ContentReportStatus.ASSESSMENT &&
+      report.status !== ContentReportStatus.ACTION_TAKEN
+    ) {
+      throw new BadRequestException(`Report cannot have action taken in status: ${report.status}`);
+    }
+
     const updated = await this.prisma.contentReport.update({
       where: { id: reportId },
       data: {
@@ -293,6 +303,15 @@ export class DsaService {
     const report = await this.prisma.contentReport.findUnique({ where: { id: reportId } });
     if (!report) throw new NotFoundException('Report not found');
 
+    // A-H5 + state-machine tightening: a report can only be resolved once an
+    // action has actually been taken. Resolving directly from ASSESSMENT would
+    // let staff skip the action phase entirely (assess → resolve with nothing
+    // done), so require ACTION_TAKEN. Also reject terminal states
+    // (RESOLVED/DISMISSED/ESCALATED) and the not-yet-assessed RECEIVED state.
+    if (report.status !== ContentReportStatus.ACTION_TAKEN) {
+      throw new BadRequestException(`Report cannot be resolved in status: ${report.status}. An action must be taken first.`);
+    }
+
     return this.prisma.contentReport.update({
       where: { id: reportId },
       data: {
@@ -312,6 +331,17 @@ export class DsaService {
   async escalateToAuthorities(reportId: string, adminId: string, dto: EscalateToAuthoritiesDto) {
     const report = await this.prisma.contentReport.findUnique({ where: { id: reportId } });
     if (!report) throw new NotFoundException('Report not found');
+
+    // A-H5: escalation to authorities can happen from any pre-terminal state
+    // (RECEIVED/ASSESSMENT/ACTION_TAKEN) but not from an already-terminal
+    // state (RESOLVED/DISMISSED/ESCALATED).
+    if (
+      report.status === ContentReportStatus.RESOLVED ||
+      report.status === ContentReportStatus.DISMISSED ||
+      report.status === ContentReportStatus.ESCALATED
+    ) {
+      throw new BadRequestException(`Report cannot be escalated in status: ${report.status}`);
+    }
 
     return this.prisma.contentReport.update({
       where: { id: reportId },
@@ -381,14 +411,29 @@ export class DsaService {
    * DSA Art. 20: must be electronic, free of charge, and handled within
    * a reasonable timeframe by qualified staff (not solely automated).
    */
-  async submitComplaint(userId: string, email: string, dto: CreateDSAComplaintDto) {
+  async submitComplaint(userId: string, email: string | undefined, dto: CreateDSAComplaintDto) {
+    // A-H6: resolve the complainant email authoritatively from the user record
+    // when it is not carried on the JWT. Never fall back to dto.contentReportId
+    // — that is a report ID, not an email address.
+    let complainantEmail = email;
+    if (!complainantEmail) {
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { email: true },
+      });
+      complainantEmail = user?.email;
+    }
+    if (!complainantEmail) {
+      throw new BadRequestException('Complainant email is required to submit a DSA complaint');
+    }
+
     // Calculate response deadline: 15 business days from now
     const targetResponseAt = new Date(Date.now() + 15 * 24 * 60 * 60 * 1000);
 
     const complaint = await this.prisma.dSAComplaint.create({
       data: {
         complainantId: userId,
-        complainantEmail: email,
+        complainantEmail,
         contentReportId: dto.contentReportId,
         relatedEntityType: dto.relatedEntityType,
         relatedEntityId: dto.relatedEntityId,

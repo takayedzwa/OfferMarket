@@ -1,8 +1,10 @@
 import { IsEmail, IsString, MinLength, Matches, IsOptional, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 
-const PASSWORD_MSG = 'Password must be at least 8 characters and contain at least one uppercase letter, one lowercase letter, and one digit';
-const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
+// Shared password policy — reused by the staff-creation DTO in the admin
+// module so all credential-setting paths enforce the same rules.
+export const PASSWORD_MSG = 'Password must be at least 8 characters and contain at least one uppercase letter, one lowercase letter, and one digit';
+export const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
 
 export class RegisterWorkerDto {
   @IsEmail()
@@ -77,6 +79,10 @@ export class RegisterSupportDto {
   @Matches(PASSWORD_REGEX, { message: PASSWORD_MSG })
   password!: string;
 
+  // A-C2: deprecated — the admin's identity is now taken from the JWT
+  // (req.user.id) by the controller, not from the request body. Kept optional
+  // for backward compatibility but no longer trusted or required.
+  @IsOptional()
   @IsString()
-  adminUserId!: string;
+  adminUserId?: string;
 }

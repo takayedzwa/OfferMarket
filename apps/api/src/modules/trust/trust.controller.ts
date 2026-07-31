@@ -13,6 +13,7 @@ import {
   BadRequestException,
   NotFoundException,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { TrustService } from './trust.service';
 import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
 import { RolesGuard } from '../../guards/roles.guard';
@@ -47,6 +48,10 @@ export class TrustController {
    * GET /trust/employers/:employerId/verification
    * Get employer verification status
    */
+  // A-C1: employer verification status is internal trust data — restrict to
+  // staff roles rather than leaving it open to any authenticated user, which
+  // allowed IDOR enumeration of any employer's verification state.
+  @Roles('ADMIN', 'SUPPORT')
   @Get('employers/:employerId/verification')
   async getEmployerVerification(@Param('employerId') employerId: string) {
     return this.trustService.getEmployerVerification(employerId);
@@ -108,6 +113,10 @@ export class TrustController {
    * POST /trust/suspicious-activity
    * Report suspicious activity
    */
+  // A-C1: reporting suspicious activity feeds the internal fraud-detection
+  // system. Leaving it open to any authenticated user allowed reconnaissance
+  // and poisoning of fraud signals — restrict to staff roles.
+  @Roles('ADMIN', 'SUPPORT')
   @Post('suspicious-activity')
   async reportSuspiciousActivity(
     @Body() dto: ReportSuspiciousActivityDto,
@@ -135,6 +144,7 @@ export class TrustController {
    */
   @Put('suspicious-activity/:activityId/review')
   @Roles('ADMIN', 'SUPPORT')
+  @Throttle({ short: { ttl: 60000, limit: 20 } })
   async reviewSuspiciousActivity(
     @Param('activityId') activityId: string,
     @Body() dto: ReviewSuspiciousActivityDto,
@@ -221,6 +231,7 @@ export class TrustController {
    */
   @Put('duplicates/:primaryUserId/:suspectedUserId/review')
   @Roles('ADMIN')
+  @Throttle({ short: { ttl: 60000, limit: 20 } })
   async reviewDuplicateAccount(
     @Param('primaryUserId') primaryUserId: string,
     @Param('suspectedUserId') suspectedUserId: string,
@@ -245,6 +256,7 @@ export class TrustController {
    */
   @Post('blacklist')
   @Roles('ADMIN')
+  @Throttle({ short: { ttl: 60000, limit: 20 } })
   async addToBlacklist(@Body() dto: AddToBlacklistDto, @Request() req: any) {
     return this.trustService.addToBlacklist(dto, req.user?.userId);
   }
@@ -308,6 +320,9 @@ export class TrustController {
    * GET /trust/reputation/employer/:employerId
    * Get employer reputation score
    */
+  // A-C1: reputation scoring is an internal trust signal — restrict to staff
+  // roles rather than exposing any entity's reputation to any user.
+  @Roles('ADMIN', 'SUPPORT')
   @Get('reputation/employer/:employerId')
   async getEmployerReputation(@Param('employerId') employerId: string) {
     return this.trustService.calculateReputationScore({ employerId });
@@ -317,6 +332,9 @@ export class TrustController {
    * GET /trust/reputation/worker/:workerId
    * Get worker reputation score
    */
+  // A-C1: worker reputation is an internal trust signal — restrict to staff
+  // roles rather than exposing any worker's reputation to any user.
+  @Roles('ADMIN', 'SUPPORT')
   @Get('reputation/worker/:workerId')
   async getWorkerReputation(@Param('workerId') workerId: string) {
     return this.trustService.calculateReputationScore({ workerId });
@@ -326,6 +344,9 @@ export class TrustController {
    * GET /trust/score/:entityType/:entityId
    * Get trust score for entity
    */
+  // A-C1: trust scores are internal fraud-detection signals — restrict to
+  // staff roles rather than leaving them open to any authenticated user.
+  @Roles('ADMIN', 'SUPPORT')
   @Get('score/:entityType/:entityId')
   async getTrustScore(
     @Param('entityType') entityType: string,

@@ -107,25 +107,52 @@ export class SupportService {
 
   async createTicket(data: CreateTicketDto & { userId: string }) {
     const year = new Date().getFullYear();
-    const count = await this.prisma.supportTicket.count();
-    const ticketNumber = `SUP-${year}-${String(count + 1).padStart(6, '0')}`;
 
-    return this.prisma.supportTicket.create({
-      data: {
-        ticketNumber,
-        userId: data.userId,
-        subject: data.subject,
-        description: data.description,
-        category: data.category,
-        priority: data.priority as any,
-        relatedEntityType: data.relatedEntityType,
-        relatedEntityId: data.relatedEntityId,
-        status: 'OPEN',
-      },
-      include: {
-        user: true,
-      },
-    });
+    // A-M8: previously the ticket number was `count + 1` computed outside any
+    // transaction. Two concurrent requests could read the same count and both
+    // produce the same SUP-YYYY-NNNNNN, colliding on the @unique ticketNumber.
+    // Now the count + create run inside a transaction, and on a P2002
+    // collision we recompute and retry so concurrent creations get distinct
+    // numbers instead of one failing.
+    const MAX_ATTEMPTS = 5;
+    for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+      try {
+        return await this.prisma.$transaction(async (tx) => {
+          const count = await tx.supportTicket.count();
+          const ticketNumber = `SUP-${year}-${String(count + 1).padStart(6, '0')}`;
+          return tx.supportTicket.create({
+            data: {
+              ticketNumber,
+              userId: data.userId,
+              subject: data.subject,
+              description: data.description,
+              category: data.category,
+              priority: data.priority as any,
+              relatedEntityType: data.relatedEntityType,
+              relatedEntityId: data.relatedEntityId,
+              status: 'OPEN',
+            },
+            include: {
+              user: true,
+            },
+          });
+        });
+      } catch (error: any) {
+        if (
+          attempt < MAX_ATTEMPTS - 1 &&
+          error?.code === 'P2002' &&
+          error?.meta?.target?.includes('ticketNumber')
+        ) {
+          // Collision — another concurrent creation grabbed this number.
+          // Recompute from the latest count and retry.
+          continue;
+        }
+        throw error;
+      }
+    }
+    // Should be unreachable given the retry above, but keep a clear message
+    // rather than returning undefined.
+    throw new BadRequestException('Failed to allocate a unique ticket number');
   }
 
   async replyToTicket(ticketId: string, senderId: string, content: string, isInternal: boolean = false) {
@@ -315,8 +342,13 @@ export class SupportService {
       throw new NotFoundException('User not found');
     }
 
-    // Don't expose sensitive fields
-    const { passwordHash, twoFactorSecret, ...safeUser } = user;
+    // GDPR data minimization (proportionality): SUPPORT staff see only what
+    // they need to handle a support ticket — contact details, role, status,
+    // and the worker/employer context. Strip credentials (passwordHash,
+    // twoFactorSecret) and the user's last-login IP (sensitive PII that belongs
+    // to the trust/admin investigation path, not routine support). Admins get a
+    // fuller view via the admin endpoints; support gets this minimized one.
+    const { passwordHash, twoFactorSecret, lastLoginIp, ...safeUser } = user;
     return safeUser;
   }
 
@@ -438,6 +470,14 @@ export class SupportService {
 
     if (!offer) {
       throw new NotFoundException('Offer not found');
+    }
+
+    // A-M3: defense-in-depth — the DTO already enforces a positive integer,
+    // but the service must not trust its caller. Reject non-positive or
+    // non-integer values so a negative can never shorten (or zero out) the
+    // expiry.
+    if (!Number.isInteger(days) || days < 1) {
+      throw new BadRequestException('days must be a positive whole number');
     }
 
     const newExpiresAt = new Date(offer.expiresAt);

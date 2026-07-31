@@ -3,11 +3,16 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, Shield, Ban, CheckCircle, Mail, Phone, Calendar, Briefcase, DollarSign, MapPin } from "lucide-react";
+import { useAuth } from "../../../../contexts/AuthContext";
+import { adminApi } from "../../../../lib/api";
 
 interface User {
   id: string;
   email: string;
   phoneNumber?: string;
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
   role: string;
   status: string;
   createdAt: string;
@@ -28,6 +33,7 @@ interface AdminAction {
 export default function AdminUserDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const { user: currentUser, loading: authLoading } = useAuth();
   const userId = params.id as string;
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -38,13 +44,10 @@ export default function AdminUserDetailPage() {
   const [showBanModal, setShowBanModal] = useState(false);
 
   const fetchUser = () => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1'}/admin/users/${userId}`, {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
-      },
-    })
-      .then((res) => res.json())
-      .then((data) => {
+    // A-L3: centralized axios client.
+    adminApi
+      .getUserById(userId)
+      .then(({ data }) => {
         setUser(data);
         setLoading(false);
       })
@@ -52,83 +55,58 @@ export default function AdminUserDetailPage() {
   };
 
   const fetchActions = () => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1'}/admin/audit-logs?targetUserId=${userId}`, {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
-      },
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        setActions(data.actions || []);
+    // A-L6: filter the audit trail to entries for this user. The endpoint
+    // accepts userId (the actor/subject) for filtering.
+    adminApi
+      .getAuditLogs({ userId, limit: 50 })
+      .then(({ data }) => {
+        setActions(data.logs || data.actions || []);
       })
       .catch(() => {});
   };
 
   useEffect(() => {
+    // A-L4: gate the admin user detail view on the ADMIN role.
+    if (authLoading) return;
+    const accessToken = localStorage.getItem('accessToken');
+    if (!accessToken || !currentUser || currentUser.role !== 'ADMIN') {
+      router.push('/login');
+      return;
+    }
     fetchUser();
     fetchActions();
-  }, [userId]);
+  }, [userId, currentUser, authLoading, router]);
 
   const handleSuspend = () => {
     if (!suspendReason.trim()) return;
-
-    fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1'}/admin/users/${userId}/suspend`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
-      },
-      body: JSON.stringify({ reason: suspendReason }),
-    })
-      .then((res) => {
-        if (res.ok) {
-          setShowSuspendModal(false);
-          fetchUser();
-          fetchActions();
-        } else {
-          alert('Failed to suspend user');
-        }
+    adminApi
+      .suspendUser(userId, suspendReason)
+      .then(() => {
+        setShowSuspendModal(false);
+        fetchUser();
+        fetchActions();
       })
       .catch(() => alert('Failed to suspend user'));
   };
 
   const handleBan = () => {
     if (!banReason.trim()) return;
-
-    fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1'}/admin/users/${userId}/ban`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
-      },
-      body: JSON.stringify({ reason: banReason }),
-    })
-      .then((res) => {
-        if (res.ok) {
-          setShowBanModal(false);
-          fetchUser();
-          fetchActions();
-        } else {
-          alert('Failed to ban user');
-        }
+    adminApi
+      .banUser(userId, banReason)
+      .then(() => {
+        setShowBanModal(false);
+        fetchUser();
+        fetchActions();
       })
       .catch(() => alert('Failed to ban user'));
   };
 
   const handleRestore = () => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1'}/admin/users/${userId}/restore`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
-      },
-      body: JSON.stringify({ reason: 'Restored by admin' }),
-    })
-      .then((res) => {
-        if (res.ok) {
-          fetchUser();
-          fetchActions();
-        }
+    adminApi
+      .restoreUser(userId)
+      .then(() => {
+        fetchUser();
+        fetchActions();
       })
       .catch(() => {});
   };
@@ -172,7 +150,13 @@ export default function AdminUserDetailPage() {
               </button>
               <div>
                 <h1 className="text-lg font-semibold text-gray-900">User Details</h1>
-                <p className="text-sm text-gray-500">{user.email}</p>
+                {(user.firstName || user.lastName) ? (
+                  <p className="text-sm text-gray-700">
+                    {user.firstName} {user.lastName} <span className="text-gray-400">·</span> <span className="text-gray-500">{user.email}</span>
+                  </p>
+                ) : (
+                  <p className="text-sm text-gray-500">{user.email}</p>
+                )}
               </div>
             </div>
             <div className="flex items-center gap-2">

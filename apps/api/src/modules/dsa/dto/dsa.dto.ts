@@ -6,6 +6,7 @@ import {
   IsUrl,
   IsObject,
   IsArray,
+  IsDateString,
 } from 'class-validator';
 import {
   ContentReportTarget,
@@ -219,9 +220,12 @@ export class AppealDecisionDto {
 // ============================================================================
 
 export class GenerateTransparencyReportDto {
-  @IsString()
+  // A-M7: validate the date format at the boundary so malformed input is
+  // rejected as 400 instead of bubbling up as a Prisma error. The controller
+  // additionally enforces periodEnd >= periodStart.
+  @IsDateString()
   periodStart!: string;
 
-  @IsString()
+  @IsDateString()
   periodEnd!: string;
 }

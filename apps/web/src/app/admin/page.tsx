@@ -3,10 +3,11 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../contexts/AuthContext";
+import { adminApi } from "../../lib/api";
 import {
   Users, Building2, Settings, AlertTriangle,
   FileText, Eye, DollarSign, Clock, Activity,
-  UserCheck, CreditCard
+  UserCheck, CreditCard, ShieldAlert, LifeBuoy, Scale, ShieldCheck
 } from "lucide-react";
 
 interface DashboardStats {
@@ -26,10 +27,10 @@ export default function AdminDashboard() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    // SECURITY: role comes from AuthContext (JWT via /auth/me), not localStorage.
-    // Wait for auth to resolve, then require both a token and the ADMIN role
-    // before calling the admin-only endpoint; non-admins are redirected rather
-    // than relying on a backend 401.
+    // SECURITY (A-L4): role comes from AuthContext (JWT via /auth/me), not
+    // localStorage. Wait for auth to resolve, then require both a token and
+    // the ADMIN role before calling the admin-only endpoint; non-admins are
+    // redirected rather than relying on a backend 401.
     if (authLoading) return;
 
     const accessToken = localStorage.getItem('accessToken');
@@ -38,28 +39,16 @@ export default function AdminDashboard() {
       return;
     }
 
-    // Fetch dashboard stats
-    fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1'}/admin/dashboard-stats`, {
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-      },
-    })
-      .then((res) => {
-        if (res.status === 401) {
-          router.push('/login');
-          throw new Error('Unauthorized');
-        }
-        if (!res.ok) throw new Error('Failed to fetch stats');
-        return res.json();
-      })
-      .then((data) => {
+    // A-L3: use the centralized axios client (handles auth header + 401
+    // refresh) instead of a raw fetch() with manual header plumbing.
+    adminApi
+      .getDashboardStats()
+      .then(({ data }) => {
         setStats(data);
         setLoading(false);
       })
       .catch((err) => {
-        if (err.message !== 'Unauthorized') {
-          setError(err.message);
-        }
+        setError(err?.message || 'Failed to fetch stats');
         setLoading(false);
       });
   }, [user, authLoading, router]);
@@ -105,6 +94,10 @@ export default function AdminDashboard() {
     { label: 'Settings', icon: Settings, href: '/admin/settings', description: 'Platform settings' },
     { label: 'Reports', icon: AlertTriangle, href: '/admin/reports', description: 'Reported content' },
     { label: 'Audit Logs', icon: Eye, href: '/admin/audit-logs', description: 'View audit trail' },
+    { label: 'Trust & Fraud', icon: ShieldAlert, href: '/admin/trust', description: 'Suspicious activity & blacklist' },
+    { label: 'GDPR / Privacy', icon: ShieldCheck, href: '/admin/privacy', description: 'Data subject requests & breaches' },
+    { label: 'DSA Compliance', icon: Scale, href: '/admin/dsa', description: 'Content reports & complaints' },
+    { label: 'Support', icon: LifeBuoy, href: '/admin/support', description: 'Support tickets' },
   ];
 
   return (

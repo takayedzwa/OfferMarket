@@ -14,6 +14,42 @@ const DEFAULTS = {
   invoice_prefix: 'INV',
 };
 
+// Allow-list of billing setting keys (mass-assignment guard). Only these keys
+// may be written through the admin billing-settings endpoint; any other key is
+// rejected so an admin can't pollute AdminSettings with arbitrary billing
+// entries that the invoice flow would never read.
+const BILLING_SETTING_KEYS = new Set(Object.keys(DEFAULTS));
+
+// Per-key value validation. Each billing setting has an expected type/range;
+// validating here prevents storing a nonsensical value (e.g. a negative fee or
+// a 200% VAT rate) that would silently break invoice generation.
+function validateBillingSettingValue(key: string, value: any): void {
+  switch (key) {
+    case 'introduction_fee_cents':
+      if (!Number.isInteger(value) || value < 0) {
+        throw new BadRequestException('introduction_fee_cents must be a non-negative integer (cents)');
+      }
+      break;
+    case 'vat_rate_pct':
+      if (typeof value !== 'number' || !Number.isFinite(value) || value < 0 || value > 100) {
+        throw new BadRequestException('vat_rate_pct must be a number between 0 and 100');
+      }
+      break;
+    case 'invoice_payment_terms_days':
+      if (!Number.isInteger(value) || value < 0 || value > 365) {
+        throw new BadRequestException('invoice_payment_terms_days must be an integer between 0 and 365');
+      }
+      break;
+    case 'invoice_bank_account_iban':
+    case 'invoice_bank_account_name':
+    case 'invoice_prefix':
+      if (typeof value !== 'string' || value.trim() === '') {
+        throw new BadRequestException(`${key} must be a non-empty string`);
+      }
+      break;
+  }
+}
+
 @Injectable()
 export class BillingService {
   constructor(private prisma: PrismaService) {}
@@ -291,6 +327,7 @@ export class BillingService {
   async cancelInvoice(invoiceId: string, adminUserId: string, reason?: string) {
     const invoice = await this.prisma.invoice.findUnique({
       where: { id: invoiceId },
+      include: { offer: { select: { id: true, status: true } } },
     });
 
     if (!invoice) {
@@ -305,41 +342,78 @@ export class BillingService {
       throw new BadRequestException('Invoice is already cancelled');
     }
 
-    const updated = await this.prisma.invoice.update({
-      where: { id: invoiceId },
-      data: {
-        status: 'CANCELLED',
-        notes: reason || invoice.notes,
-      },
-    });
+    // Reverse the associated offer state alongside the cancellation. The
+    // introduction-fee invoice is created at offer acceptance, so an ACCEPTED
+    // offer whose (never-paid) invoice is cancelled should not remain in the
+    // terminal ACCEPTED state as if it were a finalized, billed placement.
+    // Revert it to SHORTLISTED so it re-enters the active pool.
+    //
+    // CAVEAT: worker identity was revealed and a Conversation was created at
+    // acceptance; cancelling the invoice does not un-reveal that data. That is
+    // a separate cleanup concern — here we only correct the offer lifecycle
+    // state so it is no longer marked as a completed billed placement.
+    const offer = invoice.offer;
 
-    // Log admin action
-    await this.prisma.adminAction.create({
-      data: {
-        adminId: adminUserId,
-        action: 'INVOICE_CANCELLED',
-        entityType: 'invoice',
-        entityId: invoiceId,
-        details: {
-          invoiceNumber: invoice.invoiceNumber,
-          reason,
+    return this.prisma.$transaction(async (tx) => {
+      const updated = await tx.invoice.update({
+        where: { id: invoiceId },
+        data: {
+          status: 'CANCELLED',
+          notes: reason || invoice.notes,
         },
-      },
-    });
+      });
 
-    return updated;
+      let offerReverted = false;
+      if (offer && offer.status === 'ACCEPTED') {
+        await tx.offer.update({
+          where: { id: offer.id },
+          data: {
+            status: 'SHORTLISTED',
+            acceptedAt: null,
+          },
+        });
+        offerReverted = true;
+      }
+
+      // Log admin action
+      await tx.adminAction.create({
+        data: {
+          adminId: adminUserId,
+          action: 'INVOICE_CANCELLED',
+          entityType: 'invoice',
+          entityId: invoiceId,
+          details: {
+            invoiceNumber: invoice.invoiceNumber,
+            reason,
+            offerId: offer?.id,
+            offerReverted,
+            previousOfferStatus: offer?.status,
+          },
+        },
+      });
+
+      return updated;
+    });
   }
 
   async checkOverdueInvoices(): Promise<number> {
-    const result = await this.prisma.invoice.updateMany({
-      where: {
-        status: 'ISSUED',
-        dueDate: { lt: new Date() },
-      },
-      data: {
-        status: 'OVERDUE',
-      },
-    });
+    // Wrap the overdue flip in a transaction. A single updateMany is already
+    // atomic at the SQL level, but scoping it in $transaction guarantees that
+    // if per-invoice side effects (notifications, employer billing-state
+    // updates) are added later, they stay consistent with the status change.
+    const result = await this.prisma.$transaction(
+      tx =>
+        tx.invoice.updateMany({
+          where: {
+            status: 'ISSUED',
+            dueDate: { lt: new Date() },
+          },
+          data: {
+            status: 'OVERDUE',
+          },
+        }),
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+    );
 
     return result.count;
   }
@@ -415,6 +489,15 @@ export class BillingService {
   }
 
   async updateBillingSetting(key: string, value: any, adminUserId: string) {
+    // Mass-assignment guard: only known billing keys are writable, and the
+    // value must match the expected type/range for that key.
+    if (!BILLING_SETTING_KEYS.has(key)) {
+      throw new BadRequestException(
+        `Unknown billing setting key: ${key}. Allowed keys: ${[...BILLING_SETTING_KEYS].join(', ')}`,
+      );
+    }
+    validateBillingSettingValue(key, value);
+
     const setting = await this.prisma.adminSettings.upsert({
       where: { key },
       update: { value, category: 'billing', updatedBy: adminUserId },
