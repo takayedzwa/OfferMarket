@@ -172,15 +172,18 @@ export class AdminController {
     @Query('page') page?: string,
     @Query('limit') limit?: string,
     @Query('userId') userId?: string,
+    @Query('adminId') adminId?: string,
     @Query('action') action?: string,
     @Query('entityType') entityType?: string,
     @Query('dateFrom') dateFrom?: string,
     @Query('dateTo') dateTo?: string,
   ) {
+    // A-L6: adminId filters the audit log to entries performed by a given
+    // admin (recorded as userId on the AuditLog row).
     return this.adminService.getAuditLogs(
       parsePage(page),
       parseLimit(limit, 50),
-      { userId, action, entityType, dateFrom, dateTo },
+      { userId, adminId, action, entityType, dateFrom, dateTo },
     );
   }
 

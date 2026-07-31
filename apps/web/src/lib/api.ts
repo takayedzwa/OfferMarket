@@ -134,9 +134,43 @@ export const authApi = {
 
 /**
  * Admin console API helpers. Endpoints are ADMIN-only (AdminGuard on the
- * server). The axios `api` instance attaches the JWT from localStorage.
+ * server). The axios `api` instance attaches the JWT from localStorage and
+ * handles 401/refresh centrally — A-L3: admin pages use these instead of raw
+ * fetch() so auth headers and error handling aren't duplicated per page.
  */
 export const adminApi = {
+  getDashboardStats: () => api.get('/admin/dashboard-stats'),
+
+  getUsers: (params?: {
+    page?: number;
+    limit?: number;
+    role?: string;
+    status?: string;
+    search?: string;
+  }) => api.get('/admin/users', { params }),
+
+  getUserById: (id: string) => api.get(`/admin/users/${id}`),
+
+  suspendUser: (id: string, reason?: string) =>
+    api.post(`/admin/users/${id}/suspend`, { reason }),
+
+  banUser: (id: string, reason?: string) =>
+    api.post(`/admin/users/${id}/ban`, { reason }),
+
+  restoreUser: (id: string) =>
+    api.post(`/admin/users/${id}/restore`),
+
+  getAuditLogs: (params?: {
+    page?: number;
+    limit?: number;
+    userId?: string;
+    adminId?: string;
+    action?: string;
+    entityType?: string;
+    dateFrom?: string;
+    dateTo?: string;
+  }) => api.get('/admin/audit-logs', { params }),
+
   createStaffUser: (data: {
     email: string;
     password: string;
@@ -145,6 +179,61 @@ export const adminApi = {
     lastName: string;
     phone?: string;
   }) => api.post('/admin/users/staff', data),
+};
+
+// ============================================================================
+// TRUST / FRAUD ADMIN API (ADMIN + SUPPORT)
+// ============================================================================
+export const trustApi = {
+  // Suspicious-activity dashboard: counts + recent activities + indicators
+  getSuspiciousActivities: () => api.get('/trust/suspicious-activity'),
+};
+
+// ============================================================================
+// PRIVACY (GDPR) ADMIN API
+// ============================================================================
+export const privacyAdminApi = {
+  getRequests: (params?: {
+    page?: number;
+    limit?: number;
+    status?: string;
+    requestType?: string;
+    userId?: string;
+  }) => api.get('/privacy/admin/requests', { params }),
+
+  getBreaches: (params?: { page?: number; limit?: number }) =>
+    api.get('/privacy/admin/breaches', { params }),
+};
+
+// ============================================================================
+// DSA (Digital Services Act) ADMIN API
+// ============================================================================
+export const dsaAdminApi = {
+  getReports: (params?: {
+    page?: number;
+    limit?: number;
+    status?: string;
+    category?: string;
+    priority?: string;
+    targetType?: string;
+  }) => api.get('/dsa/admin/reports', { params }),
+
+  getComplaints: (params?: {
+    page?: number;
+    limit?: number;
+    status?: string;
+    complaintType?: string;
+  }) => api.get('/dsa/admin/complaints', { params }),
+};
+
+// ============================================================================
+// SUPPORT ADMIN API (ADMIN + SUPPORT)
+// ============================================================================
+export const supportAdminApi = {
+  getDashboard: () => api.get('/support/dashboard'),
+
+  getTickets: (params?: { status?: string; page?: number; limit?: number }) =>
+    api.get('/support/tickets', { params }),
 };
 
 // ============================================================================

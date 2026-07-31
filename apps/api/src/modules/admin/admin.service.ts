@@ -20,13 +20,17 @@ export class AdminService {
       totalEmployers,
       pendingVerifications,
       activeOffers,
-      totalRevenue,
+      creditSum,
     ] = await Promise.all([
       this.prisma.user.count(),
       this.prisma.user.count({ where: { role: 'WORKER' } }),
       this.prisma.user.count({ where: { role: 'EMPLOYER' } }),
       this.prisma.employer.count({ where: { verificationStatus: 'PENDING' } }),
       this.prisma.offer.count({ where: { status: { in: ['SUBMITTED', 'VIEWED', 'SHORTLISTED'] } } }),
+      // A-L2: this aggregates employer.creditBalance — outstanding platform
+      // credits, NOT revenue. The variable was misleadingly named
+      // `totalRevenue`; renamed so the dashboard's "Total Credits" card isn't
+      // confused with revenue.
       this.prisma.employer.aggregate({
         _sum: { creditBalance: true }
       }),
@@ -38,7 +42,7 @@ export class AdminService {
       totalEmployers,
       pendingVerifications,
       activeOffers,
-      totalCredits: totalRevenue._sum.creditBalance || 0,
+      totalCredits: creditSum._sum.creditBalance || 0,
     };
   }
 
@@ -208,6 +212,16 @@ export class AdminService {
 
     if (!user) {
       throw new NotFoundException('User not found');
+    }
+
+    // A-L1: suspendUser/banUser block ADMIN targets. restoreUser was the only
+    // one of the three status-changing actions that didn't, so an admin
+    // account could be "restored" through this path. Mirror the other two:
+    // admin status is only ever changed via direct DB intervention, never
+    // through these admin endpoints. (In practice this never fires because
+    // admins can't be suspended/banned to begin with.)
+    if (user.role === 'ADMIN') {
+      throw new BadRequestException('Cannot restore admin users');
     }
 
     await this.prisma.user.update({
@@ -557,6 +571,15 @@ export class AdminService {
 
     if (filters?.userId) {
       where.userId = filters.userId;
+    }
+
+    // A-L6: allow filtering by the admin who performed the action. AuditLog
+    // rows record the actor (an admin, when the entry is an admin action) in
+    // `userId`, so an adminId filter maps to the same column. The dedicated
+    // AdminAction table (queried by getAdminActions) also carries adminId;
+    // this filter exposes it on the audit-log query too.
+    if (filters?.adminId) {
+      where.userId = filters.adminId;
     }
 
     if (filters?.action) {

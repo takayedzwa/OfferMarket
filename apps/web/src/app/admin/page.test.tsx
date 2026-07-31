@@ -45,11 +45,22 @@ jest.mock('lucide-react', () => ({
   Activity: () => 'ActivityIcon',
   UserCheck: () => 'UserCheckIcon',
   CreditCard: () => 'CreditCardIcon',
+  ShieldAlert: () => 'ShieldAlertIcon',
+  LifeBuoy: () => 'LifeBuoyIcon',
+  Scale: () => 'ScaleIcon',
+  ShieldCheck: () => 'ShieldCheckIcon',
 }));
 
-// --- Mock fetch ---
+// A-L3: the dashboard now uses the centralized axios client (adminApi) instead
+// of raw fetch(). Mock the api module so the auth-header/interceptor logic is
+// not exercised here — it's covered by the api client itself.
+const mockGetDashboardStats = jest.fn();
 
-const mockFetch = jest.fn();
+jest.mock('@/lib/api', () => ({
+  adminApi: {
+    getDashboardStats: (...args: unknown[]) => mockGetDashboardStats(...args),
+  },
+}));
 
 // --- Helpers ---
 
@@ -79,23 +90,12 @@ function setupLocalStorage(admin = true) {
 }
 
 function setupFetchSuccess(data = defaultStats) {
-  mockFetch.mockResolvedValueOnce({
-    ok: true,
-    status: 200,
-    json: async () => data,
-  });
-}
-
-function setupFetchError(status: number) {
-  mockFetch.mockResolvedValueOnce({
-    ok: status < 400,
-    status,
-    json: async () => ({ message: 'Error' }),
-  });
+  // adminApi.getDashboardStats() resolves to an axios-style response { data }.
+  mockGetDashboardStats.mockResolvedValueOnce({ data });
 }
 
 function setupFetchNetworkError() {
-  mockFetch.mockRejectedValueOnce(new Error('Failed to fetch stats'));
+  mockGetDashboardStats.mockRejectedValueOnce(new Error('Failed to fetch stats'));
 }
 
 // --- Tests ---
@@ -104,14 +104,11 @@ describe('AdminDashboard', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockUseAuth.mockReturnValue(defaultAuthReturn);
-    global.fetch = mockFetch;
     process.env.NEXT_PUBLIC_API_URL = 'http://localhost:3001/api/v1';
   });
 
   afterEach(() => {
     localStorage.clear();
-    // @ts-expect-error -- cleanup
-    delete global.fetch;
     delete process.env.NEXT_PUBLIC_API_URL;
   });
 
@@ -168,17 +165,6 @@ describe('AdminDashboard', () => {
       // Should NOT have been called with /login
       expect(mockRouter.push).not.toHaveBeenCalledWith('/login');
     });
-
-    it('redirects to /login when fetch returns 401', async () => {
-      setupLocalStorage(true);
-      setupFetchError(401);
-
-      render(<AdminDashboard />);
-
-      await waitFor(() => {
-        expect(mockRouter.push).toHaveBeenCalledWith('/login');
-      });
-    });
   });
 
   // -----------------------------------------------------------------------
@@ -188,8 +174,8 @@ describe('AdminDashboard', () => {
   describe('Loading State', () => {
     it('renders loading spinner while data is being fetched', () => {
       setupLocalStorage(true);
-      // Don't resolve fetch yet — keep component in loading state
-      mockFetch.mockReturnValue(new Promise(() => {}));
+      // Don't resolve the request yet — keep component in loading state
+      mockGetDashboardStats.mockReturnValue(new Promise(() => {}));
 
       render(<AdminDashboard />);
 
@@ -203,7 +189,7 @@ describe('AdminDashboard', () => {
   // -----------------------------------------------------------------------
 
   describe('Error State', () => {
-    it('renders error message when fetch fails', async () => {
+    it('renders error message when the request fails', async () => {
       setupLocalStorage(true);
       setupFetchNetworkError();
 
@@ -231,19 +217,6 @@ describe('AdminDashboard', () => {
       await userEvent.click(goBackButton);
 
       expect(mockRouter.push).toHaveBeenCalledWith('/');
-    });
-
-    it('does not show error message for 401 responses (redirects instead)', async () => {
-      setupLocalStorage(true);
-      setupFetchError(401);
-
-      render(<AdminDashboard />);
-
-      await waitFor(() => {
-        expect(mockRouter.push).toHaveBeenCalledWith('/login');
-      });
-
-      expect(screen.queryByText('Failed to fetch stats')).not.toBeInTheDocument();
     });
   });
 
@@ -298,7 +271,7 @@ describe('AdminDashboard', () => {
       expect(await screen.findByText('Platform Management')).toBeInTheDocument();
     });
 
-    it('renders all 3 quick action buttons with labels and descriptions', async () => {
+    it('renders the core quick action buttons with labels and descriptions', async () => {
       setupLocalStorage(true);
       setupFetchSuccess();
 
@@ -310,6 +283,19 @@ describe('AdminDashboard', () => {
       expect(screen.getByText('Reported content')).toBeInTheDocument();
       expect(screen.getByText('Audit Logs')).toBeInTheDocument();
       expect(screen.getByText('View audit trail')).toBeInTheDocument();
+    });
+
+    it('renders quick action links for the previously-missing admin modules', async () => {
+      setupLocalStorage(true);
+      setupFetchSuccess();
+
+      render(<AdminDashboard />);
+
+      // A-L5: Trust/Privacy/DSA/Support now have admin pages linked here.
+      expect(await screen.findByText('Trust & Fraud')).toBeInTheDocument();
+      expect(screen.getByText('GDPR / Privacy')).toBeInTheDocument();
+      expect(screen.getByText('DSA Compliance')).toBeInTheDocument();
+      expect(screen.getByText('Support')).toBeInTheDocument();
     });
   });
 
@@ -430,6 +416,18 @@ describe('AdminDashboard', () => {
       await userEvent.click(button);
 
       expect(mockRouter.push).toHaveBeenCalledWith('/admin/audit-logs');
+    });
+
+    it('"Support" button navigates to /admin/support', async () => {
+      setupLocalStorage(true);
+      setupFetchSuccess();
+
+      render(<AdminDashboard />);
+
+      const button = await screen.findByText('Support');
+      await userEvent.click(button);
+
+      expect(mockRouter.push).toHaveBeenCalledWith('/admin/support');
     });
   });
 

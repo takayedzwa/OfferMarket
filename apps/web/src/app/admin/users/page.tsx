@@ -21,7 +21,7 @@ interface User {
 
 export default function AdminUsersPage() {
   const router = useRouter();
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, loading: authLoading } = useAuth();
   const isAdmin = currentUser?.role === "ADMIN";
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
@@ -45,49 +45,38 @@ export default function AdminUsersPage() {
 
   const fetchUsers = () => {
     setLoading(true);
-    const accessToken = localStorage.getItem('accessToken');
-
-    if (!accessToken) {
-      router.push('/login');
-      return;
-    }
-
-    const params = new URLSearchParams({
-      page: page.toString(),
-      limit: "20",
-      ...(search && { search }),
-      ...(roleFilter && { role: roleFilter }),
-      ...(statusFilter && { status: statusFilter }),
-    });
-
-    fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1'}/admin/users?${params}`, {
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-      },
-    })
-      .then((res) => {
-        if (res.status === 401) {
-          router.push('/login');
-          throw new Error('Unauthorized');
-        }
-        return res.json();
+    // A-L3: use the centralized axios client instead of raw fetch() — the
+    // JWT header and 401/refresh handling live in the api instance.
+    adminApi
+      .getUsers({
+        page,
+        limit: 20,
+        ...(search ? { search } : {}),
+        ...(roleFilter ? { role: roleFilter } : {}),
+        ...(statusFilter ? { status: statusFilter } : {}),
       })
-      .then((data) => {
+      .then(({ data }) => {
         setUsers(data.users || []);
         setTotal(data.pagination?.total || 0);
         setLoading(false);
       })
-      .catch((err) => {
-        if (err.message !== 'Unauthorized') {
-          console.error(err);
-        }
+      .catch(() => {
         setLoading(false);
       });
   };
 
   useEffect(() => {
+    // A-L4: gate the admin users view on the ADMIN role. Wait for auth to
+    // resolve, then redirect non-admins (and unauthenticated users) away
+    // rather than relying on a backend 401 to hide the data.
+    if (authLoading) return;
+    const accessToken = localStorage.getItem('accessToken');
+    if (!accessToken || !currentUser || currentUser.role !== 'ADMIN') {
+      router.push('/login');
+      return;
+    }
     fetchUsers();
-  }, [page, roleFilter, statusFilter]);
+  }, [page, roleFilter, statusFilter, currentUser, authLoading, router]);
 
   const handleSearch = () => {
     setPage(1);
@@ -132,37 +121,22 @@ export default function AdminUsersPage() {
 
   const handleAction = (user: User, action: string) => {
     const accessToken = localStorage.getItem('accessToken');
-
     if (!accessToken) {
       router.push('/login');
       return;
     }
 
-    const endpoint = action === 'suspend' ? 'suspend' : action === 'ban' ? 'ban' : 'restore';
-    fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1'}/admin/users/${user.id}/${action}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${accessToken}`,
-      },
-      body: JSON.stringify({ reason: action === 'restore' ? undefined : 'Admin action' }),
-    })
-      .then((res) => {
-        if (res.status === 401) {
-          router.push('/login');
-          return;
-        }
-        if (res.ok) {
-          fetchUsers();
-        } else {
-          alert('Failed to perform action');
-        }
-      })
-      .catch((err) => {
-        if (err.message !== 'Unauthorized') {
-          alert('Failed to perform action');
-        }
-      });
+    // A-L3: route through the centralized adminApi helpers.
+    const request =
+      action === 'suspend'
+        ? adminApi.suspendUser(user.id, 'Admin action')
+        : action === 'ban'
+          ? adminApi.banUser(user.id, 'Admin action')
+          : adminApi.restoreUser(user.id);
+
+    request
+      .then(() => fetchUsers())
+      .catch(() => alert('Failed to perform action'));
   };
 
   const getStatusColor = (status: string) => {
