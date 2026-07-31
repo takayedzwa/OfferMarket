@@ -3,6 +3,7 @@ import { AdminGuard } from '../../guards/admin.guard';
 import { AdminService } from './admin.service';
 import { UpdateSettingsDto } from './dto/update-settings.dto';
 import { VerifyEmployerDto, RejectEmployerDto } from './dto/verify-employer.dto';
+import { CreateStaffUserDto } from './dto/create-staff-user.dto';
 
 @Controller('admin')
 // E-L1: AdminGuard extends AuthGuard('jwt') and self-authenticates, so it does
@@ -68,6 +69,20 @@ export class AdminController {
     @Request() req: any,
   ) {
     return this.adminService.restoreUser(id, req.user.id);
+  }
+
+  // ============================================================================
+  // STAFF CREATION (Admin only — create ADMIN or SUPPORT users from console)
+  // ============================================================================
+
+  @Post('users/staff')
+  async createStaffUser(
+    @Body() dto: CreateStaffUserDto,
+    @Request() req: any,
+  ) {
+    // AdminGuard (class-level) authenticates the JWT and enforces ADMIN role.
+    // The creator's identity comes from req.user.id and is audit-logged.
+    return this.adminService.createStaffUser(dto, req.user.id);
   }
 
   // ============================================================================

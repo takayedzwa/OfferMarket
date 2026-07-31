@@ -132,6 +132,21 @@ export const authApi = {
   },
 };
 
+/**
+ * Admin console API helpers. Endpoints are ADMIN-only (AdminGuard on the
+ * server). The axios `api` instance attaches the JWT from localStorage.
+ */
+export const adminApi = {
+  createStaffUser: (data: {
+    email: string;
+    password: string;
+    role: 'ADMIN' | 'SUPPORT';
+    firstName: string;
+    lastName: string;
+    phone?: string;
+  }) => api.post('/admin/users/staff', data),
+};
+
 // ============================================================================
 // ENUMS API
 // ============================================================================

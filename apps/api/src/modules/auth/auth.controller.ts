@@ -50,7 +50,9 @@ export class AuthController {
       email: user.email,
       emailVerified: user.emailVerified,
       phoneVerified: user.phoneVerified,
-      phone: user.phone
+      phone: user.phone,
+      firstName: user.firstName,
+      lastName: user.lastName
     };
   }
 
@@ -66,8 +68,14 @@ export class AuthController {
   }
 
   // ============================================================================
-  // REGISTER ADMIN (Internal - requires admin code)
+  // REGISTER ADMIN (Bootstrap only — not for UI use)
   // ============================================================================
+  // SECURITY: This endpoint is intentionally unauthenticated and gated only by
+  // the ADMIN_REGISTRATION_CODE env secret. It exists to seed the FIRST admin
+  // before any admin exists to authenticate. Do NOT call this from the admin
+  // console — that would require shipping the secret to the browser. Once an
+  // admin exists, additional ADMIN/SUPPORT users are created via the
+  // admin-guarded, audit-logged POST /admin/users/staff endpoint instead.
 
   @Post('register/admin')
   @Throttle({ short: { ttl: 60000, limit: 5 } })

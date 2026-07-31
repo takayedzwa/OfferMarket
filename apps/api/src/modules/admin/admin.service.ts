@@ -1,6 +1,9 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { UpdateSettingsDto } from './dto/update-settings.dto';
+import { CreateStaffUserDto } from './dto/create-staff-user.dto';
+import { isCommonPassword } from '../auth/password-blocklist';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class AdminService {
@@ -224,6 +227,102 @@ export class AdminService {
     });
 
     return { success: true, message: 'User restored' };
+  }
+
+  // ============================================================================
+  // STAFF CREATION (Admin console)
+  // ============================================================================
+
+  /**
+   * Create an ADMIN or SUPPORT user from the admin console.
+   * ADMIN-only (enforced by AdminGuard on the controller). The creator's
+   * identity is taken from the verified JWT and recorded in the audit trail.
+   */
+  async createStaffUser(
+    dto: CreateStaffUserDto,
+    adminUserId: string,
+  ) {
+    if (dto.role !== 'ADMIN' && dto.role !== 'SUPPORT') {
+      throw new BadRequestException('Role must be ADMIN or SUPPORT');
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      // Confirm the caller is an admin (defense-in-depth; AdminGuard already
+      // enforces this, but the service shouldn't trust the controller alone).
+      const admin = await tx.user.findUnique({ where: { id: adminUserId } });
+      if (!admin || admin.role !== 'ADMIN') {
+        throw new BadRequestException('Only admins can create staff users');
+      }
+
+      // Email uniqueness
+      const existing = await tx.user.findUnique({ where: { email: dto.email } });
+      if (existing) {
+        throw new BadRequestException('Email already registered');
+      }
+
+      // Reject trivially-guessable passwords that still satisfy the DTO regex
+      // (e.g. "Password1"). Second line of defense after the regex.
+      if (isCommonPassword(dto.password)) {
+        throw new BadRequestException(
+          'This password is too common and easily guessed. Please choose a stronger password.',
+        );
+      }
+
+      const passwordHash = await bcrypt.hash(dto.password, 10);
+
+      let user;
+      try {
+        user = await tx.user.create({
+          data: {
+            email: dto.email,
+            passwordHash,
+            role: dto.role,
+            emailVerified: true, // auto-verify staff emails
+            phoneVerified: true,
+            firstName: dto.firstName,
+            lastName: dto.lastName,
+            phone: dto.phone || null,
+          },
+        });
+      } catch (error: any) {
+        // DB-level @unique constraint on User.phone catches a duplicate phone
+        // and rejects the create with Prisma error P2002. Map it to a clean
+        // BadRequestException (mirrors registerEmployer's KvK P2002 handling).
+        if (error?.code === 'P2002' && error?.meta?.target?.includes('phone')) {
+          throw new BadRequestException('Phone number already in use');
+        }
+        throw error;
+      }
+
+      // Audit trail — the whole point vs. the unaudited /auth/register/support.
+      await tx.adminAction.create({
+        data: {
+          adminId: adminUserId,
+          action: 'STAFF_USER_CREATED',
+          entityType: 'user',
+          entityId: user.id,
+          details: {
+            role: user.role,
+            email: user.email,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            phone: user.phone,
+          },
+        },
+      });
+
+      // Return only the public shape — never passwordHash/twoFactorSecret
+      // (consistent with the A-C3 scrubbing).
+      return {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        emailVerified: user.emailVerified,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        phone: user.phone,
+      };
+    });
   }
 
   // ============================================================================

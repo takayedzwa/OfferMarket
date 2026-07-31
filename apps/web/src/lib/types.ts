@@ -11,6 +11,8 @@ export interface User {
   emailVerified: boolean;
   phone?: string;
   phoneVerified: boolean;
+  firstName?: string;
+  lastName?: string;
 }
 
 export interface AuthTokens {

@@ -1,8 +1,10 @@
 import { IsEmail, IsString, MinLength, Matches, IsOptional, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 
-const PASSWORD_MSG = 'Password must be at least 8 characters and contain at least one uppercase letter, one lowercase letter, and one digit';
-const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
+// Shared password policy — reused by the staff-creation DTO in the admin
+// module so all credential-setting paths enforce the same rules.
+export const PASSWORD_MSG = 'Password must be at least 8 characters and contain at least one uppercase letter, one lowercase letter, and one digit';
+export const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
 
 export class RegisterWorkerDto {
   @IsEmail()
