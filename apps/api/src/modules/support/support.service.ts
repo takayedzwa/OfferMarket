@@ -342,8 +342,13 @@ export class SupportService {
       throw new NotFoundException('User not found');
     }
 
-    // Don't expose sensitive fields
-    const { passwordHash, twoFactorSecret, ...safeUser } = user;
+    // GDPR data minimization (proportionality): SUPPORT staff see only what
+    // they need to handle a support ticket — contact details, role, status,
+    // and the worker/employer context. Strip credentials (passwordHash,
+    // twoFactorSecret) and the user's last-login IP (sensitive PII that belongs
+    // to the trust/admin investigation path, not routine support). Admins get a
+    // fuller view via the admin endpoints; support gets this minimized one.
+    const { passwordHash, twoFactorSecret, lastLoginIp, ...safeUser } = user;
     return safeUser;
   }
 

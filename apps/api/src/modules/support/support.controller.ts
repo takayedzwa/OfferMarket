@@ -1,4 +1,5 @@
 import { Controller, Get, Post, Patch, Body, Param, Query, Request, UseGuards } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
 import { SupportGuard } from '../../guards/support.guard';
 import { SupportService } from './support.service';
@@ -106,6 +107,7 @@ export class SupportController {
 
   @Post('tickets/:id/close')
   @UseGuards(SupportGuard)
+  @Throttle({ short: { ttl: 60000, limit: 20 } })
   async closeTicket(
     @Param('id') id: string,
     @Request() req: any,
@@ -115,6 +117,7 @@ export class SupportController {
 
   @Post('tickets/:id/resolve')
   @UseGuards(SupportGuard)
+  @Throttle({ short: { ttl: 60000, limit: 20 } })
   async resolveTicket(
     @Param('id') id: string,
     @Request() req: any,
@@ -179,6 +182,7 @@ export class SupportController {
 
   @Post('offers/:id/extend')
   @UseGuards(SupportGuard)
+  @Throttle({ short: { ttl: 60000, limit: 20 } })
   async extendOfferExpiry(
     @Param('id') offerId: string,
     @Request() req: any,

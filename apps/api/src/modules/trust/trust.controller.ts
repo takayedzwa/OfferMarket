@@ -13,6 +13,7 @@ import {
   BadRequestException,
   NotFoundException,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { TrustService } from './trust.service';
 import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
 import { RolesGuard } from '../../guards/roles.guard';
@@ -143,6 +144,7 @@ export class TrustController {
    */
   @Put('suspicious-activity/:activityId/review')
   @Roles('ADMIN', 'SUPPORT')
+  @Throttle({ short: { ttl: 60000, limit: 20 } })
   async reviewSuspiciousActivity(
     @Param('activityId') activityId: string,
     @Body() dto: ReviewSuspiciousActivityDto,
@@ -229,6 +231,7 @@ export class TrustController {
    */
   @Put('duplicates/:primaryUserId/:suspectedUserId/review')
   @Roles('ADMIN')
+  @Throttle({ short: { ttl: 60000, limit: 20 } })
   async reviewDuplicateAccount(
     @Param('primaryUserId') primaryUserId: string,
     @Param('suspectedUserId') suspectedUserId: string,
@@ -253,6 +256,7 @@ export class TrustController {
    */
   @Post('blacklist')
   @Roles('ADMIN')
+  @Throttle({ short: { ttl: 60000, limit: 20 } })
   async addToBlacklist(@Body() dto: AddToBlacklistDto, @Request() req: any) {
     return this.trustService.addToBlacklist(dto, req.user?.userId);
   }

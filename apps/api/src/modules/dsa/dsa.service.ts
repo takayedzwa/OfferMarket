@@ -303,14 +303,13 @@ export class DsaService {
     const report = await this.prisma.contentReport.findUnique({ where: { id: reportId } });
     if (!report) throw new NotFoundException('Report not found');
 
-    // A-H5: a report can only be resolved once it has been assessed and/or had
-    // an action taken. Reject resolving from RECEIVED (not yet assessed) or
-    // from terminal states (already RESOLVED/DISMISSED/ESCALATED).
-    if (
-      report.status !== ContentReportStatus.ASSESSMENT &&
-      report.status !== ContentReportStatus.ACTION_TAKEN
-    ) {
-      throw new BadRequestException(`Report cannot be resolved in status: ${report.status}`);
+    // A-H5 + state-machine tightening: a report can only be resolved once an
+    // action has actually been taken. Resolving directly from ASSESSMENT would
+    // let staff skip the action phase entirely (assess → resolve with nothing
+    // done), so require ACTION_TAKEN. Also reject terminal states
+    // (RESOLVED/DISMISSED/ESCALATED) and the not-yet-assessed RECEIVED state.
+    if (report.status !== ContentReportStatus.ACTION_TAKEN) {
+      throw new BadRequestException(`Report cannot be resolved in status: ${report.status}. An action must be taken first.`);
     }
 
     return this.prisma.contentReport.update({

@@ -10,6 +10,7 @@ import {
   UseGuards,
   BadRequestException,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { DsaService } from './dsa.service';
 import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
 import { AdminGuard } from '../../guards/admin.guard';
@@ -180,6 +181,7 @@ export class DsaController {
   // E-L1: AdminGuard extends AuthGuard('jwt') and self-authenticates, so it does
   // not need to be paired with JwtAuthGuard — that ran JWT verification twice.
   @UseGuards(AdminGuard)
+  @Throttle({ short: { ttl: 60000, limit: 20 } })
   async takeAction(
     @Param('id') id: string,
     @Body() dto: TakeActionDto,
@@ -196,6 +198,7 @@ export class DsaController {
   // E-L1: AdminGuard extends AuthGuard('jwt') and self-authenticates, so it does
   // not need to be paired with JwtAuthGuard — that ran JWT verification twice.
   @UseGuards(AdminGuard)
+  @Throttle({ short: { ttl: 60000, limit: 20 } })
   async resolveReport(
     @Param('id') id: string,
     @Body() dto: ResolveContentReportDto,
@@ -213,6 +216,7 @@ export class DsaController {
   // E-L1: AdminGuard extends AuthGuard('jwt') and self-authenticates, so it does
   // not need to be paired with JwtAuthGuard — that ran JWT verification twice.
   @UseGuards(AdminGuard)
+  @Throttle({ short: { ttl: 60000, limit: 20 } })
   async escalateToAuthorities(
     @Param('id') id: string,
     @Body() dto: EscalateToAuthoritiesDto,

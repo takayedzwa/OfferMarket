@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../../prisma/prisma.service';
 import {
   VerificationLevel,
@@ -760,6 +761,35 @@ export class TrustService {
       where: { userId },
       orderBy: { createdAt: 'desc' },
     });
+  }
+
+  // ============================================================================
+  // BLACKLIST EXPIRY CLEANUP
+  // ============================================================================
+  // isBlacklisted() already treats expired entries as inactive on read, but the
+  // rows themselves stayed isActive=true in the table. That bloats the blacklist
+  // view and means a listing UI would still show them as active. This cron
+  // flips expired entries to isActive=false once a day so the stored state
+  // matches the effective state. ScheduleModule.forRoot() is registered globally
+  // in the privacy module, so @Cron here is picked up app-wide (same pattern as
+  // offers.service.expireOffers and retention.service).
+
+  @Cron(CronExpression.EVERY_DAY_AT_3AM)
+  async cleanupExpiredBlacklistEntries(): Promise<number> {
+    try {
+      const result = await this.prisma.blacklistEntry.updateMany({
+        where: {
+          isActive: true,
+          expiresAt: { lt: new Date(), not: null },
+        },
+        data: { isActive: false },
+      });
+      return result.count;
+    } catch (error) {
+      // A cron failure must not crash the app — log and move on.
+      console.error('[trust] cleanupExpiredBlacklistEntries failed:', error);
+      return 0;
+    }
   }
 
   // ============================================================================

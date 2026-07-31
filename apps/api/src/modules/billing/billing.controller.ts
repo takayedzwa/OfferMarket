@@ -1,4 +1,5 @@
 import { Controller, Get, Post, Patch, Param, Query, Body, Request, UseGuards } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { BillingService } from './billing.service';
 import { ListInvoicesQueryDto, AdminListInvoicesQueryDto } from './dto/list-invoices-query.dto';
 import { MarkInvoicePaidDto } from './dto/mark-invoice-paid.dto';
@@ -71,6 +72,7 @@ export class BillingController {
 
   @Post('admin/invoices/:id/mark-paid')
   @UseGuards(AdminGuard)
+  @Throttle({ short: { ttl: 60000, limit: 20 } })
   async markInvoicePaid(
     @Param('id') id: string,
     @Body() dto: MarkInvoicePaidDto,
@@ -81,6 +83,7 @@ export class BillingController {
 
   @Post('admin/invoices/:id/cancel')
   @UseGuards(AdminGuard)
+  @Throttle({ short: { ttl: 60000, limit: 20 } })
   async cancelInvoice(
     @Param('id') id: string,
     @Body() body: { reason?: string },
@@ -110,6 +113,7 @@ export class BillingController {
 
   @Patch('admin/settings')
   @UseGuards(AdminGuard)
+  @Throttle({ short: { ttl: 60000, limit: 20 } })
   async updateBillingSetting(
     @Body() dto: UpdateBillingSettingDto,
     @Request() req: any,

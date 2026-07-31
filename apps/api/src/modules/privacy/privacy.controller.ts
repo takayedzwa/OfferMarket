@@ -1,5 +1,5 @@
 import { Controller, Get, Post, Delete, Patch, Body, Param, Query, Request, UseGuards, Res, NotFoundException } from '@nestjs/common';
-import { SkipThrottle } from '@nestjs/throttler';
+import { SkipThrottle, Throttle } from '@nestjs/throttler';
 import type { Response } from 'express';
 import { PrivacyService } from './privacy.service';
 import { RetentionService } from './retention.service';
@@ -387,7 +387,7 @@ export class PrivacyController {
   }
 
   @Patch('admin/requests/:id')
-  @SkipThrottle()
+  @Throttle({ short: { ttl: 60000, limit: 20 } })
   // E-L1: AdminGuard extends AuthGuard('jwt') and self-authenticates, so it does
   // not need to be paired with JwtAuthGuard — that ran JWT verification twice.
   @UseGuards(AdminGuard)
@@ -401,7 +401,7 @@ export class PrivacyController {
   }
 
   @Post('admin/requests/:id/execute-rectification')
-  @SkipThrottle()
+  @Throttle({ short: { ttl: 60000, limit: 20 } })
   // E-L1: AdminGuard extends AuthGuard('jwt') and self-authenticates, so it does
   // not need to be paired with JwtAuthGuard — that ran JWT verification twice.
   @UseGuards(AdminGuard)
@@ -426,7 +426,7 @@ export class PrivacyController {
   }
 
   @Post('admin/breaches')
-  @SkipThrottle()
+  @Throttle({ short: { ttl: 60000, limit: 20 } })
   // E-L1: AdminGuard extends AuthGuard('jwt') and self-authenticates, so it does
   // not need to be paired with JwtAuthGuard — that ran JWT verification twice.
   @UseGuards(AdminGuard)
@@ -447,7 +447,7 @@ export class PrivacyController {
   }
 
   @Patch('admin/breaches/:id')
-  @SkipThrottle()
+  @Throttle({ short: { ttl: 60000, limit: 20 } })
   // E-L1: AdminGuard extends AuthGuard('jwt') and self-authenticates, so it does
   // not need to be paired with JwtAuthGuard — that ran JWT verification twice.
   @UseGuards(AdminGuard)

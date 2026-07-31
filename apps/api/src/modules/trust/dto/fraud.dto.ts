@@ -1,9 +1,53 @@
-import { IsString, IsOptional, IsBoolean, IsEnum, IsInt, Min, Max, IsObject, IsArray } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsBoolean,
+  IsEnum,
+  IsInt,
+  Min,
+  Max,
+  IsObject,
+  IsArray,
+  ValidatorConstraint,
+  ValidatorConstraintInterface,
+  ValidationArguments,
+  registerDecorator,
+} from 'class-validator';
 import { SuspiciousActivityType, FraudIndicatorType, SeverityLevel, ActivityStatus, DuplicateMatchType } from '@prisma/client';
 
 // ============================================================================
 // SUSPICIOUS ACTIVITY DTOs
 // ============================================================================
+
+/**
+ * A manually-filed suspicious-activity report must identify a subject — either
+ * the entity it concerns (entityId) or the user behind it (userId). Automated
+ * IP-only detections (e.g. rapid account creation before any user exists) call
+ * the service directly and bypass this DTO, so they are unaffected.
+ */
+@ValidatorConstraint({ name: 'hasEntityOrUser', async: false })
+class HasEntityOrUserConstraint implements ValidatorConstraintInterface {
+  validate(_: unknown, args: ValidationArguments): boolean {
+    const dto = args.object as ReportSuspiciousActivityDto;
+    return Boolean(dto.entityId) || Boolean(dto.userId);
+  }
+
+  defaultMessage(): string {
+    return 'entityId or userId is required — a suspicious-activity report must identify a subject';
+  }
+}
+
+function HasEntityOrUser() {
+  return function (target: object, propertyName: string) {
+    registerDecorator({
+      name: 'hasEntityOrUser',
+      target: target.constructor,
+      propertyName,
+      constraints: [],
+      validator: HasEntityOrUserConstraint,
+    });
+  };
+}
 
 export class ReportSuspiciousActivityDto {
   @IsEnum(['USER', 'WORKER', 'EMPLOYER', 'OFFER', 'CONVERSATION'])
@@ -11,6 +55,7 @@ export class ReportSuspiciousActivityDto {
 
   @IsString()
   @IsOptional()
+  @HasEntityOrUser()
   entityId?: string;
 
   @IsString()

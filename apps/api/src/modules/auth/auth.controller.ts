@@ -7,6 +7,14 @@ import { RegisterWorkerDto, RegisterEmployerDto, RegisterAdminDto, RegisterSuppo
 import { ForgotPasswordDto, ResetPasswordDto } from './dto/reset-password.dto';
 
 @Controller('auth')
+// SECURITY (CSRF assessment): authentication is bearer-token based — the
+// frontend stores the JWT in localStorage and sends it via the Authorization
+// header (see apps/web lib/api.ts). The API never sets or reads auth cookies
+// (no res.cookie / cookie-parser / req.cookies anywhere in src/). CSRF attacks
+// exploit browsers automatically attaching cookies to cross-site requests;
+// since no auth credential is transmitted that way, CSRF protection is not
+// applicable here. If cookie-based sessions are ever introduced, SameSite +
+// double-submit CSRF tokens must be added at that point.
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 

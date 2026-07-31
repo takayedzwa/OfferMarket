@@ -425,25 +425,25 @@ export class AdminService {
   }
 
   async verifyEmployer(employerId: string, adminUserId: string, notes?: string) {
+    // Read the employer first so we can report a precise error and include
+    // companyName/previousStatus in the audit trail. This read is for metadata
+    // only — the authoritative state transition is the atomic updateMany
+    // below, which closes the race where two admins concurrently verify the
+    // same employer (both read PENDING, both update).
     const employer = await this.prisma.employer.findUnique({
       where: { id: employerId },
+      select: { id: true, companyName: true, verificationStatus: true },
     });
 
     if (!employer) {
       throw new NotFoundException('Employer not found');
     }
 
-    // A-H1: only employers awaiting review can be verified. Prevent an admin
-    // from re-verifying an already-verified or already-rejected employer and
-    // overwriting the previous decision.
-    if (employer.verificationStatus !== 'PENDING') {
-      throw new BadRequestException(
-        `Employer cannot be verified in status: ${employer.verificationStatus}`,
-      );
-    }
-
-    await this.prisma.employer.update({
-      where: { id: employerId },
+    // Atomic, idempotent transition: only update rows still in PENDING. If
+    // another request already moved the employer out of PENDING, count === 0
+    // and we report the current status instead of silently overwriting it.
+    const result = await this.prisma.employer.updateMany({
+      where: { id: employerId, verificationStatus: 'PENDING' },
       data: {
         verificationStatus: 'BASIC_VERIFIED',
         verifiedAt: new Date(),
@@ -451,14 +451,25 @@ export class AdminService {
       },
     });
 
-    // Log admin action
+    if (result.count === 0) {
+      throw new BadRequestException(
+        `Employer cannot be verified in status: ${employer.verificationStatus}`,
+      );
+    }
+
+    // Log admin action with the previous status so the transition is explicit.
     await this.prisma.adminAction.create({
       data: {
         adminId: adminUserId,
         action: 'EMPLOYER_VERIFIED',
         entityType: 'employer',
         entityId: employerId,
-        details: { notes, companyName: employer.companyName },
+        details: {
+          notes,
+          companyName: employer.companyName,
+          previousStatus: employer.verificationStatus,
+          newStatus: 'BASIC_VERIFIED',
+        },
       },
     });
 
@@ -468,35 +479,39 @@ export class AdminService {
   async rejectEmployer(employerId: string, adminUserId: string, reason: string) {
     const employer = await this.prisma.employer.findUnique({
       where: { id: employerId },
+      select: { id: true, companyName: true, verificationStatus: true },
     });
 
     if (!employer) {
       throw new NotFoundException('Employer not found');
     }
 
-    // A-H1: only employers awaiting review can be rejected. Prevent an admin
-    // from re-rejecting an already-verified or already-rejected employer.
-    if (employer.verificationStatus !== 'PENDING') {
-      throw new BadRequestException(
-        `Employer cannot be rejected in status: ${employer.verificationStatus}`,
-      );
-    }
-
-    await this.prisma.employer.update({
-      where: { id: employerId },
+    // Atomic, idempotent transition — see verifyEmployer for rationale.
+    const result = await this.prisma.employer.updateMany({
+      where: { id: employerId, verificationStatus: 'PENDING' },
       data: {
         verificationStatus: 'REJECTED',
       },
     });
 
-    // Log admin action
+    if (result.count === 0) {
+      throw new BadRequestException(
+        `Employer cannot be rejected in status: ${employer.verificationStatus}`,
+      );
+    }
+
     await this.prisma.adminAction.create({
       data: {
         adminId: adminUserId,
         action: 'EMPLOYER_REJECTED',
         entityType: 'employer',
         entityId: employerId,
-        details: { reason, companyName: employer.companyName },
+        details: {
+          reason,
+          companyName: employer.companyName,
+          previousStatus: employer.verificationStatus,
+          newStatus: 'REJECTED',
+        },
       },
     });
 
@@ -525,6 +540,17 @@ export class AdminService {
   }
 
   async updateSetting(key: string, value: any, adminUserId: string, category?: string) {
+    // Mass-assignment guard: AdminSettings is a generic key/value store, so we
+    // can't enumerate every legal key, but we can reject keys that don't match
+    // the documented snake_case identifier format. This stops an admin from
+    // injecting arbitrary/collision-prone keys (e.g. keys with spaces, dots, or
+    // reserved system prefixes) while still allowing new legitimate settings.
+    if (!/^[a-z][a-z0-9_]{0,63}$/.test(key)) {
+      throw new BadRequestException(
+        'Setting key must be 1-64 chars, lowercase snake_case (letters, digits, underscore), starting with a letter.',
+      );
+    }
+
     // A-M6: capture the previous value before upserting so the audit trail
     // records what actually changed. Without this the log only held the new
     // value, making it impossible to determine the prior setting.

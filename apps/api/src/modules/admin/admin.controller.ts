@@ -1,4 +1,5 @@
 import { Controller, Get, Post, Patch, Body, Param, Query, UseGuards, Request } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { AdminGuard } from '../../guards/admin.guard';
 import { AdminService } from './admin.service';
 import { UpdateSettingsDto } from './dto/update-settings.dto';
@@ -10,6 +11,12 @@ import { parsePage, parseLimit } from '../../common/utils/pagination';
 // E-L1: AdminGuard extends AuthGuard('jwt') and self-authenticates, so it does
 // not need to be paired with JwtAuthGuard — that ran JWT verification twice.
 @UseGuards(AdminGuard)
+// Rate-limit the whole admin console tighter than the global 100/min default.
+// The destructive state-changing endpoints here (suspend/ban/restore,
+// verify/reject employer, create staff, update settings) are the exact paths a
+// compromised admin session would hammer to mass-ban users; capping the class
+// at 60/min slows that blast radius. Individual endpoints can override further.
+@Throttle({ short: { ttl: 60000, limit: 60 } })
 export class AdminController {
   constructor(private readonly adminService: AdminService) {}
 
