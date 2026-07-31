@@ -4,6 +4,7 @@ import { AdminService } from './admin.service';
 import { UpdateSettingsDto } from './dto/update-settings.dto';
 import { VerifyEmployerDto, RejectEmployerDto } from './dto/verify-employer.dto';
 import { CreateStaffUserDto } from './dto/create-staff-user.dto';
+import { parsePage, parseLimit } from '../../common/utils/pagination';
 
 @Controller('admin')
 // E-L1: AdminGuard extends AuthGuard('jwt') and self-authenticates, so it does
@@ -33,9 +34,10 @@ export class AdminController {
     @Query('status') status?: string,
     @Query('search') search?: string,
   ) {
+    // A-M2: clamp page/limit to a safe range instead of bare parseInt().
     return this.adminService.getUsers(
-      page ? parseInt(page) : 1,
-      limit ? parseInt(limit) : 20,
+      parsePage(page),
+      parseLimit(limit),
       { role, status, search },
     );
   }
@@ -95,50 +97,19 @@ export class AdminController {
     @Query('limit') limit?: string,
     @Query('verificationStatus') verificationStatus?: string,
   ) {
-    const skip = (page ? parseInt(page) : 1) - 1;
-    const take = limit ? parseInt(limit) : 20;
-
-    const where: any = {};
-    if (verificationStatus) {
-      where.verificationStatus = verificationStatus;
-    }
-
-    const [employers, total] = await Promise.all([
-      this.adminService['prisma'].employer.findMany({
-        where,
-        skip: skip * take,
-        take,
-        include: { user: true },
-        orderBy: { createdAt: 'desc' },
-      }),
-      this.adminService['prisma'].employer.count({ where }),
-    ]);
-
-    return {
-      employers,
-      pagination: {
-        page: page ? parseInt(page) : 1,
-        limit: limit ? parseInt(limit) : 20,
-        total,
-        totalPages: Math.ceil(total / (limit ? parseInt(limit) : 20)),
-      },
-    };
+    // A-M1: delegate to the service instead of reaching into
+    // adminService['prisma'] from the controller. A-M2: clamped pagination.
+    return this.adminService.getEmployers(
+      parsePage(page),
+      parseLimit(limit),
+      verificationStatus,
+    );
   }
 
   @Get('employers/:id')
   async getEmployer(@Param('id') id: string) {
-    return this.adminService['prisma'].employer.findUnique({
-      where: { id },
-      include: {
-        user: true,
-        offersSent: {
-          include: { worker: true },
-          orderBy: { createdAt: 'desc' },
-          take: 10,
-        },
-        ratings: true,
-      },
-    });
+    // A-M1: no direct prisma access from the controller.
+    return this.adminService.getEmployer(id);
   }
 
   @Get('verification-queue')
@@ -147,8 +118,8 @@ export class AdminController {
     @Query('limit') limit?: string,
   ) {
     return this.adminService.getVerificationQueue(
-      page ? parseInt(page) : 1,
-      limit ? parseInt(limit) : 20,
+      parsePage(page),
+      parseLimit(limit),
     );
   }
 
@@ -207,8 +178,8 @@ export class AdminController {
     @Query('dateTo') dateTo?: string,
   ) {
     return this.adminService.getAuditLogs(
-      page ? parseInt(page) : 1,
-      limit ? parseInt(limit) : 50,
+      parsePage(page),
+      parseLimit(limit, 50),
       { userId, action, entityType, dateFrom, dateTo },
     );
   }
@@ -221,8 +192,8 @@ export class AdminController {
   ) {
     return this.adminService.getAdminActions(
       adminId,
-      page ? parseInt(page) : 1,
-      limit ? parseInt(limit) : 50,
+      parsePage(page),
+      parseLimit(limit, 50),
     );
   }
 
@@ -239,8 +210,8 @@ export class AdminController {
     @Query('employerId') employerId?: string,
   ) {
     return this.adminService.getAllOffers(
-      page ? parseInt(page) : 1,
-      limit ? parseInt(limit) : 20,
+      parsePage(page),
+      parseLimit(limit),
       { status, workerId, employerId },
     );
   }

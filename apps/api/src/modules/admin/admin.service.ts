@@ -329,6 +329,60 @@ export class AdminService {
   // EMPLOYER VERIFICATION
   // ============================================================================
 
+  async getEmployers(
+    page: number = 1,
+    limit: number = 20,
+    verificationStatus?: string,
+  ) {
+    const skip = (page - 1) * limit;
+
+    const where: any = {};
+    if (verificationStatus) {
+      where.verificationStatus = verificationStatus;
+    }
+
+    const [employers, total] = await Promise.all([
+      this.prisma.employer.findMany({
+        where,
+        skip: skip * limit,
+        take: limit,
+        include: { user: true },
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.prisma.employer.count({ where }),
+    ]);
+
+    return {
+      employers,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  async getEmployer(employerId: string) {
+    const employer = await this.prisma.employer.findUnique({
+      where: { id: employerId },
+      include: {
+        user: true,
+        offersSent: {
+          include: { worker: true },
+          orderBy: { createdAt: 'desc' },
+          take: 10,
+        },
+        ratings: true,
+      },
+    });
+
+    if (!employer) {
+      throw new NotFoundException('Employer not found');
+    }
+    return employer;
+  }
+
   async getVerificationQueue(page: number = 1, limit: number = 20) {
     const skip = (page - 1) * limit;
 
@@ -457,6 +511,12 @@ export class AdminService {
   }
 
   async updateSetting(key: string, value: any, adminUserId: string, category?: string) {
+    // A-M6: capture the previous value before upserting so the audit trail
+    // records what actually changed. Without this the log only held the new
+    // value, making it impossible to determine the prior setting.
+    const existing = await this.prisma.adminSettings.findUnique({ where: { key } });
+    const oldValue = existing ? existing.value : null;
+
     const setting = await this.prisma.adminSettings.upsert({
       where: { key },
       create: {
@@ -479,7 +539,7 @@ export class AdminService {
         action: 'SETTINGS_UPDATED',
         entityType: 'settings',
         entityId: setting.id,
-        details: { key, value },
+        details: { key, oldValue, newValue: value },
       },
     });
 

@@ -649,6 +649,10 @@ export class TrustService {
         await tx.suspiciousActivity.create({
           data: {
             entityType: 'USER',
+            // A-M5: previously this record had no entityId, so the audit trail
+            // could not point back to which user was flagged. Record the
+            // suspected user's id as the entity reference.
+            entityId: suspectedUserId,
             userId: suspectedUserId,
             activityType: 'DUPLICATE_ACCOUNT',
             severity: SeverityLevel.HIGH,

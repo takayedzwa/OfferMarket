@@ -2,7 +2,7 @@ import { Controller, Get, Post, Patch, Body, Param, Query, Request, UseGuards } 
 import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
 import { SupportGuard } from '../../guards/support.guard';
 import { SupportService } from './support.service';
-import { CreateTicketDto, TicketReplyDto, AssignTicketDto } from './dto/create-ticket.dto';
+import { CreateTicketDto, TicketReplyDto, AssignTicketDto, ExtendOfferExpiryDto } from './dto/create-ticket.dto';
 
 @Controller('support')
 export class SupportController {
@@ -182,8 +182,9 @@ export class SupportController {
   async extendOfferExpiry(
     @Param('id') offerId: string,
     @Request() req: any,
-    @Body('days') days: number,
+    @Body() dto: ExtendOfferExpiryDto,
   ) {
-    return this.supportService.extendOfferExpiry(offerId, days, req.user.id);
+    // A-M3: days is validated as a positive integer via the DTO.
+    return this.supportService.extendOfferExpiry(offerId, dto.days, req.user.id);
   }
 }

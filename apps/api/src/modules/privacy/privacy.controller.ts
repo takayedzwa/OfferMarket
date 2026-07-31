@@ -23,6 +23,7 @@ import {
   AutomatedDecisionObjectionDto,
 } from './dto/privacy.dto';
 import { ConsentType, ExportFormat } from '@prisma/client';
+import { parsePage, parseLimit } from '../../common/utils/pagination';
 
 @Controller('privacy')
 export class PrivacyController {
@@ -377,9 +378,10 @@ export class PrivacyController {
     @Query('requestType') requestType?: string,
     @Query('userId') userId?: string,
   ) {
+    // A-M2: clamp page/limit instead of bare parseInt().
     return this.privacyService.getAllRequests(
-      parseInt(page, 10),
-      parseInt(limit, 10),
+      parsePage(page),
+      parseLimit(limit),
       { status, requestType, userId },
     );
   }
@@ -420,7 +422,7 @@ export class PrivacyController {
     @Query('page') page: string = '1',
     @Query('limit') limit: string = '20',
   ) {
-    return this.privacyService.getBreaches(parseInt(page, 10), parseInt(limit, 10));
+    return this.privacyService.getBreaches(parsePage(page), parseLimit(limit));
   }
 
   @Post('admin/breaches')

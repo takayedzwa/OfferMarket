@@ -8,6 +8,7 @@ import {
   Query,
   Request,
   UseGuards,
+  BadRequestException,
 } from '@nestjs/common';
 import { DsaService } from './dsa.service';
 import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
@@ -22,6 +23,7 @@ import {
   CreateDSAComplaintDto,
   ComplaintMessageDto,
   FlagMisuseDto,
+  GenerateTransparencyReportDto,
 } from './dto/dsa.dto';
 import {
   ContentReportStatus,
@@ -31,6 +33,7 @@ import {
   DSAComplaintType,
   DSAComplaintStatus,
 } from '@prisma/client';
+import { parsePage, parseLimit } from '../../common/utils/pagination';
 
 /**
  * DSA (Digital Services Act) Controller
@@ -94,8 +97,8 @@ export class DsaController {
     const userId = req.user?.id || req.user?.sub || req.user?.userId;
     return this.dsaService.getUserReports(
       userId,
-      parseInt(page || '1', 10),
-      parseInt(limit || '20', 10),
+      parsePage(page),
+      parseLimit(limit),
     );
   }
 
@@ -120,8 +123,8 @@ export class DsaController {
     @Query('targetType') targetType?: ContentReportTarget,
   ) {
     return this.dsaService.getAllReports(
-      parseInt(page || '1', 10),
-      parseInt(limit || '20', 10),
+      parsePage(page),
+      parseLimit(limit),
       { status, category, priority, targetType },
     );
   }
@@ -276,8 +279,8 @@ export class DsaController {
     const userId = req.user?.id || req.user?.sub || req.user?.userId;
     return this.dsaService.getUserComplaints(
       userId,
-      parseInt(page || '1', 10),
-      parseInt(limit || '20', 10),
+      parsePage(page),
+      parseLimit(limit),
     );
   }
 
@@ -322,8 +325,8 @@ export class DsaController {
     @Query('complaintType') complaintType?: DSAComplaintType,
   ) {
     return this.dsaService.getAllComplaints(
-      parseInt(page || '1', 10),
-      parseInt(limit || '20', 10),
+      parsePage(page),
+      parseLimit(limit),
       { status, complaintType },
     );
   }
@@ -396,11 +399,15 @@ export class DsaController {
   // not need to be paired with JwtAuthGuard — that ran JWT verification twice.
   @UseGuards(AdminGuard)
   async generateTransparencyReport(
-    @Body() body: { periodStart: string; periodEnd: string },
+    @Body() dto: GenerateTransparencyReportDto,
   ) {
-    return this.dsaService.generateTransparencyReport(
-      new Date(body.periodStart),
-      new Date(body.periodEnd),
-    );
+    // A-M7: @IsDateString on the DTO rejects malformed dates at the boundary.
+    // Also enforce a sensible range — periodEnd must not precede periodStart.
+    const start = new Date(dto.periodStart);
+    const end = new Date(dto.periodEnd);
+    if (end < start) {
+      throw new BadRequestException('periodEnd must not be earlier than periodStart');
+    }
+    return this.dsaService.generateTransparencyReport(start, end);
   }
 }

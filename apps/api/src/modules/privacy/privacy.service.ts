@@ -1184,9 +1184,22 @@ export class PrivacyService {
     const breach = await this.prisma.dataBreach.findUnique({ where: { id: breachId } });
     if (!breach) throw new NotFoundException('Breach notification not found');
 
+    // A-M4: previously the entire DTO was passed straight to prisma, allowing
+    // mass assignment of any column (e.g. title, severity, createdAt). Build
+    // an update payload from an explicit allow-list and coerce the date
+    // strings the DTO carries into Date values.
+    const data: any = {};
+    if (dto.status !== undefined) data.status = dto.status;
+    if (dto.containedAt !== undefined) data.containedAt = dto.containedAt ? new Date(dto.containedAt) : null;
+    if (dto.reportedToAuthorityAt !== undefined) data.reportedToAuthorityAt = dto.reportedToAuthorityAt ? new Date(dto.reportedToAuthorityAt) : null;
+    if (dto.reportedToUsersAt !== undefined) data.reportedToUsersAt = dto.reportedToUsersAt ? new Date(dto.reportedToUsersAt) : null;
+    if (dto.authorityReference !== undefined) data.authorityReference = dto.authorityReference;
+    if (dto.rootCause !== undefined) data.rootCause = dto.rootCause;
+    if (dto.remediationSteps !== undefined) data.remediationSteps = dto.remediationSteps;
+
     return this.prisma.dataBreach.update({
       where: { id: breachId },
-      data: dto,
+      data,
     });
   }
 
