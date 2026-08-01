@@ -4,6 +4,7 @@ import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
 import { SupportGuard } from '../../guards/support.guard';
 import { SupportService } from './support.service';
 import { CreateTicketDto, CreateTicketOnBehalfDto, TicketReplyDto, AssignTicketDto, ExtendOfferExpiryDto } from './dto/create-ticket.dto';
+import { parsePage, parseLimit } from '../../common/utils/pagination';
 
 @Controller('support')
 export class SupportController {
@@ -151,6 +152,26 @@ export class SupportController {
   // ============================================================================
   // USER LOOKUP & ASSISTANCE (Admin/Support only)
   // ============================================================================
+
+  /**
+   * Search/list users (Admin/Support only). Used by the support user-lookup
+   * page and the "new ticket" user picker so staff don't need to know UUIDs.
+   */
+  @Get('users')
+  @UseGuards(SupportGuard)
+  async getUsers(
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('search') search?: string,
+    @Query('role') role?: string,
+    @Query('status') status?: string,
+  ) {
+    return this.supportService.getUsers(
+      parsePage(page),
+      parseLimit(limit),
+      { search, role, status },
+    );
+  }
 
   @Get('users/:id')
   @UseGuards(SupportGuard)

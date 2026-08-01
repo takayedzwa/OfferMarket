@@ -2,12 +2,22 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Send } from "lucide-react";
-import { enumsApi } from "../../../lib/api";
+import { ArrowLeft, Send, Search, X } from "lucide-react";
+import { enumsApi, supportAdminApi } from "../../../lib/api";
 
 interface EnumOption {
   value: string;
   label: string;
+}
+
+interface SearchUser {
+  id: string;
+  email: string;
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
+  role: string;
+  status: string;
 }
 
 export default function NewTicketPage() {
@@ -22,6 +32,14 @@ export default function NewTicketPage() {
     category: "",
     priority: "MEDIUM",
   });
+
+  // Searchable user picker state. Staff search by email/name/phone, pick a
+  // user from the dropdown, and the selected user's id becomes formData.userId.
+  const [userQuery, setUserQuery] = useState("");
+  const [userResults, setUserResults] = useState<SearchUser[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<SearchUser | null>(null);
 
   useEffect(() => {
     Promise.all([
@@ -54,8 +72,44 @@ export default function NewTicketPage() {
     }
   }, [categories]);
 
+  // Debounced user search for the picker. Skips while a user is selected.
+  useEffect(() => {
+    if (selectedUser) return;
+    const q = userQuery.trim();
+    if (q.length < 2) {
+      setUserResults([]);
+      setShowDropdown(false);
+      return;
+    }
+    setSearching(true);
+    const t = setTimeout(() => {
+      supportAdminApi
+        .getUsers({ search: q, limit: 10 })
+        .then(({ data }) => {
+          setUserResults(data.users || []);
+          setShowDropdown(true);
+        })
+        .catch(() => setUserResults([]))
+        .finally(() => setSearching(false));
+    }, 300);
+    return () => clearTimeout(t);
+  }, [userQuery, selectedUser]);
+
   const handleChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const selectUser = (u: SearchUser) => {
+    setSelectedUser(u);
+    setFormData((prev) => ({ ...prev, userId: u.id }));
+    setUserQuery("");
+    setUserResults([]);
+    setShowDropdown(false);
+  };
+
+  const clearSelectedUser = () => {
+    setSelectedUser(null);
+    setFormData((prev) => ({ ...prev, userId: "" }));
   };
 
   const handleSubmit = async () => {
@@ -119,18 +173,75 @@ export default function NewTicketPage() {
 
       <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="bg-white rounded-xl border shadow-sm p-6 space-y-6">
-          {/* User ID */}
+          {/* User picker (search by email / name / phone, select to set userId) */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              User ID <span className="text-red-500">*</span>
+              User <span className="text-red-500">*</span>
             </label>
-            <input
-              type="text"
-              value={formData.userId}
-              onChange={(e) => handleChange('userId', e.target.value)}
-              placeholder="Enter user ID (UUID)"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
-            />
+            {selectedUser ? (
+              <div className="flex items-center justify-between px-4 py-2 border border-gray-300 rounded-lg bg-gray-50">
+                <div className="flex flex-col">
+                  <span className="font-medium text-gray-900">
+                    {[selectedUser.firstName, selectedUser.lastName].filter(Boolean).join(" ") || selectedUser.email}
+                  </span>
+                  <span className="text-xs text-gray-500">
+                    {selectedUser.email} • {selectedUser.role}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={clearSelectedUser}
+                  className="p-1 hover:bg-gray-200 rounded-lg"
+                  aria-label="Change user"
+                >
+                  <X className="w-4 h-4 text-gray-600" />
+                </button>
+              </div>
+            ) : (
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+                <input
+                  type="text"
+                  value={userQuery}
+                  onChange={(e) => setUserQuery(e.target.value)}
+                  onFocus={() => userResults.length > 0 && setShowDropdown(true)}
+                  onBlur={() => setTimeout(() => setShowDropdown(false), 150)}
+                  placeholder="Search by email, name, or phone..."
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
+                />
+                {searching && (
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">Searching...</span>
+                )}
+                {showDropdown && userResults.length > 0 && (
+                  <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-72 overflow-auto">
+                    {userResults.map((u) => (
+                      <button
+                        type="button"
+                        key={u.id}
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => selectUser(u)}
+                        className="w-full text-left px-4 py-2 hover:bg-blue-50 border-b last:border-b-0 border-gray-100"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex flex-col">
+                            <span className="text-sm font-medium text-gray-900">
+                              {[u.firstName, u.lastName].filter(Boolean).join(" ") || u.email}
+                            </span>
+                            <span className="text-xs text-gray-500">{u.email}</span>
+                          </div>
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">{u.role}</span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {showDropdown && !searching && userResults.length === 0 && userQuery.trim().length >= 2 && (
+                  <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg px-4 py-3 text-sm text-gray-500">
+                    No users found
+                  </div>
+                )}
+              </div>
+            )}
             <p className="text-xs text-gray-500 mt-1">The user this ticket is for</p>
           </div>
 

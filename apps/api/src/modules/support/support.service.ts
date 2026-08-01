@@ -336,6 +336,67 @@ export class SupportService {
   // USER LOOKUP & ASSISTANCE
   // ============================================================================
 
+  /**
+   * Search/list users (Admin/Support only). Mirrors AdminService.getUsers but
+   * uses `select` for GDPR data minimization — support staff picking a user for
+   * a ticket only need contact/identity context, never credentials or
+   * lastLoginIp. `search` matches an exact id OR email/phone contains
+   * (case-insensitive); `contains` is invalid on the UUID id field so id is
+   * matched by equality only.
+   */
+  async getUsers(
+    page: number = 1,
+    limit: number = 20,
+    filters?: { role?: string; status?: string; search?: string },
+  ) {
+    const skip = (page - 1) * limit;
+    const where: any = {};
+
+    if (filters?.role) {
+      where.role = filters.role;
+    }
+    if (filters?.status) {
+      where.status = filters.status;
+    }
+    if (filters?.search) {
+      where.OR = [
+        { id: filters.search },
+        { email: { contains: filters.search, mode: 'insensitive' } },
+        { phone: { contains: filters.search, mode: 'insensitive' } },
+      ];
+    }
+
+    const [users, total] = await Promise.all([
+      this.prisma.user.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          email: true,
+          firstName: true,
+          lastName: true,
+          phone: true,
+          role: true,
+          status: true,
+          createdAt: true,
+        },
+      }),
+      this.prisma.user.count({ where }),
+    ]);
+
+    return {
+      users,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
   async getUserById(userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },

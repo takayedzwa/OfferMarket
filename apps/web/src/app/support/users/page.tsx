@@ -2,17 +2,18 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Users, Search, User, Mail, Phone, Ticket, ArrowLeft } from "lucide-react";
+import { Users, Search, User, Mail, Phone, ArrowLeft } from "lucide-react";
+import { supportAdminApi } from "../../../lib/api";
 
 interface SearchResult {
   id: string;
   email: string;
-  phoneNumber?: string;
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
   role: string;
   status: string;
   createdAt: string;
-  worker?: any;
-  employer?: any;
 }
 
 export default function SupportUsersPage() {
@@ -28,13 +29,10 @@ export default function SupportUsersPage() {
     setLoading(true);
     setHasSearched(true);
 
-    fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1'}/support/users?search=${encodeURIComponent(search)}`, {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
-      },
-    })
-      .then((res) => res.json())
-      .then((data) => {
+    // A-L3: use the centralized axios client so auth/refresh handling is shared.
+    supportAdminApi
+      .getUsers({ search, limit: 50 })
+      .then(({ data }) => {
         setSearchResults(data.users || []);
         setLoading(false);
       })
@@ -143,10 +141,10 @@ export default function SupportUsersPage() {
                             </span>
                           </div>
                           <div className="flex items-center gap-4 text-sm text-gray-500">
-                            {user.phoneNumber && (
+                            {user.phone && (
                               <div className="flex items-center gap-1">
                                 <Phone className="w-4 h-4" />
-                                <span>{user.phoneNumber}</span>
+                                <span>{user.phone}</span>
                               </div>
                             )}
                             <div className="flex items-center gap-1">
