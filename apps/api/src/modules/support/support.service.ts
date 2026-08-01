@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { CreateTicketDto, TicketReplyDto } from './dto/create-ticket.dto';
+import { CreateTicketDto, CreateTicketOnBehalfDto, TicketReplyDto } from './dto/create-ticket.dto';
 
 @Injectable()
 export class SupportService {
@@ -103,6 +103,22 @@ export class SupportService {
     }
 
     return ticket;
+  }
+
+  /**
+   * Create a ticket on behalf of a specific user. Used by ADMIN/SUPPORT staff
+   * via the SupportGuard-protected endpoint. Validates that the target user
+   * exists so staff get a clear 404 instead of a FK-constraint 500.
+   */
+  async createTicketOnBehalf(data: CreateTicketOnBehalfDto) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: data.userId },
+      select: { id: true, status: true },
+    });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    return this.createTicket(data);
   }
 
   async createTicket(data: CreateTicketDto & { userId: string }) {

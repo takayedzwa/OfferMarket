@@ -3,7 +3,7 @@ import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
 import { SupportGuard } from '../../guards/support.guard';
 import { SupportService } from './support.service';
-import { CreateTicketDto, TicketReplyDto, AssignTicketDto, ExtendOfferExpiryDto } from './dto/create-ticket.dto';
+import { CreateTicketDto, CreateTicketOnBehalfDto, TicketReplyDto, AssignTicketDto, ExtendOfferExpiryDto } from './dto/create-ticket.dto';
 
 @Controller('support')
 export class SupportController {
@@ -49,6 +49,20 @@ export class SupportController {
   @UseGuards(SupportGuard)
   async getDashboardStats() {
     return this.supportService.getDashboardStats();
+  }
+
+  // ============================================================================
+  // CREATE TICKET ON BEHALF OF A USER (Admin/Support only)
+  // SECURITY: Unlike POST /support/tickets (user-facing, userId from JWT), this
+  // endpoint lets staff create a ticket attributed to a specific user. The
+  // target userId is supplied in the body and the caller is authenticated +
+  // role-checked by SupportGuard, so IDOR is not a concern.
+  // ============================================================================
+
+  @Post('tickets/on-behalf')
+  @UseGuards(SupportGuard)
+  async createTicketOnBehalf(@Body() data: CreateTicketOnBehalfDto) {
+    return this.supportService.createTicketOnBehalf(data);
   }
 
   @Get('tickets')

@@ -58,7 +58,7 @@ export default function NewTicketPage() {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!formData.userId.trim() || !formData.subject.trim() || !formData.description.trim() || !formData.category) {
       alert("Please fill in all required fields");
       return;
@@ -66,28 +66,38 @@ export default function NewTicketPage() {
 
     setLoading(true);
 
-    fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1'}/support/tickets`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
-      },
-      body: JSON.stringify(formData),
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        setLoading(false);
-        if (data.ticket?.id || data.id) {
-          router.push(`/support/tickets/${data.ticket?.id || data.id}`);
-        } else {
-          alert('Ticket created successfully');
-          router.push('/support/tickets');
-        }
-      })
-      .catch(() => {
-        setLoading(false);
-        alert('Failed to create ticket');
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1'}/support/tickets/on-behalf`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
+        },
+        body: JSON.stringify(formData),
       });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        // NestJS ValidationPipe returns message as an array; surface a clear error
+        // instead of silently treating the failed response as success.
+        const msg = Array.isArray(data.message)
+          ? data.message.join(', ')
+          : data.message || data.error || 'Failed to create ticket';
+        throw new Error(msg);
+      }
+
+      const id = data.ticket?.id || data.id;
+      if (id) {
+        router.push(`/support/tickets/${id}`);
+      } else {
+        router.push('/support/tickets');
+      }
+    } catch (err: any) {
+      alert(err?.message || 'Failed to create ticket');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
