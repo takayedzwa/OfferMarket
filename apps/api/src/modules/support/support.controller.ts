@@ -201,8 +201,8 @@ export class SupportController {
 
   @Get('conversations/:id')
   @UseGuards(SupportGuard)
-  async getConversationById(@Param('id') id: string) {
-    return this.supportService.getConversationById(id);
+  async getConversationById(@Param('id') id: string, @Request() req: any) {
+    return this.supportService.getConversationById(id, req.user.id);
   }
 
   @Post('users/:workerId/unblock/:employerId')

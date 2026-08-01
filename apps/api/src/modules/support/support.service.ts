@@ -2,6 +2,19 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateTicketDto, CreateTicketOnBehalfDto, TicketReplyDto } from './dto/create-ticket.dto';
 
+// A-M: allowed ticket status transitions. CLOSED is terminal — nothing can
+// reopen a closed ticket. RESOLVED may be reopened to IN_PROGRESS (e.g. the
+// user reports the issue is not actually fixed) or closed, but not bounced
+// back to OPEN/PENDING_USER directly. Self-transitions are not permitted via
+// updateTicketStatus; use resolveTicket/closeTicket for idempotent targeting.
+const ALLOWED_STATUS_TRANSITIONS: Record<string, string[]> = {
+  OPEN: ['IN_PROGRESS', 'PENDING_USER', 'RESOLVED', 'CLOSED'],
+  IN_PROGRESS: ['OPEN', 'PENDING_USER', 'RESOLVED', 'CLOSED'],
+  PENDING_USER: ['OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED'],
+  RESOLVED: ['IN_PROGRESS', 'CLOSED'],
+  CLOSED: [],
+};
+
 @Injectable()
 export class SupportService {
   constructor(private prisma: PrismaService) {}
@@ -11,19 +24,34 @@ export class SupportService {
   // ============================================================================
 
   async getDashboardStats() {
+    // A-M: the support dashboard (/support/page.tsx) expects totalTickets,
+    // pendingUserTickets, resolvedTickets and closedTickets, while the admin
+    // support page (/admin/support/page.tsx) expects resolvedToday, totalUsers
+    // and pendingEmployerVerifications. Return a superset so both pages render
+    // correct data instead of zeroed tiles.
+    const startOfToday = new Date(new Date().setHours(0, 0, 0, 0));
+
     const [
+      totalTickets,
       openTickets,
       inProgressTickets,
+      pendingUserTickets,
+      resolvedTickets,
+      closedTickets,
       resolvedToday,
       totalUsers,
       pendingEmployerVerifications,
     ] = await Promise.all([
+      this.prisma.supportTicket.count(),
       this.prisma.supportTicket.count({ where: { status: 'OPEN' } }),
       this.prisma.supportTicket.count({ where: { status: 'IN_PROGRESS' } }),
+      this.prisma.supportTicket.count({ where: { status: 'PENDING_USER' } }),
+      this.prisma.supportTicket.count({ where: { status: 'RESOLVED' } }),
+      this.prisma.supportTicket.count({ where: { status: 'CLOSED' } }),
       this.prisma.supportTicket.count({
         where: {
           status: 'RESOLVED',
-          resolvedAt: { gte: new Date(new Date().setHours(0, 0, 0, 0)) },
+          resolvedAt: { gte: startOfToday },
         },
       }),
       this.prisma.user.count(),
@@ -31,8 +59,14 @@ export class SupportService {
     ]);
 
     return {
+      // Fields consumed by /support/page.tsx
+      totalTickets,
       openTickets,
       inProgressTickets,
+      pendingUserTickets,
+      resolvedTickets,
+      closedTickets,
+      // Fields consumed by /admin/support/page.tsx
       resolvedToday,
       totalUsers,
       pendingEmployerVerifications,
@@ -260,6 +294,17 @@ export class SupportService {
       throw new BadRequestException(`Invalid status. Must be one of: ${validStatuses.join(', ')}`);
     }
 
+    // A-M: enforce the transition map. CLOSED is terminal, and arbitrary
+    // backward jumps (e.g. CLOSED -> OPEN) are rejected. Previously any
+    // valid->valid transition was allowed, which let a closed ticket be
+    // reopened and let resolvedAt/resolvedById be overwritten.
+    const allowed = ALLOWED_STATUS_TRANSITIONS[ticket.status] ?? [];
+    if (!allowed.includes(status)) {
+      throw new BadRequestException(
+        `Cannot transition ticket from ${ticket.status} to ${status}`,
+      );
+    }
+
     const updateData: any = { status };
     if (status === 'RESOLVED' || status === 'CLOSED') {
       updateData.resolvedAt = new Date();
@@ -285,6 +330,13 @@ export class SupportService {
       throw new NotFoundException('Ticket not found');
     }
 
+    // A-M: idempotent — closing an already-closed ticket is a no-op that
+    // returns the current record instead of overwriting resolvedAt/resolvedById
+    // (which previously stamped a new timestamp/actor on every re-close).
+    if (ticket.status === 'CLOSED') {
+      return ticket;
+    }
+
     return this.prisma.supportTicket.update({
       where: { id: ticketId },
       data: {
@@ -304,6 +356,16 @@ export class SupportService {
       throw new NotFoundException('Ticket not found');
     }
 
+    // A-M: idempotent — resolving an already-resolved ticket is a no-op.
+    // Resolving a CLOSED ticket is rejected: CLOSED is terminal and resolving
+    // it would be a backward transition that also overwrites the close record.
+    if (ticket.status === 'RESOLVED') {
+      return ticket;
+    }
+    if (ticket.status === 'CLOSED') {
+      throw new BadRequestException('Cannot resolve a closed ticket');
+    }
+
     return this.prisma.supportTicket.update({
       where: { id: ticketId },
       data: {
@@ -321,6 +383,21 @@ export class SupportService {
 
     if (!ticket) {
       throw new NotFoundException('Ticket not found');
+    }
+
+    // A-M: validate the assignee. Previously any string was accepted — a
+    // non-existent id surfaced as a raw Prisma FK 500, and a WORKER id would
+    // silently create a broken assignment to someone with no support access.
+    // Require an existing user with an ADMIN or SUPPORT role.
+    const assignee = await this.prisma.user.findUnique({
+      where: { id: assignedToId },
+      select: { id: true, role: true, status: true },
+    });
+    if (!assignee) {
+      throw new NotFoundException('Assignee user not found');
+    }
+    if (!['ADMIN', 'SUPPORT'].includes(assignee.role)) {
+      throw new BadRequestException('Tickets can only be assigned to ADMIN or SUPPORT users');
     }
 
     return this.prisma.supportTicket.update({
@@ -483,7 +560,7 @@ export class SupportService {
     return { offers: [] };
   }
 
-  async getConversationById(conversationId: string) {
+  async getConversationById(conversationId: string, supportUserId: string) {
     const conversation = await this.prisma.conversation.findUnique({
       where: { id: conversationId },
       include: {
@@ -499,6 +576,23 @@ export class SupportService {
     if (!conversation) {
       throw new NotFoundException('Conversation not found');
     }
+
+    // A-M: audit trail. Reading a user's private conversation history is a
+    // sensitive support action; unblockCompany and extendOfferExpiry already
+    // log to adminAction, but conversation views did not — leaving no record of
+    // which agent accessed which conversation and when. Record it now.
+    await this.prisma.adminAction.create({
+      data: {
+        adminId: supportUserId,
+        action: 'SUPPORT_VIEW_CONVERSATION',
+        entityType: 'conversation',
+        entityId: conversationId,
+        details: {
+          participant1Id: conversation.participant1Id,
+          participant2Id: conversation.participant2Id,
+        },
+      },
+    });
 
     return conversation;
   }
