@@ -1,19 +1,17 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "../contexts/AuthContext";
 import NotificationBell from "./notifications/NotificationBell";
 import {
   Home, Users, Briefcase, MessageSquare, FileText,
-  Shield, Ticket, Building2, User, CreditCard, Lock, Flag
+  Shield, Ticket, Building2, User, CreditCard, Lock, Flag,
+  Menu, X,
 } from "lucide-react";
 
-interface NavbarProps {
-  variant?: "default" | "dashboard";
-}
-
-export default function Navbar({ variant = "default" }: NavbarProps) {
+export default function Navbar() {
   const pathname = usePathname();
   const { user, loading: authLoading, logout } = useAuth();
 
@@ -40,6 +38,55 @@ export default function Navbar({ variant = "default" }: NavbarProps) {
     }`;
   };
 
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  // Single source of truth for the role-gated nav links. Rendered both in the
+  // desktop bar (hidden md:flex) and the mobile drawer (md:hidden) so the two
+  // never diverge — add a link here once and it appears in both places.
+  const navLinks: { href: string; label: string; Icon: React.ComponentType<{ className?: string }> }[] = [
+    { href: "/", label: "Home", Icon: Home },
+  ];
+  if (isAuthenticated) {
+    if (userRole === "WORKER") {
+      navLinks.push(
+        { href: "/dashboard/worker", label: "Dashboard", Icon: Briefcase },
+        { href: "/offers", label: "Offers", Icon: FileText },
+        { href: "/conversations", label: "Messages", Icon: MessageSquare },
+        { href: "/profile", label: "Profile", Icon: User },
+      );
+    }
+    if (userRole === "EMPLOYER") {
+      navLinks.push(
+        { href: "/dashboard/employer", label: "Dashboard", Icon: Building2 },
+        { href: "/offers", label: "Offers", Icon: FileText },
+        { href: "/workers", label: "Search Workers", Icon: Users },
+        { href: "/conversations", label: "Messages", Icon: MessageSquare },
+        { href: "/dashboard/employer/billing", label: "Billing", Icon: CreditCard },
+      );
+    }
+    if (isAdmin) {
+      navLinks.push({ href: "/admin", label: "Admin", Icon: Shield });
+    }
+    if (isSupport) {
+      navLinks.push(
+        { href: "/support", label: "Support", Icon: Ticket },
+        { href: "/support/tickets", label: "Tickets", Icon: Ticket },
+        { href: "/support/users", label: "Users", Icon: Users },
+        { href: "/profile", label: "Profile", Icon: User },
+      );
+    }
+  }
+
+  // Hamburger only makes sense when there are links beyond Home (i.e. an
+  // authenticated user with role-gated destinations). Unauthenticated visitors
+  // keep the existing Sign In / Get Started buttons.
+  const showHamburger = !authLoading && isAuthenticated && navLinks.length > 1;
+
+  const mobileLinkClass = (path: string) =>
+    `flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+      isActive(path) ? "bg-blue-100 text-blue-600" : "text-gray-700 hover:bg-gray-100"
+    }`;
+
   return (
     <header className="bg-white border-b sticky top-0 z-10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -52,96 +99,31 @@ export default function Navbar({ variant = "default" }: NavbarProps) {
             <span className="text-xl font-bold text-gray-900">OfferMarket</span>
           </Link>
 
-          {/* Navigation Links */}
+          {/* Navigation Links (desktop) */}
           <nav className="hidden md:flex items-center gap-2">
-            <Link href="/" className={navLinkClass("/")}>
-              <Home className="w-4 h-4 inline mr-1" />
-              Home
-            </Link>
-
-            {isAuthenticated && (
-              <>
-                {userRole === "WORKER" && (
-                  <>
-                    <Link href="/dashboard/worker" className={navLinkClass("/dashboard/worker")}>
-                      <Briefcase className="w-4 h-4 inline mr-1" />
-                      Dashboard
-                    </Link>
-                    <Link href="/offers" className={navLinkClass("/offers")}>
-                      <FileText className="w-4 h-4 inline mr-1" />
-                      Offers
-                    </Link>
-                    <Link href="/conversations" className={navLinkClass("/conversations")}>
-                      <MessageSquare className="w-4 h-4 inline mr-1" />
-                      Messages
-                    </Link>
-                    <Link href="/profile" className={navLinkClass("/profile")}>
-                      <User className="w-4 h-4 inline mr-1" />
-                      Profile
-                    </Link>
-                  </>
-                )}
-
-                {userRole === "EMPLOYER" && (
-                  <>
-                    <Link href="/dashboard/employer" className={navLinkClass("/dashboard/employer")}>
-                      <Building2 className="w-4 h-4 inline mr-1" />
-                      Dashboard
-                    </Link>
-                    <Link href="/offers" className={navLinkClass("/offers")}>
-                      <FileText className="w-4 h-4 inline mr-1" />
-                      Offers
-                    </Link>
-                    <Link href="/workers" className={navLinkClass("/workers")}>
-                      <Users className="w-4 h-4 inline mr-1" />
-                      Search Workers
-                    </Link>
-                    <Link href="/conversations" className={navLinkClass("/conversations")}>
-                      <MessageSquare className="w-4 h-4 inline mr-1" />
-                      Messages
-                    </Link>
-                    <Link href="/dashboard/employer/billing" className={navLinkClass("/dashboard/employer/billing")}>
-                      <CreditCard className="w-4 h-4 inline mr-1" />
-                      Billing
-                    </Link>
-                  </>
-                )}
-
-                {isAdmin && (
-                  <>
-                    <Link href="/admin" className={navLinkClass("/admin")}>
-                      <Shield className="w-4 h-4 inline mr-1" />
-                      Admin
-                    </Link>
-                  </>
-                )}
-
-                {isSupport && (
-                  <>
-                    <Link href="/support" className={navLinkClass("/support")}>
-                      <Ticket className="w-4 h-4 inline mr-1" />
-                      Support
-                    </Link>
-                    <Link href="/support/tickets" className={navLinkClass("/support/tickets")}>
-                      <Ticket className="w-4 h-4 inline mr-1" />
-                      Tickets
-                    </Link>
-                    <Link href="/support/users" className={navLinkClass("/support/users")}>
-                      <Users className="w-4 h-4 inline mr-1" />
-                      Users
-                    </Link>
-                    <Link href="/profile" className={navLinkClass("/profile")}>
-                      <User className="w-4 h-4 inline mr-1" />
-                      Profile
-                    </Link>
-                  </>
-                )}
-              </>
-            )}
+            {navLinks.map(({ href, label, Icon }) => (
+              <Link key={href} href={href} className={navLinkClass(href)}>
+                <Icon className="w-4 h-4 inline mr-1" />
+                {label}
+              </Link>
+            ))}
           </nav>
 
           {/* User Menu */}
           <div className="flex items-center gap-4">
+            {/* Hamburger — mobile only (md:hidden). Toggles the drawer below. */}
+            {showHamburger && (
+              <button
+                type="button"
+                onClick={() => setMobileOpen((o) => !o)}
+                className="md:hidden p-2 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                aria-label={mobileOpen ? "Close menu" : "Open menu"}
+                aria-expanded={mobileOpen}
+              >
+                {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              </button>
+            )}
+
             {authLoading ? null : isAuthenticated ? (
               <>
                 {/* Notification bell */}
@@ -215,6 +197,24 @@ export default function Navbar({ variant = "default" }: NavbarProps) {
             )}
           </div>
         </div>
+
+        {/* Mobile navigation drawer (md:hidden). Same link list as the
+            desktop bar; closes on navigation. */}
+        {mobileOpen && showHamburger && (
+          <nav className="md:hidden border-t border-gray-200 py-3 space-y-1">
+            {navLinks.map(({ href, label, Icon }) => (
+              <Link
+                key={href}
+                href={href}
+                onClick={() => setMobileOpen(false)}
+                className={mobileLinkClass(href)}
+              >
+                <Icon className="w-4 h-4" />
+                {label}
+              </Link>
+            ))}
+          </nav>
+        )}
       </div>
     </header>
   );
