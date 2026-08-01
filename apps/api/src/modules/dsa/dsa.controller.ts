@@ -13,7 +13,8 @@ import {
 import { Throttle } from '@nestjs/throttler';
 import { DsaService } from './dsa.service';
 import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
-import { AdminGuard } from '../../guards/admin.guard';
+import { RolesGuard } from '../../guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
 import {
   CreateContentReportDto,
   AssessContentReportDto,
@@ -112,9 +113,10 @@ export class DsaController {
    * Supports filtering by status, category, priority, and target type.
    */
   @Get('admin/reports')
-  // E-L1: AdminGuard extends AuthGuard('jwt') and self-authenticates, so it does
-  // not need to be paired with JwtAuthGuard — that ran JWT verification twice.
-  @UseGuards(AdminGuard)
+  // S-C4: DSA content moderation is handled by both ADMIN and SUPPORT staff
+  // (DSA Art. 16-17). JwtAuthGuard authenticates; RolesGuard enforces the roles.
+  @Roles('ADMIN', 'SUPPORT')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   async getAllReports(
     @Query('page') page?: string,
     @Query('limit') limit?: string,
@@ -134,9 +136,8 @@ export class DsaController {
    * Get a single report with full details (admin).
    */
   @Get('admin/reports/:id')
-  // E-L1: AdminGuard extends AuthGuard('jwt') and self-authenticates, so it does
-  // not need to be paired with JwtAuthGuard — that ran JWT verification twice.
-  @UseGuards(AdminGuard)
+  @Roles('ADMIN', 'SUPPORT')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   async getReportById(@Param('id') id: string) {
     return this.dsaService.getReportById(id);
   }
@@ -145,9 +146,8 @@ export class DsaController {
    * Assign a report to a staff member (admin).
    */
   @Patch('admin/reports/:id/assign')
-  // E-L1: AdminGuard extends AuthGuard('jwt') and self-authenticates, so it does
-  // not need to be paired with JwtAuthGuard — that ran JWT verification twice.
-  @UseGuards(AdminGuard)
+  @Roles('ADMIN', 'SUPPORT')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   async assignReport(
     @Param('id') id: string,
     @Request() req: any,
@@ -161,9 +161,8 @@ export class DsaController {
    * Determine whether content violates terms or is illegal.
    */
   @Patch('admin/reports/:id/assess')
-  // E-L1: AdminGuard extends AuthGuard('jwt') and self-authenticates, so it does
-  // not need to be paired with JwtAuthGuard — that ran JWT verification twice.
-  @UseGuards(AdminGuard)
+  @Roles('ADMIN', 'SUPPORT')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   async assessReport(
     @Param('id') id: string,
     @Body() dto: AssessContentReportDto,
@@ -178,9 +177,8 @@ export class DsaController {
    * When content is restricted, a statement of reasons is required (DSA Art. 17).
    */
   @Patch('admin/reports/:id/action')
-  // E-L1: AdminGuard extends AuthGuard('jwt') and self-authenticates, so it does
-  // not need to be paired with JwtAuthGuard — that ran JWT verification twice.
-  @UseGuards(AdminGuard)
+  @Roles('ADMIN', 'SUPPORT')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Throttle({ short: { ttl: 60000, limit: 20 } })
   async takeAction(
     @Param('id') id: string,
@@ -195,9 +193,8 @@ export class DsaController {
    * Resolve a content report (admin).
    */
   @Patch('admin/reports/:id/resolve')
-  // E-L1: AdminGuard extends AuthGuard('jwt') and self-authenticates, so it does
-  // not need to be paired with JwtAuthGuard — that ran JWT verification twice.
-  @UseGuards(AdminGuard)
+  @Roles('ADMIN', 'SUPPORT')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Throttle({ short: { ttl: 60000, limit: 20 } })
   async resolveReport(
     @Param('id') id: string,
@@ -213,9 +210,8 @@ export class DsaController {
    * DSA Art. 18: Required when suspecting criminal offences.
    */
   @Post('admin/reports/:id/escalate')
-  // E-L1: AdminGuard extends AuthGuard('jwt') and self-authenticates, so it does
-  // not need to be paired with JwtAuthGuard — that ran JWT verification twice.
-  @UseGuards(AdminGuard)
+  @Roles('ADMIN', 'SUPPORT')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Throttle({ short: { ttl: 60000, limit: 20 } })
   async escalateToAuthorities(
     @Param('id') id: string,
@@ -235,9 +231,8 @@ export class DsaController {
    * DSA Art. 17: Affected users must receive a clear statement of reasons.
    */
   @Post('admin/reports/:id/statement-of-reasons')
-  // E-L1: AdminGuard extends AuthGuard('jwt') and self-authenticates, so it does
-  // not need to be paired with JwtAuthGuard — that ran JWT verification twice.
-  @UseGuards(AdminGuard)
+  @Roles('ADMIN', 'SUPPORT')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   async createStatementOfReasons(
     @Param('id') reportId: string,
     @Body() dto: CreateStatementOfReasonsDto,
@@ -319,9 +314,8 @@ export class DsaController {
    * Admin: list all complaints.
    */
   @Get('admin/complaints')
-  // E-L1: AdminGuard extends AuthGuard('jwt') and self-authenticates, so it does
-  // not need to be paired with JwtAuthGuard — that ran JWT verification twice.
-  @UseGuards(AdminGuard)
+  @Roles('ADMIN', 'SUPPORT')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   async getAllComplaints(
     @Query('page') page?: string,
     @Query('limit') limit?: string,
@@ -344,9 +338,8 @@ export class DsaController {
    * DSA Art. 23: Platforms may suspend users who frequently submit unfounded notices.
    */
   @Post('admin/misuse/:userId')
-  // E-L1: AdminGuard extends AuthGuard('jwt') and self-authenticates, so it does
-  // not need to be paired with JwtAuthGuard — that ran JWT verification twice.
-  @UseGuards(AdminGuard)
+  @Roles('ADMIN', 'SUPPORT')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   async flagMisuse(
     @Param('userId') userId: string,
     @Body() dto: FlagMisuseDto,
@@ -360,9 +353,8 @@ export class DsaController {
    * Get a user's misuse status.
    */
   @Get('admin/misuse/:userId')
-  // E-L1: AdminGuard extends AuthGuard('jwt') and self-authenticates, so it does
-  // not need to be paired with JwtAuthGuard — that ran JWT verification twice.
-  @UseGuards(AdminGuard)
+  @Roles('ADMIN', 'SUPPORT')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   async getUserMisuseStatus(@Param('userId') userId: string) {
     return this.dsaService.getUserMisuseStatus(userId);
   }
@@ -371,9 +363,8 @@ export class DsaController {
    * Lift a misuse flag (e.g., temporary suspension expired).
    */
   @Patch('admin/misuse/:recordId/lift')
-  // E-L1: AdminGuard extends AuthGuard('jwt') and self-authenticates, so it does
-  // not need to be paired with JwtAuthGuard — that ran JWT verification twice.
-  @UseGuards(AdminGuard)
+  @Roles('ADMIN', 'SUPPORT')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   async liftMisuseFlag(
     @Param('recordId') recordId: string,
     @Request() req: any,
@@ -399,9 +390,8 @@ export class DsaController {
    * Admin: generate a transparency report for a given period.
    */
   @Post('admin/transparency/generate')
-  // E-L1: AdminGuard extends AuthGuard('jwt') and self-authenticates, so it does
-  // not need to be paired with JwtAuthGuard — that ran JWT verification twice.
-  @UseGuards(AdminGuard)
+  @Roles('ADMIN', 'SUPPORT')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   async generateTransparencyReport(
     @Body() dto: GenerateTransparencyReportDto,
   ) {
