@@ -582,8 +582,10 @@ export const billingApi = {
 
 export const conversationsApi = {
   // List conversations
-  listConversations: (userId?: string, userType?: 'worker' | 'employer') =>
-    api.get('/conversations', { params: { userId, userType } }),
+  // SECURITY: userId is no longer passed as a query param. The backend derives
+  // the caller's identity from the JWT and only needs `userType`.
+  listConversations: (userType: 'worker' | 'employer') =>
+    api.get('/conversations', { params: { userType } }),
 
   // Get conversation details
   getConversation: (id: string) => api.get(`/conversations/${id}`),

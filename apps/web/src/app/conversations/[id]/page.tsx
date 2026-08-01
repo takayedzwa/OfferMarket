@@ -51,15 +51,12 @@ export default function ConversationDetailPage() {
       }
 
       try {
-        const response = await api.get(`/conversations/${conversationId}`, {
-          params: { userId: user.id },
-        });
+        const response = await api.get(`/conversations/${conversationId}`);
         setConversation(response.data);
 
         // Also fetch messages
         const messagesResponse = await api.get(
-          `/conversations/${conversationId}/messages`,
-          { params: { userId: user.id } }
+          `/conversations/${conversationId}/messages`
         );
         setMessages(messagesResponse.data || []);
       } catch (err: any) {
@@ -85,11 +82,9 @@ export default function ConversationDetailPage() {
 
     setSending(true);
     try {
-      const userId = user?.id;
       const response = await api.post(
         `/conversations/${conversation.id}/messages`,
-        { content: newMessage.trim() },
-        { params: { userId } }
+        { content: newMessage.trim() }
       );
       setMessages((prev) => [...prev, response.data]);
       setNewMessage("");
