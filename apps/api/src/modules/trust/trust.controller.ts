@@ -142,8 +142,11 @@ export class TrustController {
    * PUT /trust/suspicious-activity/:activityId/review
    * Review suspicious activity (admin only)
    */
+  // A-M: reviewing/confirming suspicious activity is a trust decision that
+  // decides whether an account is flagged — restrict to ADMIN. SUPPORT can
+  // report and view suspicious activity but not confirm it.
   @Put('suspicious-activity/:activityId/review')
-  @Roles('ADMIN', 'SUPPORT')
+  @Roles('ADMIN')
   @Throttle({ short: { ttl: 60000, limit: 20 } })
   async reviewSuspiciousActivity(
     @Param('activityId') activityId: string,
@@ -174,8 +177,11 @@ export class TrustController {
    * PUT /trust/fraud-indicators/:indicatorId
    * Update fraud indicator
    */
+  // A-M: updating a fraud indicator can flip isConfirmed, which formally
+  // marks an entity as fraudulent — a trust decision restricted to ADMIN.
+  // SUPPORT can create (flag) indicators but not confirm them.
   @Put('fraud-indicators/:indicatorId')
-  @Roles('ADMIN', 'SUPPORT')
+  @Roles('ADMIN')
   async updateFraudIndicator(
     @Param('indicatorId') indicatorId: string,
     @Body() dto: UpdateFraudIndicatorDto,

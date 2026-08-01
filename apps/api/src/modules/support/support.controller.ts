@@ -18,6 +18,7 @@ export class SupportController {
 
   @Post('tickets')
   @UseGuards(JwtAuthGuard)
+  @Throttle({ short: { ttl: 60000, limit: 30 } })
   async createTicket(@Request() req: any, @Body() data: CreateTicketDto) {
     // SECURITY: userId comes from the JWT token, not the request body,
     // preventing IDOR attacks where users could create tickets for other users.
@@ -62,6 +63,7 @@ export class SupportController {
 
   @Post('tickets/on-behalf')
   @UseGuards(SupportGuard)
+  @Throttle({ short: { ttl: 60000, limit: 30 } })
   async createTicketOnBehalf(@Body() data: CreateTicketOnBehalfDto) {
     return this.supportService.createTicketOnBehalf(data);
   }
@@ -70,13 +72,16 @@ export class SupportController {
   @UseGuards(SupportGuard)
   async getTickets(
     @Query('status') status?: string,
+    @Query('priority') priority?: string,
+    @Query('category') category?: string,
+    @Query('search') search?: string,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
   ) {
     return this.supportService.getTickets(
-      status,
-      page ? parseInt(page) : 1,
-      limit ? parseInt(limit) : 20,
+      parsePage(page),
+      parseLimit(limit),
+      { status, priority, category, search },
     );
   }
 
@@ -102,6 +107,7 @@ export class SupportController {
 
   @Post('tickets/:id/reply')
   @UseGuards(SupportGuard)
+  @Throttle({ short: { ttl: 60000, limit: 60 } })
   async replyToTicket(
     @Param('id') id: string,
     @Request() req: any,
@@ -110,8 +116,12 @@ export class SupportController {
     return this.supportService.replyToTicket(id, req.user.id, dto.content, dto.isInternal);
   }
 
-  @Post('tickets/:id/status')
+  // A-M: partial update of an existing ticket resource -> PATCH (consistent
+  // with /assign). Previously POST, which was an inconsistent HTTP method for
+  // a partial mutation.
+  @Patch('tickets/:id/status')
   @UseGuards(SupportGuard)
+  @Throttle({ short: { ttl: 60000, limit: 60 } })
   async updateTicketStatus(
     @Param('id') id: string,
     @Request() req: any,
@@ -142,6 +152,7 @@ export class SupportController {
 
   @Patch('tickets/:id/assign')
   @UseGuards(SupportGuard)
+  @Throttle({ short: { ttl: 60000, limit: 30 } })
   async assignTicket(
     @Param('id') id: string,
     @Body() data: AssignTicketDto,

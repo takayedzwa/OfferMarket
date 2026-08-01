@@ -144,7 +144,7 @@ export default function SupportTicketDetailPage() {
     if (!headers) return;
 
     fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1'}/support/tickets/${ticketId}/status`, {
-      method: 'POST',
+      method: 'PATCH',
       headers: { ...headers, 'Content-Type': 'application/json' },
       body: JSON.stringify({ status }),
     })
@@ -165,7 +165,7 @@ export default function SupportTicketDetailPage() {
     if (!headers) return;
 
     fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1'}/support/tickets/${ticketId}/assign`, {
-      method: 'POST',
+      method: 'PATCH',
       headers: { ...headers, 'Content-Type': 'application/json' },
       body: JSON.stringify({ assignedToId: supportUserId }),
     })

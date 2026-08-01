@@ -77,12 +77,34 @@ export class SupportService {
   // TICKET MANAGEMENT
   // ============================================================================
 
-  async getTickets(status?: string, page: number = 1, limit: number = 20) {
+  async getTickets(
+    page: number = 1,
+    limit: number = 20,
+    filters?: { status?: string; priority?: string; category?: string; search?: string },
+  ) {
     const skip = (page - 1) * limit;
 
     const where: any = {};
-    if (status) {
-      where.status = status;
+    if (filters?.status) {
+      where.status = filters.status;
+    }
+    if (filters?.priority) {
+      where.priority = filters.priority;
+    }
+    if (filters?.category) {
+      where.category = filters.category;
+    }
+    // A-M: the support tickets page sends search/priority/category filters;
+    // previously only status was honored and the rest silently dropped, so
+    // the priority and category dropdowns did nothing. search matches the
+    // ticket number, subject, description, or the owning user's email.
+    if (filters?.search) {
+      where.OR = [
+        { ticketNumber: { contains: filters.search, mode: 'insensitive' } },
+        { subject: { contains: filters.search, mode: 'insensitive' } },
+        { description: { contains: filters.search, mode: 'insensitive' } },
+        { user: { email: { contains: filters.search, mode: 'insensitive' } } },
+      ];
     }
 
     const [tickets, total] = await Promise.all([
@@ -216,6 +238,14 @@ export class SupportService {
 
     if (ticket.status === 'CLOSED') {
       throw new BadRequestException('Cannot reply to closed ticket');
+    }
+
+    // A-M: RESOLVED means the issue is finished. A staff reply to a resolved
+    // ticket is not allowed — reopen it to IN_PROGRESS (via the status
+    // endpoint) first. This keeps resolvedAt/resolvedById stable and avoids
+    // silently re-activating a ticket through the reply path.
+    if (ticket.status === 'RESOLVED') {
+      throw new BadRequestException('Cannot reply to a resolved ticket — reopen it first');
     }
 
     // Create message
