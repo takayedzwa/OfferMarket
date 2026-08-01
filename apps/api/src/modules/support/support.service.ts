@@ -439,6 +439,26 @@ export class SupportService {
     });
   }
 
+  async unassignTicket(ticketId: string) {
+    const ticket = await this.prisma.supportTicket.findUnique({
+      where: { id: ticketId },
+    });
+
+    if (!ticket) {
+      throw new NotFoundException('Ticket not found');
+    }
+
+    // A-L4: previously the frontend "unassign" action sent { assignedToId: "" }
+    // through the assign endpoint, which (after S-H1 validation) 400s, and
+    // even before that would have stored an empty string instead of NULL —
+    // breaking the FK and any "assignedTo IS NULL" queries. Clear the relation
+    // properly by setting it to null.
+    return this.prisma.supportTicket.update({
+      where: { id: ticketId },
+      data: { assignedToId: null },
+    });
+  }
+
   // ============================================================================
   // USER LOOKUP & ASSISTANCE
   // ============================================================================
@@ -613,7 +633,7 @@ export class SupportService {
     // which agent accessed which conversation and when. Record it now.
     await this.prisma.adminAction.create({
       data: {
-        adminId: supportUserId,
+        actorId: supportUserId,
         action: 'SUPPORT_VIEW_CONVERSATION',
         entityType: 'conversation',
         entityId: conversationId,
@@ -653,7 +673,7 @@ export class SupportService {
     // Log support action
     await this.prisma.adminAction.create({
       data: {
-        adminId: supportUserId,
+        actorId: supportUserId,
         action: 'SUPPORT_UNBLOCK_COMPANY',
         entityType: 'blockedCompany',
         entityId: blocked.id,
@@ -692,7 +712,7 @@ export class SupportService {
     // Log support action
     await this.prisma.adminAction.create({
       data: {
-        adminId: supportUserId,
+        actorId: supportUserId,
         action: 'SUPPORT_EXTEND_OFFER',
         entityType: 'offer',
         entityId: offerId,

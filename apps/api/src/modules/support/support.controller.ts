@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Body, Param, Query, Request, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, Query, Request, UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
 import { SupportGuard } from '../../guards/support.guard';
@@ -35,8 +35,8 @@ export class SupportController {
   ) {
     return this.supportService.getUserTickets(
       req.user.id,
-      page ? parseInt(page) : 1,
-      limit ? parseInt(limit) : 20,
+      parsePage(page),
+      parseLimit(limit),
     );
   }
 
@@ -100,8 +100,8 @@ export class SupportController {
   ) {
     return this.supportService.getTicketMessages(
       id,
-      page ? parseInt(page) : 1,
-      limit ? parseInt(limit) : 50,
+      parsePage(page),
+      parseLimit(limit, 50),
     );
   }
 
@@ -160,6 +160,15 @@ export class SupportController {
     return this.supportService.assignTicket(id, data.assignedToId);
   }
 
+  // A-L4: dedicated unassign endpoint — clears assignedToId (sets to null)
+  // rather than letting the frontend send an empty string through /assign.
+  @Delete('tickets/:id/assign')
+  @UseGuards(SupportGuard)
+  @Throttle({ short: { ttl: 60000, limit: 30 } })
+  async unassignTicket(@Param('id') id: string) {
+    return this.supportService.unassignTicket(id);
+  }
+
   // ============================================================================
   // USER LOOKUP & ASSISTANCE (Admin/Support only)
   // ============================================================================
@@ -205,8 +214,8 @@ export class SupportController {
   ) {
     return this.supportService.getUserTickets(
       id,
-      page ? parseInt(page) : 1,
-      limit ? parseInt(limit) : 20,
+      parsePage(page),
+      parseLimit(limit),
     );
   }
 

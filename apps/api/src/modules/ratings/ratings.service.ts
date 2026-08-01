@@ -593,7 +593,7 @@ export class RatingsService {
     // A-H2: record an admin audit trail for the moderation action.
     await this.prisma.adminAction.create({
       data: {
-        adminId: adminUserId,
+        actorId: adminUserId,
         action: 'RATING_FLAGGED',
         entityType: 'rating',
         entityId: ratingId,
@@ -616,7 +616,7 @@ export class RatingsService {
     // A-H2: record an admin audit trail for the moderation action.
     await this.prisma.adminAction.create({
       data: {
-        adminId: adminUserId,
+        actorId: adminUserId,
         action: 'RATING_UNFLAGGED',
         entityType: 'rating',
         entityId: ratingId,
@@ -639,7 +639,7 @@ export class RatingsService {
     // A-H2: record an admin audit trail for the publication change.
     await this.prisma.adminAction.create({
       data: {
-        adminId: adminUserId,
+        actorId: adminUserId,
         action: 'RATING_PUBLICATION_TOGGLED',
         entityType: 'rating',
         entityId: ratingId,

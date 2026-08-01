@@ -114,7 +114,7 @@ describe('AdminService — createStaffUser', () => {
     const auditCreate = prisma._lastTx.adminAction.create.mock.calls[0][0];
     expect(auditCreate.data).toEqual(
       expect.objectContaining({
-        adminId: 'admin-1',
+        actorId: 'admin-1',
         action: 'STAFF_USER_CREATED',
         entityType: 'user',
         entityId: newUser.id,
