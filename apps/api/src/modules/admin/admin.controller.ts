@@ -196,12 +196,12 @@ export class AdminController {
 
   @Get('admin-actions')
   async getAdminActions(
-    @Query('adminId') adminId?: string,
+    @Query('actorId') actorId?: string,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
   ) {
     return this.adminService.getAdminActions(
-      adminId,
+      actorId,
       parsePage(page),
       parseLimit(limit, 50),
     );

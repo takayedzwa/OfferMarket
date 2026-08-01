@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Ticket, Search, Filter, Clock, AlertCircle, CheckCircle, MessageSquare, XCircle } from "lucide-react";
+import { Search, Filter, Clock, AlertCircle, CheckCircle, MessageSquare, XCircle } from "lucide-react";
+import Navbar from "../../../components/Navbar";
+import SupportPageHeader from "../../../components/support/SupportPageHeader";
 
 interface SupportTicket {
   id: string;
@@ -92,30 +94,23 @@ export default function SupportTicketsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-4">
-              <button onClick={() => router.push('/support')} className="p-2 hover:bg-gray-100 rounded-lg">
-                <Ticket className="w-5 h-5 text-gray-600" />
-              </button>
-              <div>
-                <h1 className="text-lg font-semibold text-gray-900">Support Tickets</h1>
-                <p className="text-sm text-gray-500">{total} tickets total</p>
-              </div>
-            </div>
+      <Navbar />
+
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <SupportPageHeader
+          title="Support Tickets"
+          subtitle={`${total} tickets total`}
+          backHref="/support"
+          backLabel="Back to support dashboard"
+          actions={
             <button
               onClick={() => router.push('/support/new-ticket')}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
             >
               New Ticket
             </button>
-          </div>
-        </div>
-      </header>
-
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          }
+        />
         {/* Filters */}
         <div className="bg-white rounded-xl border shadow-sm p-4 mb-6">
           <div className="flex flex-wrap gap-4">

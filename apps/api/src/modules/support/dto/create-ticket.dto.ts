@@ -30,6 +30,17 @@ export class CreateTicketDto {
   relatedEntityId?: string;
 }
 
+/**
+ * Used by ADMIN/SUPPORT staff to create a ticket on behalf of a specific user
+ * via the SupportGuard-protected POST /support/tickets/on-behalf endpoint.
+ * Unlike CreateTicketDto, the target userId is supplied in the body (the
+ * caller is authenticated via SupportGuard, so IDOR is not a concern here).
+ */
+export class CreateTicketOnBehalfDto extends CreateTicketDto {
+  @IsString()
+  userId: string;
+}
+
 export class TicketReplyDto {
   @IsString()
   content: string;

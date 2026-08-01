@@ -130,6 +130,10 @@ export default function Navbar({ variant = "default" }: NavbarProps) {
                       <Users className="w-4 h-4 inline mr-1" />
                       Users
                     </Link>
+                    <Link href="/profile" className={navLinkClass("/profile")}>
+                      <User className="w-4 h-4 inline mr-1" />
+                      Profile
+                    </Link>
                   </>
                 )}
               </>

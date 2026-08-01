@@ -3,9 +3,12 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
-  ArrowLeft, Ticket, Clock, AlertCircle, CheckCircle, MessageSquare,
-  User, Send, MoreVertical, Shield, XCircle
+  Ticket, Clock, AlertCircle, CheckCircle, MessageSquare,
+  User, Send, MoreVertical, Shield, XCircle, Search
 } from "lucide-react";
+import { supportAdminApi } from "../../../../lib/api";
+import Navbar from "../../../../components/Navbar";
+import SupportPageHeader from "../../../../components/support/SupportPageHeader";
 
 interface SupportTicket {
   id: string;
@@ -56,6 +59,10 @@ export default function SupportTicketDetailPage() {
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [newStatus, setNewStatus] = useState("");
+  const [assignSearch, setAssignSearch] = useState("");
+  const [assignResults, setAssignResults] = useState<Array<{ id: string; email: string; role: string }>>([]);
+  const [assignLoading, setAssignLoading] = useState(false);
+  const [assignError, setAssignError] = useState("");
 
   const authHeaders = () => {
     const token = localStorage.getItem('accessToken');
@@ -144,9 +151,9 @@ export default function SupportTicketDetailPage() {
     if (!headers) return;
 
     fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1'}/support/tickets/${ticketId}/status`, {
-      method: 'POST',
+      method: 'PATCH',
       headers: { ...headers, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status }),
+      body: JSON.stringify({ status, expectedUpdatedAt: ticket?.updatedAt }),
     })
       .then((res) => {
         if (handleUnauthorized(res)) return;
@@ -154,10 +161,35 @@ export default function SupportTicketDetailPage() {
           setShowStatusModal(false);
           fetchTicket();
         } else {
-          alert('Failed to update status');
+          res.json().then((data) => alert(data.message || 'Failed to update status'));
         }
       })
       .catch(() => alert('Failed to update status'));
+  };
+
+  const searchAssignees = () => {
+    if (!assignSearch.trim()) return;
+    setAssignLoading(true);
+    setAssignError("");
+    // A-L3: previously the assign modal asked for a raw UUID and fired a PATCH
+    // on every keystroke. Now staff search by email/name and pick from a list
+    // of real support/admin agents, and assignment only happens on click.
+    supportAdminApi
+      .getUsers({ search: assignSearch.trim(), limit: 50 })
+      .then(({ data }) => {
+        // Tickets can only be assigned to ADMIN/SUPPORT (enforced server-side
+        // by S-H1), so filter the results client-side to assignable staff.
+        const staff = (data.users || []).filter(
+          (u: { role: string }) => u.role === 'ADMIN' || u.role === 'SUPPORT',
+        );
+        setAssignResults(staff);
+        setAssignLoading(false);
+      })
+      .catch(() => {
+        setAssignResults([]);
+        setAssignError('Failed to search users');
+        setAssignLoading(false);
+      });
   };
 
   const handleAssign = (supportUserId: string) => {
@@ -165,7 +197,7 @@ export default function SupportTicketDetailPage() {
     if (!headers) return;
 
     fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1'}/support/tickets/${ticketId}/assign`, {
-      method: 'POST',
+      method: 'PATCH',
       headers: { ...headers, 'Content-Type': 'application/json' },
       body: JSON.stringify({ assignedToId: supportUserId }),
     })
@@ -173,6 +205,8 @@ export default function SupportTicketDetailPage() {
         if (handleUnauthorized(res)) return;
         if (res.ok) {
           setShowAssignModal(false);
+          setAssignSearch("");
+          setAssignResults([]);
           fetchTicket();
         } else {
           alert('Failed to assign ticket');
@@ -182,7 +216,25 @@ export default function SupportTicketDetailPage() {
   };
 
   const handleUnassign = () => {
-    handleAssign("");
+    const headers = authHeaders();
+    if (!headers) return;
+
+    // A-L4: clear the assignment via the dedicated DELETE endpoint instead of
+    // sending { assignedToId: "" } through /assign (which 400s after S-H1 and
+    // would store an empty string instead of NULL).
+    fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1'}/support/tickets/${ticketId}/assign`, {
+      method: 'DELETE',
+      headers,
+    })
+      .then((res) => {
+        if (handleUnauthorized(res)) return;
+        if (res.ok) {
+          fetchTicket();
+        } else {
+          alert('Failed to unassign ticket');
+        }
+      })
+      .catch(() => alert('Failed to unassign ticket'));
   };
 
   if (error) {
@@ -237,28 +289,26 @@ export default function SupportTicketDetailPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-4">
-              <button onClick={() => router.push('/support/tickets')} className="p-2 hover:bg-gray-100 rounded-lg">
-                <ArrowLeft className="w-5 h-5 text-gray-600" />
-              </button>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h1 className="text-lg font-semibold text-gray-900">{ticket.ticketNumber}</h1>
-                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(ticket.status)}`}>
-                    {ticket.status}
-                  </span>
-                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${getPriorityColor(ticket.priority)}`}>
-                    {ticket.priority}
-                  </span>
-                </div>
-                <p className="text-sm text-gray-500">{ticket.subject}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
+      <Navbar />
+
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <SupportPageHeader
+          title={
+            <span className="flex items-center gap-2">
+              {ticket.ticketNumber}
+              <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(ticket.status)}`}>
+                {ticket.status}
+              </span>
+              <span className={`px-2 py-1 text-xs font-medium rounded-full ${getPriorityColor(ticket.priority)}`}>
+                {ticket.priority}
+              </span>
+            </span>
+          }
+          subtitle={ticket.subject}
+          backHref="/support/tickets"
+          backLabel="Back to tickets"
+          actions={
+            <>
               <button
                 onClick={() => setShowStatusModal(true)}
                 className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm font-medium flex items-center gap-2"
@@ -273,12 +323,9 @@ export default function SupportTicketDetailPage() {
                 <User className="w-4 h-4" />
                 {ticket.assignedToId ? 'Unassign' : 'Assign'}
               </button>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            </>
+          }
+        />
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Conversation */}
           <div className="lg:col-span-2 space-y-4">
@@ -483,15 +530,66 @@ export default function SupportTicketDetailPage() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-6 w-full max-w-md">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Assign Ticket</h3>
-            <p className="text-sm text-gray-600 mb-4">Enter the support user ID to assign this ticket to:</p>
-            <input
-              type="text"
-              placeholder="Support user ID..."
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none mb-4"
-              onChange={(e) => handleAssign(e.target.value)}
-            />
+            <p className="text-sm text-gray-600 mb-4">Search for a support or admin agent by email to assign this ticket to:</p>
+            <div className="flex gap-2 mb-4">
+              <div className="flex-1 relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  type="text"
+                  value={assignSearch}
+                  onChange={(e) => setAssignSearch(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') searchAssignees(); }}
+                  placeholder="Search by email..."
+                  className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
+                />
+              </div>
+              <button
+                onClick={searchAssignees}
+                disabled={assignLoading || !assignSearch.trim()}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+              >
+                {assignLoading ? 'Searching...' : 'Search'}
+              </button>
+            </div>
+
+            {assignError && (
+              <p className="text-sm text-red-600 mb-3">{assignError}</p>
+            )}
+
+            {assignResults.length > 0 && (
+              <div className="border border-gray-200 rounded-lg divide-y mb-4 max-h-64 overflow-y-auto">
+                {assignResults.map((user) => (
+                  <button
+                    key={user.id}
+                    onClick={() => handleAssign(user.id)}
+                    className="w-full p-3 text-left hover:bg-gray-50 flex items-center justify-between"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 bg-blue-100 rounded-full flex items-center justify-center">
+                        <User className="w-4 h-4 text-blue-600" />
+                      </div>
+                      <div>
+                        <div className="font-medium text-gray-900 text-sm">{user.email}</div>
+                        <div className="text-xs text-gray-500">{user.role}</div>
+                      </div>
+                    </div>
+                    <span className="text-sm text-blue-600 font-medium">Assign</span>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {assignResults.length === 0 && !assignLoading && !assignError && assignSearch.trim() && (
+              <p className="text-sm text-gray-500 mb-4">No support agents found. Click Search.</p>
+            )}
+
             <button
-              onClick={() => setShowAssignModal(false)}
+              onClick={() => {
+                setShowAssignModal(false);
+                setAssignSearch("");
+                setAssignResults([]);
+                setAssignError("");
+              }}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
             >
               Cancel

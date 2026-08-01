@@ -309,7 +309,7 @@ export class BillingService {
     // Log admin action
     await this.prisma.adminAction.create({
       data: {
-        adminId: adminUserId,
+        actorId: adminUserId,
         action: 'INVOICE_MARKED_PAID',
         entityType: 'invoice',
         entityId: invoiceId,
@@ -378,7 +378,7 @@ export class BillingService {
       // Log admin action
       await tx.adminAction.create({
         data: {
-          adminId: adminUserId,
+          actorId: adminUserId,
           action: 'INVOICE_CANCELLED',
           entityType: 'invoice',
           entityId: invoiceId,
@@ -507,7 +507,7 @@ export class BillingService {
     // Log admin action
     await this.prisma.adminAction.create({
       data: {
-        adminId: adminUserId,
+        actorId: adminUserId,
         action: 'BILLING_SETTING_UPDATED',
         entityType: 'setting',
         entityId: key,

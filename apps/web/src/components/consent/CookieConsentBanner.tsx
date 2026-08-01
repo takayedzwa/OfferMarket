@@ -178,9 +178,12 @@ export default function CookieConsentBanner() {
           }),
         });
       }
-    } catch (error) {
-      // Silently fail — consent is stored locally even if API sync fails
-      console.error('Failed to sync cookie consent to API:', error);
+    } catch {
+      // Silently fail — consent is stored locally even if the API sync fails
+      // (e.g. the backend is unreachable on initial page load). Logging here
+      // would spam the console on every load while the API is down, which is
+      // expected during local development/offline; the local consent record is
+      // the source of truth and a failed sync is retried on the next change.
     }
   };
 

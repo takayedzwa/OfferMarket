@@ -2,17 +2,20 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Users, Search, User, Mail, Phone, Ticket } from "lucide-react";
+import { Users, Search, User, Mail, Phone } from "lucide-react";
+import { supportAdminApi } from "../../../lib/api";
+import Navbar from "../../../components/Navbar";
+import SupportPageHeader from "../../../components/support/SupportPageHeader";
 
 interface SearchResult {
   id: string;
   email: string;
-  phoneNumber?: string;
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
   role: string;
   status: string;
   createdAt: string;
-  worker?: any;
-  employer?: any;
 }
 
 export default function SupportUsersPage() {
@@ -28,13 +31,10 @@ export default function SupportUsersPage() {
     setLoading(true);
     setHasSearched(true);
 
-    fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1'}/support/users?search=${encodeURIComponent(search)}`, {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
-      },
-    })
-      .then((res) => res.json())
-      .then((data) => {
+    // A-L3: use the centralized axios client so auth/refresh handling is shared.
+    supportAdminApi
+      .getUsers({ search, limit: 50 })
+      .then(({ data }) => {
         setSearchResults(data.users || []);
         setLoading(false);
       })
@@ -52,24 +52,15 @@ export default function SupportUsersPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-4">
-              <button onClick={() => router.push('/support')} className="p-2 hover:bg-gray-100 rounded-lg">
-                <Users className="w-5 h-5 text-gray-600" />
-              </button>
-              <div>
-                <h1 className="text-lg font-semibold text-gray-900">User Lookup</h1>
-                <p className="text-sm text-gray-500">Search for users to view their profile and tickets</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
+      <Navbar />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <SupportPageHeader
+          title="User Lookup"
+          subtitle="Search for users to view their profile and tickets"
+          backHref="/support"
+          backLabel="Back to support dashboard"
+        />
         {/* Search Box */}
         <div className="bg-white rounded-xl border shadow-sm p-6 mb-6">
           <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -143,10 +134,10 @@ export default function SupportUsersPage() {
                             </span>
                           </div>
                           <div className="flex items-center gap-4 text-sm text-gray-500">
-                            {user.phoneNumber && (
+                            {user.phone && (
                               <div className="flex items-center gap-1">
                                 <Phone className="w-4 h-4" />
-                                <span>{user.phoneNumber}</span>
+                                <span>{user.phone}</span>
                               </div>
                             )}
                             <div className="flex items-center gap-1">

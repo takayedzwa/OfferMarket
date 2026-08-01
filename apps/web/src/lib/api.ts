@@ -234,6 +234,14 @@ export const supportAdminApi = {
 
   getTickets: (params?: { status?: string; page?: number; limit?: number }) =>
     api.get('/support/tickets', { params }),
+
+  getUsers: (params?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    role?: string;
+    status?: string;
+  }) => api.get('/support/users', { params }),
 };
 
 // ============================================================================

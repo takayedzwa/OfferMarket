@@ -166,7 +166,7 @@ export class AdminService {
     // Log admin action
     await this.prisma.adminAction.create({
       data: {
-        adminId: adminUserId,
+        actorId: adminUserId,
         action: 'USER_SUSPENDED',
         entityType: 'user',
         entityId: userId,
@@ -196,7 +196,7 @@ export class AdminService {
     // Log admin action
     await this.prisma.adminAction.create({
       data: {
-        adminId: adminUserId,
+        actorId: adminUserId,
         action: 'USER_BANNED',
         entityType: 'user',
         entityId: userId,
@@ -232,7 +232,7 @@ export class AdminService {
     // Log admin action
     await this.prisma.adminAction.create({
       data: {
-        adminId: adminUserId,
+        actorId: adminUserId,
         action: 'USER_RESTORED',
         entityType: 'user',
         entityId: userId,
@@ -311,7 +311,7 @@ export class AdminService {
       // Audit trail — the whole point vs. the unaudited /auth/register/support.
       await tx.adminAction.create({
         data: {
-          adminId: adminUserId,
+          actorId: adminUserId,
           action: 'STAFF_USER_CREATED',
           entityType: 'user',
           entityId: user.id,
@@ -460,7 +460,7 @@ export class AdminService {
     // Log admin action with the previous status so the transition is explicit.
     await this.prisma.adminAction.create({
       data: {
-        adminId: adminUserId,
+        actorId: adminUserId,
         action: 'EMPLOYER_VERIFIED',
         entityType: 'employer',
         entityId: employerId,
@@ -502,7 +502,7 @@ export class AdminService {
 
     await this.prisma.adminAction.create({
       data: {
-        adminId: adminUserId,
+        actorId: adminUserId,
         action: 'EMPLOYER_REJECTED',
         entityType: 'employer',
         entityId: employerId,
@@ -575,7 +575,7 @@ export class AdminService {
     // Log admin action
     await this.prisma.adminAction.create({
       data: {
-        adminId: adminUserId,
+        actorId: adminUserId,
         action: 'SETTINGS_UPDATED',
         entityType: 'settings',
         entityId: setting.id,
@@ -602,8 +602,8 @@ export class AdminService {
     // A-L6: allow filtering by the admin who performed the action. AuditLog
     // rows record the actor (an admin, when the entry is an admin action) in
     // `userId`, so an adminId filter maps to the same column. The dedicated
-    // AdminAction table (queried by getAdminActions) also carries adminId;
-    // this filter exposes it on the audit-log query too.
+    // AdminAction table (queried by getAdminActions) carries the actor in
+    // `actorId`; this filter exposes the same concept on the audit-log query.
     if (filters?.adminId) {
       where.userId = filters.adminId;
     }
@@ -645,12 +645,12 @@ export class AdminService {
     };
   }
 
-  async getAdminActions(adminId?: string, page: number = 1, limit: number = 50) {
+  async getAdminActions(actorId?: string, page: number = 1, limit: number = 50) {
     const skip = (page - 1) * limit;
 
     const where: any = {};
-    if (adminId) {
-      where.adminId = adminId;
+    if (actorId) {
+      where.actorId = actorId;
     }
 
     const [actions, total] = await Promise.all([

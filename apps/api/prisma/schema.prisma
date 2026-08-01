@@ -662,7 +662,11 @@ model TicketMessage {
 
 model AdminAction {
   id         String   @id @default(uuid())
-  adminId    String
+  // A-L6: holds the id of the staff member who performed the action — which
+  // may be an ADMIN *or* a SUPPORT user (see SupportService.audit calls).
+  // Renamed from `adminId` so the audit trail no longer implies the actor was
+  // necessarily an admin. The physical column is renamed to match.
+  actorId    String
   action     String // e.g., "USER_SUSPENDED", "EMPLOYER_VERIFIED"
   entityType String // e.g., "user", "employer", "offer"
   entityId   String?
@@ -670,7 +674,7 @@ model AdminAction {
   ipAddress  String?
   createdAt  DateTime @default(now())
 
-  @@index([adminId])
+  @@index([actorId])
   @@index([action])
   @@index([entityType, entityId])
   @@index([createdAt])
