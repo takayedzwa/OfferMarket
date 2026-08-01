@@ -377,7 +377,17 @@ export class TrustService {
   /**
    * Create fraud indicator
    */
-  async createFraudIndicator(dto: CreateFraudIndicatorDto, creatorId?: string) {
+  async createFraudIndicator(dto: CreateFraudIndicatorDto, creatorId?: string, creatorRole?: string) {
+    // R1: confirming a fraud indicator (isConfirmed: true) formally marks an
+    // entity as fraudulent — a trust decision that requires admin oversight.
+    // SUPPORT may file/flag indicators (isConfirmed stays false) but cannot
+    // confirm them; only ADMIN can. This closes the privilege-escalation path
+    // where a SUPPORT agent could create a confirmed indicator at confidence
+    // 100 without review.
+    if (dto.isConfirmed === true && creatorRole !== 'ADMIN') {
+      throw new ForbiddenException('Only admins can confirm fraud indicators');
+    }
+
     return this.prisma.fraudIndicator.create({
       data: {
         entityType: dto.entityType as EntityType,

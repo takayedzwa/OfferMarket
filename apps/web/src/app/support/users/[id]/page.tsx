@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, User, Mail, Phone, Calendar, Ticket, Briefcase, Building2, CheckCircle, XCircle, Clock } from "lucide-react";
+import { User, Mail, Phone, Calendar, Ticket, Briefcase, Building2, CheckCircle, XCircle, Clock } from "lucide-react";
+import Navbar from "../../../../components/Navbar";
+import SupportPageHeader from "../../../../components/support/SupportPageHeader";
 
 interface UserProfile {
   id: string;
@@ -118,24 +120,15 @@ export default function SupportUserDetailPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-4">
-              <button onClick={() => router.push('/support/users')} className="p-2 hover:bg-gray-100 rounded-lg">
-                <ArrowLeft className="w-5 h-5 text-gray-600" />
-              </button>
-              <div>
-                <h1 className="text-lg font-semibold text-gray-900">User Profile</h1>
-                <p className="text-sm text-gray-500">{user.email}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
+      <Navbar />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <SupportPageHeader
+          title="User Profile"
+          subtitle={user.email}
+          backHref="/support/users"
+          backLabel="Back to user lookup"
+        />
         {/* Tabs */}
         <div className="flex gap-4 mb-6">
           <button

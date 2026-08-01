@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Users, Search, User, Mail, Phone, ArrowLeft } from "lucide-react";
+import { Users, Search, User, Mail, Phone } from "lucide-react";
 import { supportAdminApi } from "../../../lib/api";
+import Navbar from "../../../components/Navbar";
+import SupportPageHeader from "../../../components/support/SupportPageHeader";
 
 interface SearchResult {
   id: string;
@@ -50,24 +52,15 @@ export default function SupportUsersPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-4">
-              <button onClick={() => router.push('/support')} className="p-2 hover:bg-gray-100 rounded-lg" aria-label="Back to support dashboard">
-                <ArrowLeft className="w-5 h-5 text-gray-600" />
-              </button>
-              <div>
-                <h1 className="text-lg font-semibold text-gray-900">User Lookup</h1>
-                <p className="text-sm text-gray-500">Search for users to view their profile and tickets</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
+      <Navbar />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <SupportPageHeader
+          title="User Lookup"
+          subtitle="Search for users to view their profile and tickets"
+          backHref="/support"
+          backLabel="Back to support dashboard"
+        />
         {/* Search Box */}
         <div className="bg-white rounded-xl border shadow-sm p-6 mb-6">
           <label className="block text-sm font-medium text-gray-700 mb-2">

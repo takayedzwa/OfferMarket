@@ -126,8 +126,9 @@ export class SupportController {
     @Param('id') id: string,
     @Request() req: any,
     @Body('status') status: string,
+    @Body('expectedUpdatedAt') expectedUpdatedAt?: string,
   ) {
-    return this.supportService.updateTicketStatus(id, status, req.user.id);
+    return this.supportService.updateTicketStatus(id, status, req.user.id, expectedUpdatedAt);
   }
 
   @Post('tickets/:id/close')
@@ -136,8 +137,9 @@ export class SupportController {
   async closeTicket(
     @Param('id') id: string,
     @Request() req: any,
+    @Query('expectedUpdatedAt') expectedUpdatedAt?: string,
   ) {
-    return this.supportService.closeTicket(id, req.user.id);
+    return this.supportService.closeTicket(id, req.user.id, expectedUpdatedAt);
   }
 
   @Post('tickets/:id/resolve')
@@ -146,8 +148,9 @@ export class SupportController {
   async resolveTicket(
     @Param('id') id: string,
     @Request() req: any,
+    @Query('expectedUpdatedAt') expectedUpdatedAt?: string,
   ) {
-    return this.supportService.resolveTicket(id, req.user.id);
+    return this.supportService.resolveTicket(id, req.user.id, expectedUpdatedAt);
   }
 
   @Patch('tickets/:id/assign')
@@ -195,20 +198,21 @@ export class SupportController {
 
   @Get('users/:id')
   @UseGuards(SupportGuard)
-  async getUserById(@Param('id') id: string) {
-    return this.supportService.getUserById(id);
+  async getUserById(@Param('id') id: string, @Request() req: any) {
+    return this.supportService.getUserById(id, req.user.id);
   }
 
   @Get('users/:id/offers')
   @UseGuards(SupportGuard)
-  async getUserOffers(@Param('id') id: string) {
-    return this.supportService.getUserOffers(id);
+  async getUserOffers(@Param('id') id: string, @Request() req: any) {
+    return this.supportService.getUserOffers(id, req.user.id);
   }
 
   @Get('users/:id/tickets')
   @UseGuards(SupportGuard)
   async getUserTickets(
     @Param('id') id: string,
+    @Request() req: any,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
   ) {
@@ -216,11 +220,13 @@ export class SupportController {
       id,
       parsePage(page),
       parseLimit(limit),
+      req.user.id,
     );
   }
 
   @Get('conversations/:id')
   @UseGuards(SupportGuard)
+  @Throttle({ short: { ttl: 60000, limit: 30 } })
   async getConversationById(@Param('id') id: string, @Request() req: any) {
     return this.supportService.getConversationById(id, req.user.id);
   }

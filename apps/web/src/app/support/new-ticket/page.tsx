@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Send, Search, X } from "lucide-react";
+import { Send, Search, X } from "lucide-react";
 import { enumsApi, supportAdminApi } from "../../../lib/api";
+import Navbar from "../../../components/Navbar";
+import SupportPageHeader from "../../../components/support/SupportPageHeader";
 
 interface EnumOption {
   value: string;
@@ -156,22 +158,15 @@ export default function NewTicketPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-4 h-16">
-            <button onClick={() => router.push('/support')} className="p-2 hover:bg-gray-100 rounded-lg">
-              <ArrowLeft className="w-5 h-5 text-gray-600" />
-            </button>
-            <div>
-              <h1 className="text-lg font-semibold text-gray-900">Create New Ticket</h1>
-              <p className="text-sm text-gray-500">Create a support ticket on behalf of a user</p>
-            </div>
-          </div>
-        </div>
-      </header>
+      <Navbar />
 
       <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <SupportPageHeader
+          title="Create New Ticket"
+          subtitle="Create a support ticket on behalf of a user"
+          backHref="/support"
+          backLabel="Back to support dashboard"
+        />
         <div className="bg-white rounded-xl border shadow-sm p-6 space-y-6">
           {/* User picker (search by email / name / phone, select to set userId) */}
           <div>

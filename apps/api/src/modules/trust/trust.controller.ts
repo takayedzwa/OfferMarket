@@ -170,7 +170,7 @@ export class TrustController {
     @Body() dto: CreateFraudIndicatorDto,
     @Request() req: any,
   ) {
-    return this.trustService.createFraudIndicator(dto, req.user?.userId);
+    return this.trustService.createFraudIndicator(dto, req.user?.userId, req.user?.role);
   }
 
   /**

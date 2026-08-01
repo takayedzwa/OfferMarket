@@ -23,6 +23,12 @@ export enum NotificationEventType {
 
   // GDPR / Privacy
   BREACH_NOTIFICATION = 'breach.notification',
+
+  // Support actions (G4: notify the affected user when support acts on their
+  // ticket, offer, or blocked company).
+  SUPPORT_TICKET_UPDATED = 'support.ticket.updated',
+  SUPPORT_OFFER_EXTENDED = 'support.offer.extended',
+  SUPPORT_COMPANY_UNBLOCKED = 'support.company.unblocked',
 }
 
 // ============================================================================
@@ -135,6 +141,31 @@ export interface BreachNotificationPayload extends BaseNotificationPayload {
   breachId: string;
   breachTitle: string;
   severity: string;
+}
+
+// ============================================================================
+// Support action payloads (G4)
+// ============================================================================
+
+export interface SupportTicketUpdatedPayload extends BaseNotificationPayload {
+  recipientUserId: string;
+  ticketId: string;
+  ticketNumber: string;
+  subject: string;
+  newStatus: string;
+}
+
+export interface SupportOfferExtendedPayload extends BaseNotificationPayload {
+  recipientUserId: string;
+  offerId: string;
+  newExpiresAt: string;
+  jobTitle?: string;
+}
+
+export interface SupportCompanyUnblockedPayload extends BaseNotificationPayload {
+  recipientUserId: string;
+  workerId: string;
+  employerId: string;
 }
 
 // ============================================================================

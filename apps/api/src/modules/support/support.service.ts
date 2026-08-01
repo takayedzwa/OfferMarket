@@ -1,6 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateTicketDto, CreateTicketOnBehalfDto, TicketReplyDto } from './dto/create-ticket.dto';
+import { NotificationEventType } from '../notifications/notification.types';
 
 // A-M: allowed ticket status transitions. CLOSED is terminal — nothing can
 // reopen a closed ticket. RESOLVED may be reopened to IN_PROGRESS (e.g. the
@@ -17,7 +19,10 @@ const ALLOWED_STATUS_TRANSITIONS: Record<string, string[]> = {
 
 @Injectable()
 export class SupportService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private eventEmitter: EventEmitter2,
+  ) {}
 
   // ============================================================================
   // DASHBOARD STATISTICS
@@ -310,7 +315,7 @@ export class SupportService {
     };
   }
 
-  async updateTicketStatus(ticketId: string, status: string, resolverId: string) {
+  async updateTicketStatus(ticketId: string, status: string, resolverId: string, expectedUpdatedAt?: string) {
     const ticket = await this.prisma.supportTicket.findUnique({
       where: { id: ticketId },
     });
@@ -318,6 +323,12 @@ export class SupportService {
     if (!ticket) {
       throw new NotFoundException('Ticket not found');
     }
+
+    // EC1: optimistic concurrency — if the caller supplies the updatedAt they
+    // last read, reject when the row has changed underneath them (another agent
+    // updated the same ticket). Prevents silent overwrites when two agents edit
+    // concurrently.
+    this.assertNotStale(ticket, expectedUpdatedAt);
 
     const validStatuses = ['OPEN', 'IN_PROGRESS', 'PENDING_USER', 'RESOLVED', 'CLOSED'];
     if (!validStatuses.includes(status)) {
@@ -341,7 +352,7 @@ export class SupportService {
       updateData.resolvedById = resolverId;
     }
 
-    return this.prisma.supportTicket.update({
+    const updated = await this.prisma.supportTicket.update({
       where: { id: ticketId },
       data: updateData,
       include: {
@@ -349,9 +360,34 @@ export class SupportService {
         assignedTo: true,
       },
     });
+
+    // G4: notify the ticket owner that their ticket's status changed.
+    this.emitTicketStatusNotification(ticket.userId, ticket.ticketNumber, ticket.subject, status, ticketId);
+    return updated;
   }
 
-  async closeTicket(ticketId: string, resolverId: string) {
+  /**
+   * G4: emit a SUPPORT_TICKET_UPDATED event so NotificationsService can inform
+   * the ticket owner when support changes the status (incl. resolve/close).
+   */
+  private emitTicketStatusNotification(
+    recipientUserId: string,
+    ticketNumber: string,
+    subject: string,
+    newStatus: string,
+    ticketId: string,
+  ) {
+    this.eventEmitter.emit(NotificationEventType.SUPPORT_TICKET_UPDATED, {
+      recipientUserId,
+      ticketId,
+      ticketNumber,
+      subject,
+      newStatus,
+      actionUrl: `/support/tickets/${ticketId}`,
+    });
+  }
+
+  async closeTicket(ticketId: string, resolverId: string, expectedUpdatedAt?: string) {
     const ticket = await this.prisma.supportTicket.findUnique({
       where: { id: ticketId },
     });
@@ -359,6 +395,9 @@ export class SupportService {
     if (!ticket) {
       throw new NotFoundException('Ticket not found');
     }
+
+    // EC1: optimistic concurrency check.
+    this.assertNotStale(ticket, expectedUpdatedAt);
 
     // A-M: idempotent — closing an already-closed ticket is a no-op that
     // returns the current record instead of overwriting resolvedAt/resolvedById
@@ -367,7 +406,7 @@ export class SupportService {
       return ticket;
     }
 
-    return this.prisma.supportTicket.update({
+    const updated = await this.prisma.supportTicket.update({
       where: { id: ticketId },
       data: {
         status: 'CLOSED',
@@ -375,9 +414,12 @@ export class SupportService {
         resolvedById: resolverId,
       },
     });
+
+    this.emitTicketStatusNotification(ticket.userId, ticket.ticketNumber, ticket.subject, 'CLOSED', ticketId);
+    return updated;
   }
 
-  async resolveTicket(ticketId: string, resolverId: string) {
+  async resolveTicket(ticketId: string, resolverId: string, expectedUpdatedAt?: string) {
     const ticket = await this.prisma.supportTicket.findUnique({
       where: { id: ticketId },
     });
@@ -385,6 +427,9 @@ export class SupportService {
     if (!ticket) {
       throw new NotFoundException('Ticket not found');
     }
+
+    // EC1: optimistic concurrency check.
+    this.assertNotStale(ticket, expectedUpdatedAt);
 
     // A-M: idempotent — resolving an already-resolved ticket is a no-op.
     // Resolving a CLOSED ticket is rejected: CLOSED is terminal and resolving
@@ -396,7 +441,7 @@ export class SupportService {
       throw new BadRequestException('Cannot resolve a closed ticket');
     }
 
-    return this.prisma.supportTicket.update({
+    const updated = await this.prisma.supportTicket.update({
       where: { id: ticketId },
       data: {
         status: 'RESOLVED',
@@ -404,6 +449,9 @@ export class SupportService {
         resolvedById: resolverId,
       },
     });
+
+    this.emitTicketStatusNotification(ticket.userId, ticket.ticketNumber, ticket.subject, 'RESOLVED', ticketId);
+    return updated;
   }
 
   async assignTicket(ticketId: string, assignedToId: string) {
@@ -524,7 +572,7 @@ export class SupportService {
     };
   }
 
-  async getUserById(userId: string) {
+  async getUserById(userId: string, supportUserId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       include: {
@@ -546,6 +594,9 @@ export class SupportService {
       throw new NotFoundException('User not found');
     }
 
+    // G3: audit which support agent accessed which user's profile and when.
+    await this.auditSupportAccess(supportUserId, 'SUPPORT_VIEW_USER', 'user', userId);
+
     // GDPR data minimization (proportionality): SUPPORT staff see only what
     // they need to handle a support ticket — contact details, role, status,
     // and the worker/employer context. Strip credentials (passwordHash,
@@ -556,7 +607,7 @@ export class SupportService {
     return safeUser;
   }
 
-  async getUserOffers(userId: string) {
+  async getUserOffers(userId: string, supportUserId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
     });
@@ -564,6 +615,9 @@ export class SupportService {
     if (!user) {
       throw new NotFoundException('User not found');
     }
+
+    // G3: audit support access to a user's offers.
+    await this.auditSupportAccess(supportUserId, 'SUPPORT_VIEW_USER_OFFERS', 'user', userId);
 
     if (user.role === 'WORKER') {
       const worker = await this.prisma.worker.findUnique({
@@ -648,17 +702,30 @@ export class SupportService {
   }
 
   async unblockCompany(workerId: string, employerId: string, supportUserId: string) {
-    const blocked = await this.prisma.blockedCompany.findUnique({
-      where: {
-        workerId_employerId: {
-          workerId,
-          employerId,
+    // EC3: distinguish a missing block from a non-existent worker/employer so
+    // the error message tells the agent which is wrong, instead of a generic
+    // "Block record not found" for all three cases.
+    const [worker, employer, blocked] = await Promise.all([
+      this.prisma.worker.findUnique({ where: { id: workerId }, select: { id: true, userId: true } }),
+      this.prisma.employer.findUnique({ where: { id: employerId }, select: { id: true, userId: true } }),
+      this.prisma.blockedCompany.findUnique({
+        where: {
+          workerId_employerId: {
+            workerId,
+            employerId,
+          },
         },
-      },
-    });
+      }),
+    ]);
 
+    if (!worker) {
+      throw new NotFoundException('Worker not found');
+    }
+    if (!employer) {
+      throw new NotFoundException('Employer not found');
+    }
     if (!blocked) {
-      throw new NotFoundException('Block record not found');
+      throw new NotFoundException('No block record found between this worker and employer');
     }
 
     await this.prisma.blockedCompany.delete({
@@ -681,12 +748,31 @@ export class SupportService {
       },
     });
 
+    // G4: notify both parties that the company block was removed by support.
+    const unblockPayload = {
+      workerId,
+      employerId,
+      actionUrl: `/messages`,
+    };
+    this.eventEmitter.emit(NotificationEventType.SUPPORT_COMPANY_UNBLOCKED, {
+      ...unblockPayload,
+      recipientUserId: worker.userId,
+    });
+    this.eventEmitter.emit(NotificationEventType.SUPPORT_COMPANY_UNBLOCKED, {
+      ...unblockPayload,
+      recipientUserId: employer.userId,
+    });
+
     return { success: true, message: 'Company unblocked' };
   }
 
   async extendOfferExpiry(offerId: string, days: number, supportUserId: string) {
     const offer = await this.prisma.offer.findUnique({
       where: { id: offerId },
+      include: {
+        worker: { select: { userId: true } },
+        employer: { select: { userId: true } },
+      },
     });
 
     if (!offer) {
@@ -701,7 +787,19 @@ export class SupportService {
       throw new BadRequestException('days must be a positive whole number');
     }
 
-    const newExpiresAt = new Date(offer.expiresAt);
+    // R5: cap the extension so a support agent can't effectively make an offer
+    // never expire (e.g. 999999 days). 365 is a generous upper bound for a
+    // support-assisted extension.
+    const MAX_EXTEND_DAYS = 365;
+    if (days > MAX_EXTEND_DAYS) {
+      throw new BadRequestException(`days must not exceed ${MAX_EXTEND_DAYS}`);
+    }
+
+    // EC4: base the extension on the later of the current expiry and "now", so
+    // an already-expired offer lands days-from-now instead of still being in
+    // the past (adding 1 day to a 3-day-old expiry would otherwise stay stale).
+    const base = offer.expiresAt > new Date() ? new Date(offer.expiresAt) : new Date();
+    const newExpiresAt = new Date(base);
     newExpiresAt.setDate(newExpiresAt.getDate() + days);
 
     const updated = await this.prisma.offer.update({
@@ -720,6 +818,26 @@ export class SupportService {
       },
     });
 
+    // G4: notify both the worker and the employer that the offer expiry was
+    // extended by support.
+    const extendPayload = {
+      offerId,
+      newExpiresAt: newExpiresAt.toISOString(),
+      actionUrl: `/offers`,
+    };
+    if (offer.worker?.userId) {
+      this.eventEmitter.emit(NotificationEventType.SUPPORT_OFFER_EXTENDED, {
+        ...extendPayload,
+        recipientUserId: offer.worker.userId,
+      });
+    }
+    if (offer.employer?.userId) {
+      this.eventEmitter.emit(NotificationEventType.SUPPORT_OFFER_EXTENDED, {
+        ...extendPayload,
+        recipientUserId: offer.employer.userId,
+      });
+    }
+
     return updated;
   }
 
@@ -727,8 +845,25 @@ export class SupportService {
   // SUPPORT TICKETS FOR USER
   // ============================================================================
 
-  async getUserTickets(userId: string, page: number = 1, limit: number = 20) {
+  async getUserTickets(
+    userId: string,
+    page: number = 1,
+    limit: number = 20,
+    supportUserId?: string,
+  ) {
     const skip = (page - 1) * limit;
+
+    // G3: audit when a support agent views another user's tickets. The
+    // user-facing my-tickets path calls this without supportUserId, so a user
+    // viewing their own tickets is not audited as a support access.
+    if (supportUserId) {
+      await this.auditSupportAccess(
+        supportUserId,
+        'SUPPORT_VIEW_USER_TICKETS',
+        'user',
+        userId,
+      );
+    }
 
     const [tickets, total] = await Promise.all([
       this.prisma.supportTicket.findMany({
@@ -756,5 +891,49 @@ export class SupportService {
         totalPages: Math.ceil(total / limit),
       },
     };
+  }
+
+  // ============================================================================
+  // INTERNAL HELPERS
+  // ============================================================================
+
+  /**
+   * EC1: optimistic concurrency guard. If the caller passed the `updatedAt`
+   * they last read, throw a 409 Conflict when the ticket has since changed,
+   * so two agents editing the same ticket concurrently don't silently
+   * overwrite each other. Tolerates minor timestamp format differences by
+   * comparing millisecond epoch values.
+   */
+  private assertNotStale(ticket: { updatedAt: Date }, expectedUpdatedAt?: string) {
+    if (!expectedUpdatedAt) return;
+    const expected = new Date(expectedUpdatedAt).getTime();
+    if (Number.isFinite(expected) && expected !== ticket.updatedAt.getTime()) {
+      throw new ConflictException(
+        'This ticket was modified by another agent. Please reload and try again.',
+      );
+    }
+  }
+
+  /**
+   * G3: write an AdminAction audit row recording that a support agent accessed
+   * a user's data (profile, offers, tickets, conversations). Gives a GDPR-
+   * compliant trail of who accessed what and when.
+   */
+  private async auditSupportAccess(
+    supportUserId: string,
+    action: string,
+    entityType: string,
+    entityId: string,
+    details?: any,
+  ) {
+    await this.prisma.adminAction.create({
+      data: {
+        actorId: supportUserId,
+        action,
+        entityType,
+        entityId,
+        details,
+      },
+    });
   }
 }

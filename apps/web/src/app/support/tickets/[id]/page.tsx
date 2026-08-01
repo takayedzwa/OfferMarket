@@ -3,10 +3,12 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
-  ArrowLeft, Ticket, Clock, AlertCircle, CheckCircle, MessageSquare,
+  Ticket, Clock, AlertCircle, CheckCircle, MessageSquare,
   User, Send, MoreVertical, Shield, XCircle, Search
 } from "lucide-react";
 import { supportAdminApi } from "../../../../lib/api";
+import Navbar from "../../../../components/Navbar";
+import SupportPageHeader from "../../../../components/support/SupportPageHeader";
 
 interface SupportTicket {
   id: string;
@@ -151,7 +153,7 @@ export default function SupportTicketDetailPage() {
     fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1'}/support/tickets/${ticketId}/status`, {
       method: 'PATCH',
       headers: { ...headers, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status }),
+      body: JSON.stringify({ status, expectedUpdatedAt: ticket?.updatedAt }),
     })
       .then((res) => {
         if (handleUnauthorized(res)) return;
@@ -159,7 +161,7 @@ export default function SupportTicketDetailPage() {
           setShowStatusModal(false);
           fetchTicket();
         } else {
-          alert('Failed to update status');
+          res.json().then((data) => alert(data.message || 'Failed to update status'));
         }
       })
       .catch(() => alert('Failed to update status'));
@@ -287,28 +289,26 @@ export default function SupportTicketDetailPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-4">
-              <button onClick={() => router.push('/support/tickets')} className="p-2 hover:bg-gray-100 rounded-lg">
-                <ArrowLeft className="w-5 h-5 text-gray-600" />
-              </button>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h1 className="text-lg font-semibold text-gray-900">{ticket.ticketNumber}</h1>
-                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(ticket.status)}`}>
-                    {ticket.status}
-                  </span>
-                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${getPriorityColor(ticket.priority)}`}>
-                    {ticket.priority}
-                  </span>
-                </div>
-                <p className="text-sm text-gray-500">{ticket.subject}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
+      <Navbar />
+
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <SupportPageHeader
+          title={
+            <span className="flex items-center gap-2">
+              {ticket.ticketNumber}
+              <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(ticket.status)}`}>
+                {ticket.status}
+              </span>
+              <span className={`px-2 py-1 text-xs font-medium rounded-full ${getPriorityColor(ticket.priority)}`}>
+                {ticket.priority}
+              </span>
+            </span>
+          }
+          subtitle={ticket.subject}
+          backHref="/support/tickets"
+          backLabel="Back to tickets"
+          actions={
+            <>
               <button
                 onClick={() => setShowStatusModal(true)}
                 className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm font-medium flex items-center gap-2"
@@ -323,12 +323,9 @@ export default function SupportTicketDetailPage() {
                 <User className="w-4 h-4" />
                 {ticket.assignedToId ? 'Unassign' : 'Assign'}
               </button>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            </>
+          }
+        />
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Conversation */}
           <div className="lg:col-span-2 space-y-4">

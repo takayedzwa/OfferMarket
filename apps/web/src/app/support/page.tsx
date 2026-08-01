@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../contexts/AuthContext";
+import Navbar from "../../components/Navbar";
+import SupportPageHeader from "../../components/support/SupportPageHeader";
 import { Ticket, Users, Clock, CheckCircle, AlertCircle, MessageSquare, ArrowRight } from "lucide-react";
 
 interface SupportStats {
@@ -98,25 +100,21 @@ export default function SupportDashboardPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div>
-              <h1 className="text-lg font-semibold text-gray-900">Support Dashboard</h1>
-              <p className="text-sm text-gray-500">Manage tickets and help users</p>
-            </div>
+      <Navbar />
+
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <SupportPageHeader
+          title="Support Dashboard"
+          subtitle="Manage tickets and help users"
+          actions={
             <button
               onClick={() => router.push('/support/tickets')}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
             >
               View All Tickets
             </button>
-          </div>
-        </div>
-      </header>
-
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          }
+        />
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
           <div className="bg-white rounded-xl border shadow-sm p-6">

@@ -16,6 +16,9 @@ import {
   InvoiceCreatedPayload,
   InvoiceOverduePayload,
   BreachNotificationPayload,
+  SupportTicketUpdatedPayload,
+  SupportOfferExtendedPayload,
+  SupportCompanyUnblockedPayload,
 } from './notification.types';
 
 // ============================================================================
@@ -57,6 +60,9 @@ export class NotificationsService {
     this.eventEmitter.on(NotificationEventType.INVOICE_CREATED, this.handleInvoiceCreated.bind(this));
     this.eventEmitter.on(NotificationEventType.INVOICE_OVERDUE, this.handleInvoiceOverdue.bind(this));
     this.eventEmitter.on(NotificationEventType.BREACH_NOTIFICATION, this.handleBreachNotification.bind(this));
+    this.eventEmitter.on(NotificationEventType.SUPPORT_TICKET_UPDATED, this.handleSupportTicketUpdated.bind(this));
+    this.eventEmitter.on(NotificationEventType.SUPPORT_OFFER_EXTENDED, this.handleSupportOfferExtended.bind(this));
+    this.eventEmitter.on(NotificationEventType.SUPPORT_COMPANY_UNBLOCKED, this.handleSupportCompanyUnblocked.bind(this));
   }
 
   // ============================================================================
@@ -419,6 +425,56 @@ export class NotificationsService {
       title: `Data Breach Notification: ${payload.breachTitle}`,
       body: `A data breach has been reported: "${payload.breachTitle}". Severity: ${payload.severity}. Please check the privacy dashboard for details.`,
       actionUrl: `/privacy/dashboard`,
+      channelEmail: true,
+      channelPush: true,
+      channelSms: false,
+    });
+  }
+
+  // ============================================================================
+  // SUPPORT ACTION HANDLERS (G4: notify the affected user when support acts)
+  // ============================================================================
+
+  private async handleSupportTicketUpdated(payload: SupportTicketUpdatedPayload) {
+    const statusLabel = payload.newStatus.replace(/_/g, ' ').toLowerCase();
+    await this.createAndDeliver({
+      userId: payload.recipientUserId,
+      notificationType: 'support_ticket_updated',
+      category: 'support',
+      title: `Your ticket ${payload.ticketNumber} was updated`,
+      body: `Support updated your ticket "${payload.subject}" to ${statusLabel}.`,
+      actionUrl: payload.actionUrl,
+      channelEmail: true,
+      channelPush: true,
+      channelSms: false,
+    });
+  }
+
+  private async handleSupportOfferExtended(payload: SupportOfferExtendedPayload) {
+    const expiry = new Date(payload.newExpiresAt).toLocaleDateString();
+    await this.createAndDeliver({
+      userId: payload.recipientUserId,
+      notificationType: 'support_offer_extended',
+      category: 'support',
+      title: payload.jobTitle
+        ? `Your offer "${payload.jobTitle}" was extended`
+        : 'Your offer expiry was extended',
+      body: `Support extended the expiry of your offer${payload.jobTitle ? ` "${payload.jobTitle}"` : ''} to ${expiry}.`,
+      actionUrl: payload.actionUrl,
+      channelEmail: true,
+      channelPush: true,
+      channelSms: false,
+    });
+  }
+
+  private async handleSupportCompanyUnblocked(payload: SupportCompanyUnblockedPayload) {
+    await this.createAndDeliver({
+      userId: payload.recipientUserId,
+      notificationType: 'support_company_unblocked',
+      category: 'support',
+      title: 'A blocked company was unblocked',
+      body: 'Support removed a company block on your account. You can now interact with that employer again.',
+      actionUrl: payload.actionUrl,
       channelEmail: true,
       channelPush: true,
       channelSms: false,
