@@ -47,7 +47,7 @@ export default function ConversationsPage() {
 
       try {
         const userType = user.role === 'EMPLOYER' ? 'employer' : 'worker';
-        const response = await conversationsApi.listConversations(user.id, userType);
+        const response = await conversationsApi.listConversations(userType);
         setConversations(response.data);
       } catch (error) {
         console.error("Failed to load conversations:", error);
@@ -67,9 +67,7 @@ export default function ConversationsPage() {
 
   const loadMessages = async (conversationId: string) => {
     try {
-      const response = await api.get(`/conversations/${conversationId}/messages`, {
-        params: { userId: user?.id }
-      });
+      const response = await api.get(`/conversations/${conversationId}/messages`);
       setMessages(response.data);
     } catch (error) {
       console.error("Failed to load messages:", error);
@@ -84,15 +82,14 @@ export default function ConversationsPage() {
     try {
       const response = await api.post(
         `/conversations/${selectedConversation.id}/messages`,
-        { content: newMessage.trim() },
-        { params: { userId: user?.id } }
+        { content: newMessage.trim() }
       );
       setMessages((prev) => [...prev, response.data]);
       setNewMessage("");
 
       // Refresh conversations to update last message
       const userType = userRole === 'EMPLOYER' ? 'employer' : 'worker';
-      const convsResponse = await conversationsApi.listConversations(user?.id, userType);
+      const convsResponse = await conversationsApi.listConversations(userType);
       setConversations(convsResponse.data);
     } catch (error) {
       console.error("Failed to send message:", error);

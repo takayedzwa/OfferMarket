@@ -9,9 +9,18 @@ import { Reflector } from '@nestjs/core';
  * to restrict processing. When a user's processingRestricted flag is true,
  * only read (GET) operations are allowed — no writes, updates, or deletions.
  *
+ * This guard checks the *acting* user only. A guard cannot generically know
+ * which other user a request targets, so when a write endpoint processes a
+ * *different* user's data (e.g. an employer making an offer to a worker, a
+ * user messaging another participant), the target subject's restriction must
+ * be checked explicitly in the service via `assertTargetProcessingNotRestricted`
+ * (see src/common/utils/processing-restriction.ts).
+ *
  * Routes exempt from this guard can be marked with @SkipProcessingRestrictionCheck()
  * decorator. Privacy-related endpoints (consent withdrawal, restriction removal)
- * must be exempt so users can lift their own restriction.
+ * must be exempt so users can lift their own restriction. This decorator is
+ * intended ONLY for privacy self-service routes; it must not be applied to
+ * general write endpoints (see the guard spec's invariant test).
  *
  * Usage: Apply globally or to specific controllers/modules.
  */

@@ -18,6 +18,7 @@ import { BillingModule } from './modules/billing/billing.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { PrivacyModule } from './modules/privacy/privacy.module';
 import { DsaModule } from './modules/dsa/dsa.module';
+import { UploadsModule } from './modules/uploads/uploads.module';
 import { CustomThrottlerGuard } from './guards/throttler-guard';
 import { ProcessingRestrictionGuard } from './guards/processing-restriction.guard';
 
@@ -60,6 +61,7 @@ import { ProcessingRestrictionGuard } from './guards/processing-restriction.guar
     NotificationsModule,
     PrivacyModule,
     DsaModule,
+    UploadsModule,
   ],
   providers: [
     // Apply rate limiting globally via custom guard (skips admin users)

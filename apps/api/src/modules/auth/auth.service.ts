@@ -500,9 +500,15 @@ export class AuthService {
       throw new BadRequestException('No valid verification code found. Please request a new one.');
     }
 
-    // Validate the code using constant-time comparison
+    // Validate the code using constant-time comparison. crypto.timingSafeEqual
+    // throws if the buffers differ in length, so guard against a missing or
+    // malformed stored hash first (which is still an invalid-code outcome).
     const codeHash = crypto.createHash('sha256').update(code).digest('hex');
-    if (codeHash !== verification.codeHash) {
+    if (
+      typeof verification.codeHash !== 'string' ||
+      codeHash.length !== verification.codeHash.length ||
+      !crypto.timingSafeEqual(Buffer.from(codeHash), Buffer.from(verification.codeHash))
+    ) {
       throw new BadRequestException('Invalid verification code');
     }
 
@@ -543,9 +549,13 @@ export class AuthService {
       throw new BadRequestException('No valid verification code found. Please request a new one.');
     }
 
-    // Validate the code using constant-time comparison
+    // Validate the code using constant-time comparison (see verifyEmail).
     const codeHash = crypto.createHash('sha256').update(code).digest('hex');
-    if (codeHash !== verification.codeHash) {
+    if (
+      typeof verification.codeHash !== 'string' ||
+      codeHash.length !== verification.codeHash.length ||
+      !crypto.timingSafeEqual(Buffer.from(codeHash), Buffer.from(verification.codeHash))
+    ) {
       throw new BadRequestException('Invalid verification code');
     }
 

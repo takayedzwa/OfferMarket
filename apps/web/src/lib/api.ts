@@ -187,6 +187,20 @@ export const adminApi = {
 export const trustApi = {
   // Suspicious-activity dashboard: counts + recent activities + indicators
   getSuspiciousActivities: () => api.get('/trust/suspicious-activity'),
+
+  // Submit a verification document for the acting employer's own profile.
+  // SECURITY: employerId is the employer's own id (resolved from /employers/me),
+  // and the backend re-resolves it from the JWT and rejects path mismatches
+  // (IDOR), so a client cannot submit documents on behalf of another employer.
+  submitEmployerDocument: (
+    employerId: string,
+    data: {
+      documentType: string;
+      fileUrl: string;
+      fileHash?: string;
+      metadata?: Record<string, any>;
+    },
+  ) => api.post(`/trust/employers/${employerId}/documents`, data),
 };
 
 // ============================================================================
@@ -582,8 +596,10 @@ export const billingApi = {
 
 export const conversationsApi = {
   // List conversations
-  listConversations: (userId?: string, userType?: 'worker' | 'employer') =>
-    api.get('/conversations', { params: { userId, userType } }),
+  // SECURITY: userId is no longer passed as a query param. The backend derives
+  // the caller's identity from the JWT and only needs `userType`.
+  listConversations: (userType: 'worker' | 'employer') =>
+    api.get('/conversations', { params: { userType } }),
 
   // Get conversation details
   getConversation: (id: string) => api.get(`/conversations/${id}`),
@@ -599,6 +615,17 @@ export const conversationsApi = {
   // Archive conversation
   archiveConversation: (conversationId: string) =>
     api.post(`/conversations/${conversationId}/archive`),
+};
+
+// ============================================================================
+// UPLOADS API
+// ============================================================================
+// The server issues a short-lived presigned S3 PUT URL. The client uploads the
+// file directly to S3, then submits the returned `fileUrl` (plus a
+// client-computed SHA-256 `fileHash`) to POST /trust/employers/:employerId/documents.
+export const uploadsApi = {
+  presignVerificationDocument: (data: { fileName: string; mimeType: string }) =>
+    api.post('/uploads/verification-document', data),
 };
 
 // ============================================================================

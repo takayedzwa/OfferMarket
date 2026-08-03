@@ -7,6 +7,7 @@ import { CreateOfferDto } from './dto/create-offer.dto';
 import { CounterOfferDto } from './dto/counter-offer.dto';
 import { NotificationEventType } from '../notifications/notification.types';
 import { OfferStatus } from '@prisma/client';
+import { assertTargetProcessingNotRestricted } from '../../common/utils/processing-restriction';
 
 /**
  * SECURITY (E-C3): The fields an employer is allowed to see on a worker before
@@ -130,15 +131,13 @@ export class OffersService {
       // them (creating the offer, storing it, and notifying the worker are all
       // processing of the worker's data). The global ProcessingRestrictionGuard
       // only checks the *acting* user (the employer), not the *target* worker,
-      // so the check must happen here. Reuse the generic "cannot make offer"
-      // message so the restriction is not leaked to the employer.
-      const workerGdprFlags = await tx.userGdprFlags.findUnique({
-        where: { userId: worker.userId },
-        select: { processingRestricted: true },
-      });
-      if (workerGdprFlags?.processingRestricted) {
-        throw new ForbiddenException('Cannot make offer to this worker');
-      }
+      // so the check happens here via the shared target-subject helper. The
+      // generic message does not leak the restriction to the employer.
+      await assertTargetProcessingNotRestricted(
+        tx,
+        worker.userId,
+        'Cannot make offer to this worker',
+      );
 
       // 3. CRITICAL: Check if worker has blocked this employer
       const isBlocked = await tx.blockedCompany.findFirst({
@@ -1050,8 +1049,17 @@ export class OffersService {
       throw new ForbiddenException('Not authorized to withdraw this offer');
     }
 
-    if (offer.status === 'ACCEPTED') {
-      throw new BadRequestException('Cannot withdraw an accepted offer');
+    // E-C3: A withdrawal is a transition into the terminal WITHDRAWN state.
+    // Only active, non-terminal offers can be withdrawn. Allowing a withdraw
+    // from another terminal state (REJECTED, EXPIRED, or an already-WITHDRAWN
+    // offer) would be a spurious backward transition — re-stamping withdrawnAt
+    // and obscuring the offer's real outcome.
+    const withdrawableStatuses = ['DRAFT', 'SUBMITTED', 'VIEWED', 'SHORTLISTED', 'COUNTERED'];
+    if (!withdrawableStatuses.includes(offer.status)) {
+      throw new BadRequestException(
+        `Cannot withdraw an offer in its current state: ${offer.status}. ` +
+        `Only active offers can be withdrawn.`
+      );
     }
 
     await this.prisma.offer.update({

@@ -89,6 +89,21 @@ describe('OffersService', () => {
       await expect(service.withdrawOffer('offer-1', 'user-a')).rejects.toThrow(BadRequestException);
     });
 
+    // E-C3: withdrawing must not be allowed from any terminal state. Previously
+    // only ACCEPTED was blocked, so an EXPIRED/REJECTED/already-WITHDRAWN offer
+    // could be "withdrawn" again — a spurious backward transition that
+    // re-stamped withdrawnAt and obscured the offer's real outcome.
+    it.each(['EXPIRED', 'REJECTED', 'WITHDRAWN'])(
+      'throws BadRequestException when the offer is already in terminal state %s',
+      async (status) => {
+        prisma.employer.findUnique.mockResolvedValue({ id: 'employer-a', userId: 'user-a' });
+        prisma.offer.findUnique.mockResolvedValue({ id: 'offer-1', employerId: 'employer-a', status });
+
+        await expect(service.withdrawOffer('offer-1', 'user-a')).rejects.toThrow(BadRequestException);
+        expect(prisma.offer.update).not.toHaveBeenCalled();
+      },
+    );
+
     it('withdraws the offer and notifies the worker for the owning employer', async () => {
       prisma.employer.findUnique.mockResolvedValue({ id: 'employer-a', userId: 'user-a' });
       prisma.offer.findUnique.mockResolvedValue({
