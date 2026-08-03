@@ -1,6 +1,9 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
+import { Link } from '@/i18n/navigation';
+import { useFormat } from '@/hooks/useFormat';
 
 /**
  * DSA Art. 16(4): Reporters must be able to track the status of their submissions.
@@ -9,49 +12,22 @@ import { useState } from 'react';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
 
-const STATUS_LABELS: Record<string, { label: string; color: string; description: string }> = {
-  RECEIVED: {
-    label: 'Received',
-    color: 'bg-blue-100 text-blue-800',
-    description: 'Your report has been received and is awaiting review.',
-  },
-  ASSESSMENT: {
-    label: 'Under Assessment',
-    color: 'bg-yellow-100 text-yellow-800',
-    description: 'Your report is being assessed by our team.',
-  },
-  ACTION_TAKEN: {
-    label: 'Action Taken',
-    color: 'bg-orange-100 text-orange-800',
-    description: 'Action has been taken on the reported content.',
-  },
-  NOTIFIED: {
-    label: 'Notified',
-    color: 'bg-purple-100 text-purple-800',
-    description: 'The affected user has been notified.',
-  },
-  RESOLVED: {
-    label: 'Resolved',
-    color: 'bg-green-100 text-green-800',
-    description: 'Your report has been resolved.',
-  },
-  DISMISSED: {
-    label: 'Dismissed',
-    color: 'bg-gray-100 text-gray-800',
-    description: 'Your report was dismissed after review.',
-  },
-  ESCALATED: {
-    label: 'Escalated',
-    color: 'bg-red-100 text-red-800',
-    description: 'This report has been escalated to the relevant authorities.',
-  },
+// Colors per status/priority — not translations, just Tailwind class mappings.
+const STATUS_COLORS: Record<string, string> = {
+  RECEIVED: 'bg-blue-100 text-blue-800',
+  ASSESSMENT: 'bg-yellow-100 text-yellow-800',
+  ACTION_TAKEN: 'bg-orange-100 text-orange-800',
+  NOTIFIED: 'bg-purple-100 text-purple-800',
+  RESOLVED: 'bg-green-100 text-green-800',
+  DISMISSED: 'bg-gray-100 text-gray-800',
+  ESCALATED: 'bg-red-100 text-red-800',
 };
 
-const PRIORITY_LABELS: Record<string, { label: string; color: string }> = {
-  LOW: { label: 'Low', color: 'bg-gray-100 text-gray-800' },
-  MEDIUM: { label: 'Medium', color: 'bg-blue-100 text-blue-800' },
-  HIGH: { label: 'High', color: 'bg-orange-100 text-orange-800' },
-  URGENT: { label: 'Urgent', color: 'bg-red-100 text-red-800' },
+const PRIORITY_COLORS: Record<string, string> = {
+  LOW: 'bg-gray-100 text-gray-800',
+  MEDIUM: 'bg-blue-100 text-blue-800',
+  HIGH: 'bg-orange-100 text-orange-800',
+  URGENT: 'bg-red-100 text-red-800',
 };
 
 interface ReportStatus {
@@ -76,6 +52,11 @@ export default function ReportStatusChecker() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const t = useTranslations('dsa.checker');
+  const tEnums = useTranslations('enums');
+
+  const { date } = useFormat();
+
   const checkStatus = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!publicId.trim()) return;
@@ -89,28 +70,60 @@ export default function ReportStatusChecker() {
 
       if (!response.ok) {
         if (response.status === 404) {
-          throw new Error('Report not found. Please check the reference number and try again.');
+          throw new Error(t('notFoundError'));
         }
-        throw new Error('Failed to check report status. Please try again later.');
+        throw new Error(t('checkError'));
       }
 
       const data = await response.json();
       setReport(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      setError(err instanceof Error ? err.message : t('genericError'));
     } finally {
       setLoading(false);
     }
   };
 
-  const statusInfo = report ? STATUS_LABELS[report.status] : null;
-  const priorityInfo = report ? PRIORITY_LABELS[report.priority] : null;
+  const statusColor = report ? STATUS_COLORS[report.status] : null;
+  const priorityColor = report ? PRIORITY_COLORS[report.priority] : null;
+
+  const getStatusLabel = (status: string) => {
+    try {
+      return tEnums(`dsaStatus.${status}.label`);
+    } catch {
+      return status.replace(/_/g, ' ').toLowerCase();
+    }
+  };
+
+  const getStatusDescription = (status: string) => {
+    try {
+      return tEnums(`dsaStatus.${status}.description`);
+    } catch {
+      return status.replace(/_/g, ' ').toLowerCase();
+    }
+  };
+
+  const getCategoryLabel = (category: string) => {
+    try {
+      return tEnums(`contentReportCategory.${category}`);
+    } catch {
+      return category.replace(/_/g, ' ').toLowerCase();
+    }
+  };
+
+  const getPriorityLabel = (priority: string) => {
+    try {
+      return tEnums(`dsaPriority.${priority}`);
+    } catch {
+      return priority.replace(/_/g, ' ').toLowerCase();
+    }
+  };
 
   return (
     <div className="max-w-lg mx-auto p-6 bg-white rounded-lg shadow">
-      <h2 className="text-xl font-semibold text-gray-900">Check Report Status</h2>
+      <h2 className="text-xl font-semibold text-gray-900">{t('title')}</h2>
       <p className="mt-1 text-sm text-gray-500">
-        Enter the reference number you received when submitting your report.
+        {t('description')}
       </p>
 
       <form onSubmit={checkStatus} className="mt-4 flex gap-2">
@@ -118,7 +131,7 @@ export default function ReportStatusChecker() {
           type="text"
           value={publicId}
           onChange={(e) => setPublicId(e.target.value)}
-          placeholder="e.g., RPT-ABC123"
+          placeholder={t('placeholder')}
           className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm border px-3 py-2"
         />
         <button
@@ -126,7 +139,7 @@ export default function ReportStatusChecker() {
           disabled={loading || !publicId.trim()}
           className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50"
         >
-          {loading ? 'Checking...' : 'Check'}
+          {loading ? t('checking') : t('check')}
         </button>
       </form>
 
@@ -136,43 +149,43 @@ export default function ReportStatusChecker() {
         </div>
       )}
 
-      {report && statusInfo && (
+      {report && statusColor && (
         <div className="mt-6 space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-medium text-gray-900">Report Details</h3>
-            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusInfo.color}`}>
-              {statusInfo.label}
+            <h3 className="text-lg font-medium text-gray-900">{t('detailsHeading')}</h3>
+            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColor}`}>
+              {getStatusLabel(report.status)}
             </span>
           </div>
 
-          <p className="text-sm text-gray-600">{statusInfo.description}</p>
+          <p className="text-sm text-gray-600">{getStatusDescription(report.status)}</p>
 
           <dl className="space-y-3">
             <div className="flex justify-between">
-              <dt className="text-sm font-medium text-gray-500">Reference</dt>
+              <dt className="text-sm font-medium text-gray-500">{t('referenceLabel')}</dt>
               <dd className="text-sm font-mono text-gray-900">{report.publicId}</dd>
             </div>
 
             <div className="flex justify-between">
-              <dt className="text-sm font-medium text-gray-500">Category</dt>
-              <dd className="text-sm text-gray-900">{report.category.replace(/_/g, ' ')}</dd>
+              <dt className="text-sm font-medium text-gray-500">{t('categoryLabel')}</dt>
+              <dd className="text-sm text-gray-900">{getCategoryLabel(report.category)}</dd>
             </div>
 
-            {priorityInfo && (
+            {priorityColor && (
               <div className="flex justify-between">
-                <dt className="text-sm font-medium text-gray-500">Priority</dt>
+                <dt className="text-sm font-medium text-gray-500">{t('priorityLabel')}</dt>
                 <dd>
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${priorityInfo.color}`}>
-                    {priorityInfo.label}
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${priorityColor}`}>
+                    {getPriorityLabel(report.priority)}
                   </span>
                 </dd>
               </div>
             )}
 
             <div className="flex justify-between">
-              <dt className="text-sm font-medium text-gray-500">Submitted</dt>
+              <dt className="text-sm font-medium text-gray-500">{t('submittedLabel')}</dt>
               <dd className="text-sm text-gray-900">
-                {new Date(report.createdAt).toLocaleDateString('nl-NL', {
+                {date(report.createdAt, {
                   year: 'numeric',
                   month: 'long',
                   day: 'numeric',
@@ -184,9 +197,9 @@ export default function ReportStatusChecker() {
 
             {report.acknowledgedAt && (
               <div className="flex justify-between">
-                <dt className="text-sm font-medium text-gray-500">Acknowledged</dt>
+                <dt className="text-sm font-medium text-gray-500">{t('acknowledgedLabel')}</dt>
                 <dd className="text-sm text-gray-900">
-                  {new Date(report.acknowledgedAt).toLocaleDateString('nl-NL', {
+                  {date(report.acknowledgedAt, {
                     year: 'numeric',
                     month: 'long',
                     day: 'numeric',
@@ -197,14 +210,14 @@ export default function ReportStatusChecker() {
 
             {report.actionTaken && (
               <div className="flex justify-between">
-                <dt className="text-sm font-medium text-gray-500">Action</dt>
+                <dt className="text-sm font-medium text-gray-500">{t('actionLabel')}</dt>
                 <dd className="text-sm text-gray-900">{report.actionTaken.replace(/_/g, ' ').toLowerCase()}</dd>
               </div>
             )}
 
             {report.resolution && (
               <div className="flex justify-between">
-                <dt className="text-sm font-medium text-gray-500">Resolution</dt>
+                <dt className="text-sm font-medium text-gray-500">{t('resolutionLabel')}</dt>
                 <dd className="text-sm text-gray-900">{report.resolution.replace(/_/g, ' ').toLowerCase()}</dd>
               </div>
             )}
@@ -213,12 +226,11 @@ export default function ReportStatusChecker() {
           {report.status === 'RESOLVED' && (
             <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
               <p className="text-sm text-blue-800">
-                <strong>Complaint options:</strong> If you disagree with this resolution, you can submit a complaint
-                through our{' '}
-                <a href="/dsa/complaint" className="text-blue-600 hover:underline font-medium">
-                  internal complaint-handling system
-                </a>
-                {' '}within 6 months (DSA Art. 20).
+                <strong>{t('complaint.label')}</strong> {t('complaint.prefix')}
+                <Link href="/dsa/complaint" className="text-blue-600 hover:underline font-medium">
+                  {t('complaint.link')}
+                </Link>
+                {t('complaint.suffix')}
               </p>
             </div>
           )}

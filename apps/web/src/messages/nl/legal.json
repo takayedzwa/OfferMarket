@@ -1,0 +1,342 @@
+{
+  "terms": {
+    "_reviewNote": "Dutch legal translation — requires human/legal review before production use.",
+    "title": "Algemene Voorwaarden",
+    "lastUpdated": "Laatst bijgewerkt: 12 juli 2026 · Versie 2.0",
+    "dutchTitle": "Algemene Voorwaarden",
+    "companyName": "OfferMarket B.V.",
+    "s1": {
+      "title": "1. Definities",
+      "list": {
+        "item1": "<strong>\"OfferMarket\"</strong> betekent OfferMarket B.V., gevestigd in Nederland.",
+        "item2": "<strong>\"Platform\"</strong> betekent de OfferMarket-webtoepassing en gerelateerde diensten.",
+        "item3": "<strong>\"Werker\"</strong> betekent een professional die een profiel aanmaakt om aanbiedingen van werkgevers te ontvangen.",
+        "item4": "<strong>\"Werkgever\"</strong> betekent een bedrijf of persoon die aanbiedingen naar werkers verzendt via het platform.",
+        "item5": "<strong>\"Aanbieding\"</strong> betekent een voorstel dat door een werkgever aan een werker wordt verzonden met arbeidsvoorwaarden.",
+        "item6": "<strong>\"Gebruiker\"</strong> betekent elke persoon die het platform gebruikt, inclusief werkers en werkgevers."
+      }
+    },
+    "s2": {
+      "title": "2. Aanvaarding van de voorwaarden",
+      "p1": "Door een account aan te maken of het OfferMarket-platform te gebruiken, aanvaardt u deze Algemene Voorwaarden en ons <a>Privacybeleid</a>. Als u niet akkoord gaat, mag u het platform niet gebruiken.",
+      "p2": "Deze voorwaarden vallen onder Nederlands recht. Voor geschillenbeslechting, zie <a>Artikel 23 (Geschillenbeslechting en toepasselijk recht)</a>."
+    },
+    "s3": {
+      "title": "3. Accountregistratie",
+      "intro": "U moet zich registreren om het platform te gebruiken. Door zich te registreren verklaart en garandeert u dat:",
+      "list": {
+        "item1": "U ten minste 18 jaar oud bent",
+        "item2": "U juiste en volledige gegevens verstrekt",
+        "item3": "U uw gegevens actueel houdt",
+        "item4": "U de beveiliging van uw inloggegevens waarborgt",
+        "item5": "U niet meerdere accounts aanmaakt of zich als een ander voordoet"
+      }
+    },
+    "s4": {
+      "title": "4. Gebruik van het platform",
+      "workersTitle": "4.1 Voor werkers",
+      "workersList": {
+        "item1": "U maakt een professioneel profiel aan dat werkgevers kunnen ontdekken",
+        "item2": "Uw profiel is anoniem totdat u een aanbieding aanvaardt — uw naam, e-mailadres en contactgegevens zijn verborgen",
+        "item3": "U kunt aanbiedingen ontvangen van geverifieerde werkgevers",
+        "item4": "U bent niet verplicht een aanbieding te aanvaarden",
+        "item5": "Bij aanvaarding van een aanbieding wordt uw identiteit bekend aan de werkgever voor contractuele doeleinden"
+      },
+      "employersTitle": "4.2 Voor werkgevers",
+      "employersList": {
+        "item1": "U kunt anonieme werkerprofielen doorzoeken op vaardigheden, ervaring en voorkeuren",
+        "item2": "U kunt aanbiedingen naar werkers verzenden met arbeidsvoorwaarden",
+        "item3": "U moet een geregistreerde onderneming zijn (KvK-nummer vereist)",
+        "item4": "Aanbiedingsvoorwaarden moeten voldoen aan de Nederlandse arbeidswetgeving",
+        "item5": "Bij aanvaarding van een aanbieding wordt de identiteit van de werker bekend voor contractuele doeleinden"
+      }
+    },
+    "s5": {
+      "title": "5. Facturering & betalingen",
+      "p1": "Werkgevers betalen een introductievergoeding wanneer een werker een aanbieding aanvaardt. Betalingsvoorwaarden staan vermeld op de factuur. Alle prijzen zijn inclusief BTW waar van toepassing.",
+      "p2": "Late betalingen kunnen rente opleveren tegen de wettelijke rente (Wet Handelscrediteuren). OfferMarket behoudt zich het recht voor accounts met openstaande facturen op te schorten."
+    },
+    "s6": {
+      "title": "6. Verboden gedrag",
+      "intro": "U mag niet:",
+      "list": {
+        "item1": "Het platform gebruiken voor enig onwettig doel",
+        "item2": "Werkers discrimineren op grond van beschermde kenmerken",
+        "item3": "Persoonsgegevens van werkers buiten het platform delen of verspreiden zonder toestemming",
+        "item4": "Poging doen werkers te de-anonimiseren vóór aanvaarding van een aanbieding",
+        "item5": "Nep-profielen aanmaken of uw identiteit verkeerd voorstellen",
+        "item6": "Geautomatiseerde systemen (bots, scrapers) gebruiken om gegevens van het platform te extraheren",
+        "item7": "Het platform omzeilen om introductievergoedingen te vermijden",
+        "item8": "Bijzondere persoonsgegevens (nationaliteit, gezondheid, vakbondslidmaatschap) uploaden in vrije profieltekstvelden"
+      }
+    },
+    "s7": {
+      "title": "7. Intellectueel eigendom",
+      "p1": "Het platform, het ontwerp en de inhoud (uitgezonderd door gebruikers gegenereerde inhoud) zijn eigendom van OfferMarket B.V. U behoudt het eigendomsrecht over uw profielinhoud en aanbiedingen. Door inhoud te plaatsen, verleent u OfferMarket een beperkte, niet-exclusieve licentie om deze op het platform weer te geven."
+    },
+    "s8": {
+      "title": "8. Privacy & gegevensbescherming",
+      "intro": "Onze verwerking van persoonsgegevens valt onder ons <a>Privacybeleid</a>, dat deel uitmaakt van deze voorwaarden. Belangrijke punten:",
+      "list": {
+        "item1": "Wij verwerken uw gegevens op rechtmatige, eerlijke en transparante wijze (AVG art. 5)",
+        "item2": "Wij verzamelen alleen gegevens die noodzakelijk zijn voor de vermelde doeleinden",
+        "item3": "Wekerprofielen zijn standaard anoniem — identiteit wordt pas bekend bij aanvaarding van een aanbieding",
+        "item4": "Arbeidsrechtmachtigingsstatus is bijzondere persoonsgegevens die alleen met expliciete toestemming worden verwerkt",
+        "item5": "U kunt uw AVG-rechten uitoefenen via het <a>Privacy Dashboard</a>"
+      }
+    },
+    "s9": {
+      "title": "9. Aansprakelijkheid",
+      "p1": "OfferMarket treedt op als tussenpersoon die werkers en werkgevers met elkaar verbindt. Wij zijn geen partij bij enige arbeidsovereenkomst tussen gebruikers. OfferMarket is niet aansprakelijk voor:",
+      "list": {
+        "item1": "De kwaliteit, rechtmatigheid of juistheid van aanbiedingen of profielen",
+        "item2": "Arbeidsgeschillen tussen werkers en werkgevers",
+        "item3": "Verliezen voortvloeiend uit vertrouwen op informatie op het platform"
+      },
+      "p2": "Onze totale aansprakelijkheid is beperkt tot de vergoedingen die u in de 12 maanden voorafgaand aan de vordering hebt betaald."
+    },
+    "s10": {
+      "title": "10. Overmacht",
+      "p1": "Geen van beide partijen is aansprakelijk voor enige tekortkoming of vertraging in de nakoming van haar verplichtingen onder deze voorwaarden indien die tekortkoming of vertraging het gevolg is van omstandigheden buiten haar redelijke controle, waaronder maar niet beperkt tot: natuurrampen, pandemieën, oorlog, terrorisme, rellen, stakingen of andere arbeidsconflicten, brand, overstroming, storing of uitval van internetserviceproviders, telecommunicatienetwerken, nutsbedrijven of cloudinfrastructuurproviders, en overheidsmaatregelen of -bevelen.",
+      "p2": "Indien een overmachtssituatie langer dan 30 opeenvolgende dagen voortduurt, kan elke partij deze voorwaarden met onmiddellijke ingang beëindigen door schriftelijke kennisgeving aan de andere partij, zonder aansprakelijkheid voor zodanige beëindiging.",
+      "p3": "OfferMarket B.V. doet redelijke inspanningen om gebruikers op de hoogte te stellen van de aard en verwachte duur van enige overmachtssituatie die het platform treft via e-mail of een kennisgeving op het platform."
+    },
+    "s11": {
+      "title": "11. Beëindiging",
+      "p1pre": "U kunt uw account op elk moment sluiten via het",
+      "dashboardLink": "Privacy Dashboard",
+      "p1mid": ". Bij verwijdering van uw account worden uw persoonsgegevens behandeld in overeenstemming met ons bewaarbeleid (zie",
+      "privacyLink": "Privacybeleid",
+      "p1post": ").",
+      "p2": "OfferMarket kan accounts die deze voorwaarden schenden opschorten of beëindigen, waar mogelijk met voorafgaande kennisgeving."
+    },
+    "s12": {
+      "title": "12. Wijzigingen",
+      "p1": "Wij kunnen deze voorwaarden wijzigen. Belangrijke wijzigingen worden per e-mail meegedeeld. Voortgezet gebruik van het platform na wijzigingen geldt als aanvaarding."
+    },
+    "s13": {
+      "title": "13. Melding van illegale inhoud (DSA art. 16)",
+      "intro": "Op grond van de <strong>Digital Services Act</strong> (Verordening EU 2022/2065) heeft u het recht ons te melden van inhoud op OfferMarket waarvan u meent dat deze illegaal is. Onze notice-and-action-mechanisme is beschikbaar via:",
+      "reportLink": "Illegale inhoud melden →",
+      "statusNote": "U kunt ook de status van een melding controleren via <a>Meldingsstatus</a>.",
+      "list": {
+        "item1": "U kunt inhoud anoniem melden door een e-mailadres voor bevestiging op te geven.",
+        "item2": "U moet een voldoende gedetailleerde uitleg geven waarom u de inhoud illegaal acht (DSA art. 16(3)(a)).",
+        "item3": "U moet bevestigen dat uw melding te goeder trouw wordt ingediend (DSA art. 16(3)(d)).",
+        "item4": "Wij bevestigen uw melding zonder onredelijke vertraging en informeren u over de beslissing."
+      }
+    },
+    "s14": {
+      "title": "14. Inhoudsmoderatie (DSA art. 14)",
+      "intro": "OfferMarket gebruikt een combinatie van menselijke toetsing en geautomatiseerde systemen om inhoud op het platform te modereren. Ons beleid en onze procedures voor inhoudsmoderatie omvatten:",
+      "list": {
+        "item1": "<strong>Menselijke toetsing</strong> — Alle inhoudsmeldingen worden beoordeeld door opgeleid personeel.",
+        "item2": "<strong>Geautomatiseerde detectie</strong> — Wij gebruiken geautomatiseerde systemen om mogelijk illegale inhoud te detecteren (bijv. bekende illegale patronen, spamdetectie). Geautomatiseerde acties worden binnen 24 uur door een mens beoordeeld.",
+        "item3": "<strong>Notice-and-action-procedure</strong> — Wij volgen de procedure beschreven in Artikel 12 bij het verwerken van meldingen van illegale inhoud.",
+        "item4": "<strong>Motivering</strong> — Wanneer wij inhoud beperken, verstrekken wij de betreffende gebruiker een duidelijke motivering (DSA art. 17)."
+      }
+    },
+    "s15": {
+      "title": "15. Motivering (DSA art. 17)",
+      "intro": "Wanneer wij inhoud op het platform beperken (verwijdering, zichtbaarheidsbeperking, accountopschorting, enz.), verstrekken wij de betreffende gebruiker een motivering die omvat:",
+      "list": {
+        "item1": "Het type toegepaste beperking (verwijdering, zichtbaarheidsbeperking, geo-blokkering, enz.)",
+        "item2": "De feitelijke omstandigheden en redenen voor de beslissing",
+        "item3": "De bron van de beslissing (gebruikersmelding, eigen onderzoek, bevel van een autoriteit, vertrouwde melder)",
+        "item4": "Of er geautomatiseerde middelen zijn gebruikt bij de beslissing",
+        "item5": "De juridische of contractuele grondslag voor de beperking",
+        "item6": "Het territoriale bereik van de beperking",
+        "item7": "Informatie over het indienen van een klacht (zie Artikel 17)"
+      }
+    },
+    "s16": {
+      "title": "16. Doorverwijzing naar autoriteiten (DSA art. 18)",
+      "p1": "Wanneer wij redelijke gronden hebben om aan te nemen dat een melding betrekking heeft op een strafbaar feit dat een bedreiging vormt voor het leven of de veiligheid van personen, dragen wij de zaak onverwijld over aan de bevoegde handhavingsautoriteiten in Nederland.",
+      "p2": "Meldingen met vermoedelijke kinderbeschermingszorgen of aan terrorisme gerelateerde inhoud worden met prioriteit geëscaleerd."
+    },
+    "s17": {
+      "title": "17. Klachtenafhandeling (DSA art. 20)",
+      "intro": "Als u het niet eens bent met een beslissing over inhoudsmoderatie, kunt u een klacht indienen via ons interne klachtensysteem. Klachten worden:",
+      "list": {
+        "item1": "Gratis behandeld",
+        "item2": "Beoordeeld door gekwalificeerd personeel dat niet betrokken was bij de oorspronkelijke beslissing",
+        "item3": "Binnen 24 uur bevestigd",
+        "item4": "Binnen een redelijke termijn afgehandeld"
+      },
+      "p2": "U kunt ook buitengerechtelijke geschillenbeslechting zoeken via gecertificeerde instanties zoals voorzien onder DSA art. 21, zodra dergelijke instanties beschikbaar zijn."
+    },
+    "s18": {
+      "title": "18. Misbruik van notice-and-action (DSA art. 23)",
+      "intro": "Het indienen van kennelijk ongegronde meldingen of meldingen met kennelijk illegale inhoud kan leiden tot:",
+      "list": {
+        "item1": "Een eerste waarschuwing",
+        "item2": "Een tweede waarschuwing",
+        "item3": "Tijdelijke opschorting van uw mogelijkheid om meldingen in te dienen",
+        "item4": "Permanente uitsluiting van het notice-and-action-mechanisme"
+      },
+      "p2": "Misbruikwaarschuwingen worden opgeheven na een redelijke periode, mits er geen verder misbruik optreedt."
+    },
+    "s19": {
+      "title": "19. Traceerbaarheid van handelaren (DSA art. 30)",
+      "intro": "Als online marktplaats verzamelt en verifieert OfferMarket gegevens over werkgevers (handelaren) die het platform gebruiken. Voordat een werkgever aanbiedingen kan publiceren, verzamelen wij:",
+      "list": {
+        "item1": "Volledige naam of bedrijfsnaam",
+        "item2": "KvK-nummer (Kamer van Koophandel)",
+        "item3": "Fysiek adres",
+        "item4": "Contact-e-mailadres en telefoonnummer",
+        "item5": "BTW-identificatienummer (waar van toepassing)",
+        "item6": "Zelfverklaring dat de handelaar voldoet aan de toepasselijke EU-regels"
+      },
+      "p2": "Deze gegevens worden weergegeven op werkgeverprofielen en worden 6 maanden na het einde van de contractuele relatie bewaard, in overeenstemming met DSA art. 30(4)."
+    },
+    "s20": {
+      "title": "20. Transparantierapportage (DSA art. 15, 24)",
+      "intro": "OfferMarket publiceert transparantierapporten over activiteiten op het gebied van inhoudsmoderatie, beschikbaar via:",
+      "transparencyLink": "Transparantierapport →",
+      "p2": "Deze rapporten bevatten informatie over het aantal ontvangen meldingen, verwijderde inhoud, opgeschorte accounts, reactietijden en het gebruik van geautomatiseerde middelen voor inhoudsmoderatie."
+    },
+    "s21": {
+      "title": "21. Enkel contactpunt",
+      "intro": "Voor alle zaken met betrekking tot de Digital Services Act kunt u contact opnemen met:",
+      "company": "OfferMarket B.V. — DSA-enkelcontactpunt",
+      "emailLabel": "E-mail:",
+      "email": "legal@offermarket.nl",
+      "urgentNote": "Voor urgente zaken met bedreigingen voor leven of veiligheid, neem direct contact op met de bevoegde handhavingsautoriteiten."
+    },
+    "s22": {
+      "title": "22. Splitsbaarheid",
+      "p1": "Indien enige bepaling van deze voorwaarden door een bevoegde rechter ongeldig, onwettig of niet-handhaafbaar wordt geacht, wordt die bepaling in de minimaal noodzakelijke mate gewijzigd om geldig en handhaafbaar te zijn, of, indien wijziging niet mogelijk is, van deze voorwaarden gescheiden. De ongeldigheid van enige bepaling tast niet de geldigheid of handhaafbaarheid van enige andere bepaling aan, die volledig van kracht blijft.",
+      "p2": "Deze voorwaarden worden zo uitgelegd dat de intentie van de partijen zo goed mogelijk wordt gerealiseerd, en bepalingen die ongeldig of niet-handhaafbaar blijken te zijn, worden vervangen door geldige bepalingen die het meest overeenkomen met de intentie van de oorspronkelijke bepalingen.",
+      "p3": "Dit geldt in het bijzonder voor de aansprakelijkheidsbeperkingen in Artikel 9, die worden beperkt tot het maximum dat onder toepasselijk dwingend recht is toegestaan, waaronder maar niet beperkt tot Boek 6 BW Artikel 7:658 (werkgeversaansprakelijkheid) en Artikel 6:248 BW (redelijkheid en billijkheid)."
+    },
+    "s23": {
+      "title": "23. Geschillenbeslechting en toepasselijk recht",
+      "governingTitle": "23.1 Toepasselijk recht",
+      "governingP": "Deze voorwaarden worden beheerst en uitgelegd in overeenstemming met het recht van Nederland, zonder acht te slaan op de conflictenregels.",
+      "consumerTitle": "23.2 Consumentengeschillen (B2C)",
+      "consumerIntro": "Indien u een consument bent als gedefinieerd in de Nederlandse wet (BW 6:248c), is het volgende op u van toepassing:",
+      "consumerList": {
+        "item1": "<strong>Buitengerechtelijke geschillenbeslechting</strong> — Voordat u gerechtelijke procedures start, kunt u een klacht indienen bij de Geschillencommissie via <a>degeschillencommissie.nl</a>. De Geschillencommissie geeft een bindende uitspraak bij geschillen over de uitleg of nakoming van deze voorwaarden.",
+        "item2": "<strong>EU-onlinegeschillenbeslechting</strong> — De Europese Commissie biedt een onlineplatform voor geschillenbeslechting (ODR) aan op <a>ec.europa.eu/consumers/odr</a>, dat consumenten kunnen gebruiken om geschillen voortvloeiend uit online diensten zonder tussenkomst van de rechter op te lossen (EU-richtlijn 2013/11/EU).",
+        "item3": "<strong>Verplichte consumentenrechten</strong> — Niets in deze voorwaarden ontneemt u de bescherming die voortvloeit uit dwingende bepalingen van het Nederlandse recht of het recht van uw woonplaats als consument. Indien dwingende consumentenbeschermingswetten in uw woonland ruimere bescherming bieden dan het Nederlandse recht, prevaleren die wetten."
+      },
+      "businessTitle": "23.3 Zakelijke geschillen (B2B)",
+      "businessP": "Indien u een zakelijke gebruiker (werkgever) bent, worden geschillen voortvloeiend uit of in verband met deze voorwaarden voorgelegd aan de bevoegde rechter in Amsterdam, Nederland (Rechtbank Amsterdam).",
+      "internalTitle": "23.4 Interne klachtprocedure",
+      "internalP": "Voordat u formele geschillenbeslechting initieert, kunt u een klacht indienen bij OfferMarket via <a>legal@offermarket.nl</a>. Wij bevestigen uw klacht binnen 5 werkdagen en geven een inhoudelijke reactie binnen 30 kalenderdagen.",
+      "limitationTitle": "23.5 Verjaringstermijn",
+      "limitationP": "Vorderingen voortvloeiend uit deze voorwaarden moeten binnen de wettelijke verjaringstermijn onder Nederlands recht worden ingesteld (in het algemeen 5 jaar vanaf de datum waarop de vordering opeisbaar wordt en de schuldeiser kennis heeft van de relevante feiten, volgens BW 3:306), tenzij een kortere termijn bij dwingend recht is voorzien."
+    },
+    "s24": {
+      "title": "24. Contact",
+      "company": "OfferMarket B.V.",
+      "address": "Herengracht 420, 1017 Amsterdam, Nederland",
+      "kvk": "KvK: 93075284",
+      "emailLabel": "E-mail:",
+      "email": "legal@offermarket.nl"
+    },
+    "footer": {
+      "copyright": "© {year} OfferMarket B.V. ·",
+      "privacyLink": "Privacybeleid",
+      "termsLink": "Algemene Voorwaarden",
+      "cookiesLink": "Cookiebeleid",
+      "reportLink": "Illegale inhoud melden"
+    }
+  },
+  "cookies": {
+    "_reviewNote": "Dutch legal translation — requires human/legal review before production use.",
+    "title": "Cookiebeleid",
+    "lastUpdated": "Laatst bijgewerkt: 12 juli 2026 · Versie 1.1",
+    "dutchTitle": "Cookiebeleid",
+    "companyName": "OfferMarket B.V.",
+    "s1": {
+      "title": "1. Wat zijn cookies",
+      "p1": "Cookies zijn kleine tekstbestanden die op uw apparaat worden opgeslagen wanneer u onze website bezoekt. Ze helpen ons u een betere ervaring te bieden door uw voorkeuren te onthouden, essentiële functionaliteit mogelijk te maken en ons inzicht te geven in hoe u ons platform gebruikt."
+    },
+    "s2": {
+      "title": "2. Juridische grondslag",
+      "p1": "Dit cookiebeleid is opgesteld in overeenstemming met <strong>Artikel 11.7a van de Nederlandse Telecommunicatiewet</strong> (Telecommunicatiewet), dat <strong>Artikel 5(3) van de ePrivacy-richtlijn</strong> (Richtlijn 2002/58/EG, zoals gewijzigd door Richtlijn 2009/136/EG) implementeert.",
+      "p2": "Op grond van deze wet zijn wij verplicht uw <strong>geïnformeerde en ondubbelzinnige toestemming</strong> te verkrijgen voordat wij niet-essentiële cookies op uw apparaat opslaan of toegang tot deze krijgen. Essentiële cookies (strikt noodzakelijk voor het functioneren van de website) zijn vrijgesteld van deze vereiste.",
+      "p3": "Uw toestemming is <strong>vrijwillig, specifiek, geïnformeerd en ondubbelzinnig</strong>. U kunt uw toestemming op elk moment intrekken via de cookiebanner, de link Cookie-instellingen in de voettekst, of ons <a>Privacy Dashboard</a>. Intrekking van toestemming is even eenvoudig als het geven ervan.",
+      "p4": "Toestemming is maximaal <strong>13 maanden</strong> geldig, waarna u wordt gevraagd deze te vernieuwen. Wij slaan uw toestemmingsvoorkeur op met een tijdstempel zodat wij de naleving kunnen verifiëren.",
+      "p5": "Cookies zijn kleine tekstbestanden die op uw apparaat worden opgeslagen wanneer u onze website bezoekt. Ze helpen ons u een betere ervaring te bieden door uw voorkeuren te onthouden, essentiële functionaliteit mogelijk te maken en ons inzicht te geven in hoe u ons platform gebruikt."
+    },
+    "s3": {
+      "title": "3. Soorten cookies die wij gebruiken",
+      "essential": {
+        "badge": "Essentieel",
+        "title": "Essentiële cookies",
+        "description": "Deze cookies zijn strikt noodzakelijk voor het functioneren van de website. Ze kunnen niet worden uitgeschakeld.",
+        "tableHeaders": { "cookie": "Cookie", "purpose": "Doel", "duration": "Duur" },
+        "rows": {
+          "row1": { "cookie": "accessToken", "purpose": "Authenticatiesessie", "duration": "Sessie" },
+          "row2": { "cookie": "refreshToken", "purpose": "Sessiehandhaving", "duration": "30 dagen" },
+          "row3": { "cookie": "offermarket_cookie_consent", "purpose": "Slaat uw cookievoorkeuren op", "duration": "1 jaar" }
+        }
+      },
+      "analytics": {
+        "badge": "Analytisch",
+        "title": "Analytische cookies",
+        "description": "Deze cookies helpen ons begrijpen hoe bezoekers met onze website omgaan. Wij gebruiken PostHog voor geanonimiseerde analyse. Deze cookies vereisen uw toestemming.",
+        "tableHeaders": { "cookie": "Cookie", "purpose": "Doel", "duration": "Duur" },
+        "rows": {
+          "row1": { "cookie": "ph_*", "purpose": "PostHog-analyse — paginaweergaven, functiegebruik", "duration": "1 jaar" }
+        }
+      },
+      "marketing": {
+        "badge": "Marketing",
+        "title": "Marketingcookies",
+        "description": "Deze cookies worden gebruikt om bezoekers te volgen op verschillende websites voor advertentiedoeleinden. Wij gebruiken momenteel geen marketingcookies, maar deze categorie is beschikbaar voor het geval we deze in de toekomst introduceren.",
+        "italicNote": "Er zijn momenteel geen marketingcookies in gebruik."
+      }
+    },
+    "s4": {
+      "title": "4. Cookies beheren",
+      "intro": "U kunt uw cookievoorkeuren op elk moment beheren:",
+      "list": {
+        "item1": "Via ons <a>Privacy Dashboard</a> — sectie toestemmingsbeheer",
+        "item2": "Door op de cookiebanner te klikken die bij uw eerste bezoek verschijnt",
+        "item3": "Via de link <strong>Cookie-instellingen</strong> in de voettekst van de pagina",
+        "item4": "Via de instellingen van uw browser — de meeste browsers laten u cookies blokkeren of verwijderen"
+      },
+      "p2": "Houd er rekening mee dat het uitschakelen van essentiële cookies kan verhinderen dat het platform correct functioneert."
+    },
+    "s5": {
+      "title": "5. PostHog-analyse",
+      "intro": "Wij gebruiken PostHog voor productanalyse. PostHog wordt pas geactiveerd nadat u expliciete toestemming geeft conform <strong>Artikel 11.7a van de Telecommunicatiewet</strong>. Wanneer analytische cookies zijn ingeschakeld:",
+      "list": {
+        "item1": "Paginaweergaven en functiegebruik worden bijgehouden",
+        "item2": "IP-adressen worden verzameld, maar wij configureren PostHog om deze te maskeren",
+        "item3": "Gegevens worden opgeslagen op op de EU gebaseerde servers",
+        "item4": "Wij hebben een Verwerkersovereenkomst met PostHog",
+        "item5": "U kunt uw toestemming op elk moment intrekken via de cookiebanner, de link Cookie-instellingen, of het <a>Privacy Dashboard</a>",
+        "item6": "Wanneer toestemming wordt ingetrokken, stopt alle tracking onmiddellijk"
+      }
+    },
+    "s6": {
+      "title": "6. Lokale opslag",
+      "intro": "Naast cookies gebruiken wij de lokale opslag van de browser voor:",
+      "list": {
+        "item1": "<strong>Authenticatietokens</strong> — om uw aanmeldsessie te behouden",
+        "item2": "<strong>Gebruikersvoorkeuren</strong> — zoals thema- en meldingsinstellingen",
+        "item3": "<strong>Cookie-toestemmingsvoorkeuren</strong> — om uw keuzes te onthouden"
+      },
+      "p2": "Lokale opslaggegevens worden niet met derden gedeeld en volgen u niet op verschillende websites."
+    },
+    "s7": {
+      "title": "7. Wijzigingen in dit beleid",
+      "p1": "Wij kunnen dit cookiebeleid van tijd tot tijd wijzigen. Wijzigingen worden weerspiegeld in de datum \"Laatst bijgewerkt\" bovenaan. Indien wij nieuwe niet-essentiële cookies introduceren, zullen wij opnieuw uw toestemming vragen via de cookiebanner."
+    },
+    "s8": {
+      "title": "8. Contact",
+      "p1": "Voor vragen over ons gebruik van cookies kunt u contact opnemen met onze Functionaris voor Gegevensbescherming via <a>dpo@offermarket.nl</a>."
+    },
+    "footer": {
+      "copyright": "© {year} OfferMarket B.V. ·",
+      "privacyLink": "Privacybeleid",
+      "termsLink": "Algemene Voorwaarden",
+      "cookiesLink": "Cookiebeleid",
+      "dashboardLink": "Privacy Dashboard"
+    }
+  }
+}

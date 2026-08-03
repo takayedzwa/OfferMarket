@@ -1,5 +1,6 @@
 import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { ERROR_CODES } from '../i18n/error-codes';
 import { Reflector } from '@nestjs/core';
 
 /**
@@ -64,11 +65,13 @@ export class ProcessingRestrictionGuard implements CanActivate {
     });
 
     if (flags?.processingRestricted) {
-      throw new ForbiddenException(
-        'Your account has a processing restriction in place (GDPR Article 18). ' +
-        'Only read operations are permitted until the restriction is lifted. ' +
-        'You can remove the restriction from your Privacy Dashboard.',
-      );
+      throw new ForbiddenException({
+        code: ERROR_CODES.GUARD_PROCESSING_RESTRICTED,
+        message:
+          'Your account has a processing restriction in place (GDPR Article 18). ' +
+          'Only read operations are permitted until the restriction is lifted. ' +
+          'You can remove the restriction from your Privacy Dashboard.',
+      });
     }
 
     return true;

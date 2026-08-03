@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 /**
  * CookieSettingsButton
  *
@@ -9,6 +11,7 @@
  * Dispatches a 'consent:show' custom event that CookieConsentBanner listens for.
  */
 export default function CookieSettingsButton() {
+  const t = useTranslations('nav.footer');
   const handleClick = () => {
     window.dispatchEvent(new CustomEvent('consent:show'));
   };
@@ -17,9 +20,9 @@ export default function CookieSettingsButton() {
     <button
       onClick={handleClick}
       className="text-sm text-gray-500 hover:text-gray-700 hover:underline"
-      aria-label="Manage cookie settings"
+      aria-label={t('cookieSettingsAria')}
     >
-      🍪 Cookie Settings
+      🍪 {t('cookieSettings')}
     </button>
   );
 }

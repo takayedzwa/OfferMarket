@@ -1,0 +1,175 @@
+{
+  "offerStatus": {
+    "DRAFT": "Concept",
+    "SUBMITTED": "Ingediend",
+    "VIEWED": "Bekeken",
+    "SHORTLISTED": "Geselecteerd",
+    "ACCEPTED": "Geaccepteerd",
+    "REJECTED": "Afgewezen",
+    "EXPIRED": "Verlopen",
+    "WITHDRAWN": "Ingetrokken",
+    "COUNTERED": "Tegenvoorstel",
+    "ACTIVE": "Actief",
+    "FILLED": "Vervuld",
+    "PAUSED": "Gepauzeerd",
+    "DELETED": "Verwijderd"
+  },
+  "invoiceStatus": {
+    "DRAFT": "Concept",
+    "ISSUED": "Verzonden",
+    "PAID": "Betaald",
+    "OVERDUE": "Te laat",
+    "CANCELLED": "Geannuleerd",
+    "REFUNDED": "Terugbetaald"
+  },
+  "specialization": {
+    "RESIDENTIAL_INSTALLATIONS": "Woninginstallaties",
+    "COMMERCIAL_INSTALLATIONS": "Commerciële installaties",
+    "INDUSTRIAL_INSTALLATIONS": "Industriële installaties",
+    "MAINTENANCE": "Onderhoud",
+    "HIGH_VOLTAGE": "Hoogspanning",
+    "LOW_VOLTAGE": "Laagspanning",
+    "SOLAR_PV": "Zonnepanelen",
+    "EV_CHARGING": "Laadpalen",
+    "CONTROL_PANELS": "Besturingspanelen",
+    "PLC_SYSTEMS": "PLC-systemen",
+    "AUTOMATION": "Automatisering",
+    "BUILDING_MANAGEMENT": "Gebouwbeheer",
+    "FIRE_ALARM_SYSTEMS": "Brandalarmsystemen",
+    "SECURITY_SYSTEMS": "Beveiligingssystemen",
+    "DATA_CABLING": "Datanetwerken",
+    "MARINE_ELECTRICAL": "Maritieme elektrotechniek",
+    "RENEWABLE_ENERGY": "Duurzame energie"
+  },
+  "skillLevel": {
+    "BEGINNER": "Beginner",
+    "INTERMEDIATE": "Gevorderd",
+    "ADVANCED": "Gevorderden",
+    "EXPERT": "Expert",
+    "MASTER": "Meester"
+  },
+  "languageLevel": {
+    "A1": "A1 - Beginner",
+    "A2": "A2 - Basis",
+    "B1": "B1 - Gemiddeld",
+    "B2": "B2 - Boven gemiddeld",
+    "C1": "C1 - Gevorderd",
+    "C2": "C2 - Vloeiend",
+    "NATIVE": "Moedertaal"
+  },
+  "availability": {
+    "IMMEDIATE": "Direct beschikbaar",
+    "ONE_MONTH": "Beschikbaar over 1 maand",
+    "THREE_MONTHS": "Beschikbaar over 3 maanden",
+    "SIX_MONTHS": "Beschikbaar over 6 maanden",
+    "NOT_AVAILABLE": "Niet beschikbaar"
+  },
+  "workAuth": {
+    "EU_CITIZEN": "EU-burger",
+    "DUTCH_WORK_PERMIT": "Nederlandse werkvergunning",
+    "HIGHLY_SKILLED_MIGRANT": "Hoogopgeleide migrant",
+    "REQUIRES_SPONSORSHIP": "Vereist sponsorschap"
+  },
+  "employmentType": {
+    "FULL_TIME": "Voltijd",
+    "PART_TIME": "Deeltijd",
+    "FREELANCE": "Freelance",
+    "CONTRACT": "Contract",
+    "TEMPORARY": "Tijdelijk",
+    "INTERNSHIP": "Stage"
+  },
+  "documentType": {
+    "BUSINESS_REGISTRATION": "KvK-registratie",
+    "TAX_DOCUMENT": "Belastingdocument",
+    "BANK_STATEMENT": "Bankafschrift",
+    "UTILITY_BILL": "Energiefactuur",
+    "ID_CARD": "Identiteitskaart",
+    "PASSPORT": "Paspoort",
+    "CERTIFICATE": "Certificaat",
+    "DIPLOMA": "Diploma",
+    "REFERENCE_LETTER": "Referentiebrief",
+    "OTHER": "Anders"
+  },
+  "badge": {
+    "NEN_3140_CERTIFIED": "NEN 3140 gecertificeerd",
+    "VCA_CERTIFIED": "VCA gecertificeerd",
+    "NEN_1010_CERTIFIED": "NEN 1010 gecertificeerd",
+    "FIRST_AID_CERTIFIED": "Ehbo / BHV",
+    "MULTIPLE_CERTIFIED": "Meerdere certificeringen",
+    "SENIOR_EXPERT": "10+ jaar ervaring",
+    "EXPERIENCED": "5+ jaar ervaring",
+    "INDUSTRIAL_SPECIALIST": "Industrieel specialist",
+    "PLC_SPECIALIST": "PLC-specialist",
+    "SOLAR_SPECIALIST": "Zonnepanelen-specialist",
+    "RENEWABLE_SPECIALIST": "Duurzame energie",
+    "AVAILABLE_IMMEDIATELY": "Direct beschikbaar",
+    "DRIVING_LICENCE_B": "Rijbewijs B",
+    "OWN_VEHICLE": "Eigen vervoer",
+    "DUTCH_B2": "Nederlands B2+",
+    "ENGLISH_B2": "Engels B2+",
+    "EU_CITIZEN": "EU-burger",
+    "WORK_PERMIT_VALID": "Geldige werkvergunning",
+    "VERIFIED_CREDENTIALS": "Geverifieerde referenties"
+  },
+  "contentReportCategory": {
+    "ILLEGAL_CONTENT": "Illegale inhoud",
+    "FRAUD_SCAM": "Fraude of oplichting",
+    "HARASSMENT": "Intimidatie of pesten",
+    "HATE_SPEECH": "Haatzaaien",
+    "COPYRIGHT_VIOLATION": "Auteursrechtschending",
+    "PRIVACY_VIOLATION": "Privacy schending (doxxing, ongeautoriseerde gegevens)",
+    "MISLEADING_INFORMATION": "Misleidende informatie",
+    "CHILD_SAFETY": "Veiligheid van kinderen",
+    "TERRORISM": "Terrorisme-gerelateerde inhoud",
+    "DRUGS_WEAPONS": "Illegale producten of diensten (drugs, wapens)",
+    "IMPERSONATION": "Identiteitsdiefstal / valse identiteit",
+    "SPAM": "Spam",
+    "OTHER": "Anders"
+  },
+  "contentReportTarget": {
+    "USER_PROFILE": "Gebruikersprofiel",
+    "WORKER_PROFILE": "Werknemersprofiel",
+    "EMPLOYER_PROFILE": "Werkgeversprofiel",
+    "OFFER": "Vacature",
+    "CONVERSATION": "Gesprek",
+    "MESSAGE": "Bericht",
+    "REVIEW": "Recensie",
+    "OTHER": "Anders"
+  },
+  "dsaStatus": {
+    "RECEIVED": {
+      "label": "Ontvangen",
+      "description": "Uw melding is ontvangen en wacht op beoordeling."
+    },
+    "ASSESSMENT": {
+      "label": "In behandeling",
+      "description": "Uw melding wordt door ons team beoordeeld."
+    },
+    "ACTION_TAKEN": {
+      "label": "Actie ondernomen",
+      "description": "Er is actie ondernomen op de gemelde inhoud."
+    },
+    "NOTIFIED": {
+      "label": "Gemeld",
+      "description": "De betreffende gebruiker is op de hoogte gesteld."
+    },
+    "RESOLVED": {
+      "label": "Opgelost",
+      "description": "Uw melding is opgelost."
+    },
+    "DISMISSED": {
+      "label": "Afgewezen",
+      "description": "Uw melding is na beoordeling afgewezen."
+    },
+    "ESCALATED": {
+      "label": "Geëscaleerd",
+      "description": "Deze melding is doorgezet naar de relevante autoriteiten."
+    }
+  },
+  "dsaPriority": {
+    "LOW": "Laag",
+    "MEDIUM": "Gemiddeld",
+    "HIGH": "Hoog",
+    "URGENT": "Dringend"
+  }
+}

@@ -13,6 +13,8 @@ export interface User {
   phoneVerified: boolean;
   firstName?: string;
   lastName?: string;
+  /** i18n: persisted UI/email locale (en/nl). Drives server-side email rendering. */
+  preferredLocale?: string;
 }
 
 export interface AuthTokens {
@@ -738,6 +740,8 @@ export interface WebSocketNotificationEvent {
   category: string | null;
   title: string;
   body: string;
+  /** i18n interpolation params pushed from the backend (Notification.actionData). */
+  actionData?: Record<string, unknown> | null;
   actionUrl: string | null;
   createdAt: string;
 }

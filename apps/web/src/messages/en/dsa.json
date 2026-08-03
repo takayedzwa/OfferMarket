@@ -1,0 +1,107 @@
+{
+  "status": {
+    "title": "Report Status",
+    "description": "Check the status of your content report using the reference number you received when submitting your report.",
+    "contactPrompt": "If you have questions about your report, contact us at",
+    "newReportLink": "Submit a new report →"
+  },
+  "statusDetail": {
+    "title": "Report Status",
+    "referenceLabel": "Reference:",
+    "loading": "Loading report status...",
+    "notFoundError": "Report not found. Please check the reference number.",
+    "loadError": "Failed to load report status.",
+    "genericError": "An error occurred",
+    "tryAnotherLink": "← Try another reference number",
+    "statusHeading": "Status",
+    "categoryLabel": "Category",
+    "submittedLabel": "Submitted",
+    "acknowledgedLabel": "Acknowledged",
+    "actionTakenLabel": "Action taken",
+    "resolutionLabel": "Resolution",
+    "newReportLink": "Submit a new report →",
+    "checkAnotherLink": "Check another report →",
+    "complaint": {
+      "label": "Complaint options:",
+      "body": "If you disagree with this resolution, you can submit a complaint through our internal complaint-handling system within 6 months (DSA Art. 20)."
+    }
+  },
+  "report": {
+    "title": "Report Illegal Content",
+    "intro": "Under the Digital Services Act (DSA, Regulation EU 2022/2065), you have the right to notify us of content that you consider to be illegal. Your report will be processed in accordance with our notice-and-action procedure.",
+    "rightsTitle": "Your rights under the DSA",
+    "rightsAnonymous": "You may submit reports anonymously by providing an email address for acknowledgment.",
+    "rightsAcknowledgment": "You will receive an acknowledgment of your report without undue delay (DSA Art. 16(4)).",
+    "rightsDecision": "You will be notified of the decision taken on your report.",
+    "rightsComplaint": "If you disagree with a decision, you may submit a complaint through our internal complaint-handling system.",
+    "unfoundedNotice": "DSA Art. 16(3)(d): Submitting manifestly unfounded notices may result in reporting restrictions under DSA Art. 23.",
+    "contactLabel": "Contact:"
+  },
+  "form": {
+    "submittedTitle": "Report Submitted",
+    "submittedBody": "Your report has been received and acknowledged. We will review it as soon as possible.",
+    "referenceLabel": "Reference number",
+    "saveReference": "Save this reference to check the status of your report at",
+    "reportStatusLink": "Report Status",
+    "acknowledgmentNote": "DSA Art. 16(4): You will receive an acknowledgment without undue delay.",
+    "close": "Close",
+    "title": "Report Illegal Content",
+    "intro": "DSA Art. 16 — Report content you believe is illegal or violates our terms. You may report anonymously by providing only your email.",
+    "targetLabel": "What are you reporting?",
+    "targetIdLabel": "ID or reference of the content",
+    "targetIdPlaceholder": "e.g., offer ID, username",
+    "urlLabel": "URL of the content",
+    "optional": "(optional)",
+    "urlPlaceholder": "https://offermarket.nl/...",
+    "categoryLabel": "Category of illegal content",
+    "illegalTypeLabel": "Type of illegal content",
+    "illegalTypePlaceholder": "e.g., Dutch Criminal Code Art. 137c",
+    "explanationLabel": "Detailed explanation",
+    "explanationHint": "DSA Art. 16(3): Please explain in detail why you believe this content is illegal.",
+    "explanationPlaceholder": "Please describe the content you are reporting and why you believe it is illegal...",
+    "emailLabel": "Your email address",
+    "emailHint": "(for acknowledgment)",
+    "emailPlaceholder": "your@email.com",
+    "emailNote": "Required for anonymous reports. We will send you an acknowledgment and updates.",
+    "goodFaithLabel": "I declare that this report is submitted in good faith and that the information provided is accurate to the best of my knowledge.",
+    "goodFaithNote": "DSA Art. 16(3)(d): False or malicious reports may result in reporting restrictions under DSA Art. 23.",
+    "validation": {
+      "explanationRequired": "Please provide a detailed explanation of why this content is illegal or violates our terms.",
+      "goodFaithRequired": "You must confirm that your report is submitted in good faith."
+    },
+    "submitError": "Failed to submit report",
+    "genericError": "An error occurred. Please try again.",
+    "cancel": "Cancel",
+    "submitting": "Submitting...",
+    "submit": "Submit Report"
+  },
+  "checker": {
+    "title": "Check Report Status",
+    "description": "Enter the reference number you received when submitting your report.",
+    "placeholder": "e.g., RPT-ABC123",
+    "checking": "Checking...",
+    "check": "Check",
+    "notFoundError": "Report not found. Please check the reference number and try again.",
+    "checkError": "Failed to check report status. Please try again later.",
+    "genericError": "An error occurred",
+    "detailsHeading": "Report Details",
+    "referenceLabel": "Reference",
+    "categoryLabel": "Category",
+    "priorityLabel": "Priority",
+    "submittedLabel": "Submitted",
+    "acknowledgedLabel": "Acknowledged",
+    "actionLabel": "Action",
+    "resolutionLabel": "Resolution",
+    "complaint": {
+      "label": "Complaint options:",
+      "prefix": "If you disagree with this resolution, you can submit a complaint through our ",
+      "link": "internal complaint-handling system",
+      "suffix": " within 6 months (DSA Art. 20)."
+    }
+  },
+  "button": {
+    "report": "Report",
+    "reportTitle": "Report this content",
+    "close": "Close"
+  }
+}

@@ -1,19 +1,36 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Bell, Check, CheckCheck, X } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { Bell, CheckCheck, X } from "lucide-react";
 import { useNotifications } from "../../hooks/useNotifications";
-import type { Notification } from "../../lib/types";
+import { useFormat } from "../../hooks/useFormat";
+import type { Notification, WebSocketNotificationEvent } from "../../lib/types";
 
 // ============================================================================
 // NOTIFICATION BELL COMPONENT
 // ============================================================================
 // Renders a bell icon with unread badge in the navbar.
 // Dropdown shows recent notifications with mark-as-read actions.
+//
+// i18n: title/body are rendered client-side from `notificationType` + the
+// `actionData` interpolation params pushed by the backend (Notification.
+// actionData), so a notification displays in the VIEWER's current locale —
+// not the locale it was created in. The English `title`/`body` stored on the
+// row are kept as a fallback for older notifications that have no actionData
+// and for any catalog key that fails to resolve.
 // ============================================================================
 
 interface NotificationBellProps {
   userId: string | null;
+}
+
+/** Minimal shape shared by persisted notifications and live toast events. */
+interface LocalizableNotification {
+  type: string;
+  title: string;
+  body: string;
+  actionData?: Record<string, unknown> | null;
 }
 
 function getCategoryIcon(category: string | null) {
@@ -29,22 +46,9 @@ function getCategoryIcon(category: string | null) {
   }
 }
 
-function getTimeAgo(dateStr: string): string {
-  const date = new Date(dateStr);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMins / 60);
-  const diffDays = Math.floor(diffHours / 24);
-
-  if (diffMins < 1) return "Just now";
-  if (diffMins < 60) return `${diffMins}m ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
-  if (diffDays < 7) return `${diffDays}d ago`;
-  return date.toLocaleDateString("nl-NL", { day: "numeric", month: "short" });
-}
-
 export default function NotificationBell({ userId }: NotificationBellProps) {
+  const t = useTranslations("notifications");
+  const { date: formatDate } = useFormat();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const {
@@ -78,11 +82,80 @@ export default function NotificationBell({ userId }: NotificationBellProps) {
     setIsOpen(false);
   };
 
+  // -------------------------------------------------------------------------
+  // Localized rendering helpers
+  // -------------------------------------------------------------------------
+
+  /**
+   * Resolve the localized title for a notification. Falls back to the English
+   * `title` stored on the row if the catalog key is missing or fails to render
+   * (e.g. an old notification with no actionData for a templated message).
+   */
+  const renderTitle = (n: LocalizableNotification): string => {
+    const params = (n.actionData ?? {}) as Record<string, unknown>;
+    try {
+      // support_offer_extended has distinct templates depending on whether a
+      // job title is present (actionData.jobTitle is "" when absent).
+      if (n.type === "support_offer_extended" && params.jobTitle) {
+        return t("support_offer_extended.title_with_job", params as Record<string, string | number | Date>);
+      }
+      return t(`${n.type}.title`, params as Record<string, string | number | Date>);
+    } catch {
+      return n.title;
+    }
+  };
+
+  /**
+   * Resolve the localized body. offer_rejected / offer_withdrawn carry a
+   * free-form user `reason` — when present it is shown verbatim (it is
+   * user-generated, not translatable); otherwise the translated default
+   * sentence is used. support_offer_extended again has job/no-job variants.
+   */
+  const renderBody = (n: LocalizableNotification): string => {
+    const params = (n.actionData ?? {}) as Record<string, unknown>;
+    try {
+      if (
+        (n.type === "offer_rejected" || n.type === "offer_withdrawn") &&
+        typeof params.reason === "string" &&
+        params.reason
+      ) {
+        return params.reason;
+      }
+      if (n.type === "support_offer_extended" && params.jobTitle) {
+        return t("support_offer_extended.body_with_job", params as Record<string, string | number | Date>);
+      }
+      return t(`${n.type}.body`, params as Record<string, string | number | Date>);
+    } catch {
+      return n.body;
+    }
+  };
+
+  /** Relative "time ago" label, localized via the notifications catalog. */
+  const getTimeAgo = (dateStr: string): string => {
+    const d = new Date(dateStr);
+    const diffMs = Date.now() - d.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
+
+    if (diffMins < 1) return t("timeAgo.justNow");
+    if (diffMins < 60) return t("timeAgo.minutesAgo", { count: diffMins });
+    if (diffHours < 24) return t("timeAgo.hoursAgo", { count: diffHours });
+    if (diffDays < 7) return t("timeAgo.daysAgo", { count: diffDays });
+    // Older than a week: show the absolute date in the active locale.
+    return formatDate(d, { day: "numeric", month: "short" });
+  };
+
+  const ariaLabel =
+    unreadCount > 0
+      ? t("ui.ariaLabelUnread", { count: unreadCount })
+      : t("ui.ariaLabel");
+
   return (
     <>
       {/* Toast notifications */}
       <div className="fixed top-4 right-4 z-50 flex flex-col gap-2 max-w-sm">
-        {toasts.map((toast) => (
+        {toasts.map((toast: WebSocketNotificationEvent) => (
           <div
             key={toast.id}
             className="bg-white border border-gray-200 rounded-lg shadow-lg p-4 animate-slide-in-right flex items-start gap-3"
@@ -91,8 +164,22 @@ export default function NotificationBell({ userId }: NotificationBellProps) {
               {getCategoryIcon(toast.category)}
             </span>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-gray-900">{toast.title}</p>
-              <p className="text-sm text-gray-600 truncate">{toast.body}</p>
+              <p className="text-sm font-semibold text-gray-900">
+                {renderTitle({
+                  type: toast.type,
+                  title: toast.title,
+                  body: toast.body,
+                  actionData: toast.actionData,
+                })}
+              </p>
+              <p className="text-sm text-gray-600 truncate">
+                {renderBody({
+                  type: toast.type,
+                  title: toast.title,
+                  body: toast.body,
+                  actionData: toast.actionData,
+                })}
+              </p>
             </div>
             <button
               onClick={() => dismissToast(toast.id)}
@@ -109,7 +196,7 @@ export default function NotificationBell({ userId }: NotificationBellProps) {
         <button
           onClick={() => setIsOpen(!isOpen)}
           className="relative p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
-          aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ""}`}
+          aria-label={ariaLabel}
         >
           <Bell className="w-5 h-5" />
           {unreadCount > 0 && (
@@ -124,14 +211,14 @@ export default function NotificationBell({ userId }: NotificationBellProps) {
           <div className="absolute right-0 mt-2 w-80 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-96 overflow-hidden flex flex-col">
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-              <h3 className="text-sm font-semibold text-gray-900">Notifications</h3>
+              <h3 className="text-sm font-semibold text-gray-900">{t("ui.title")}</h3>
               {unreadCount > 0 && (
-                    <button
+                <button
                   onClick={markAllAsRead}
                   className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1"
                 >
                   <CheckCheck className="w-3.5 h-3.5" />
-                  Mark all read
+                  {t("ui.markAllRead")}
                 </button>
               )}
             </div>
@@ -140,11 +227,11 @@ export default function NotificationBell({ userId }: NotificationBellProps) {
             <div className="overflow-y-auto flex-1">
               {isLoading && notifications.length === 0 ? (
                 <div className="px-4 py-8 text-center text-sm text-gray-500">
-                  Loading...
+                  {t("ui.loading")}
                 </div>
               ) : notifications.length === 0 ? (
                 <div className="px-4 py-8 text-center text-sm text-gray-500">
-                  No notifications yet
+                  {t("ui.empty")}
                 </div>
               ) : (
                 notifications.map((notification) => (
@@ -168,14 +255,24 @@ export default function NotificationBell({ userId }: NotificationBellProps) {
                                 : "text-gray-700"
                             }`}
                           >
-                            {notification.title}
+                            {renderTitle({
+                              type: notification.notificationType,
+                              title: notification.title,
+                              body: notification.body,
+                              actionData: notification.actionData,
+                            })}
                           </p>
                           {!notification.isRead && (
                             <span className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0" />
                           )}
                         </div>
                         <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">
-                          {notification.body}
+                          {renderBody({
+                            type: notification.notificationType,
+                            title: notification.title,
+                            body: notification.body,
+                            actionData: notification.actionData,
+                          })}
                         </p>
                         <p className="text-xs text-gray-400 mt-1">
                           {getTimeAgo(notification.createdAt)}

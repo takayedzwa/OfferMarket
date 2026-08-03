@@ -1,0 +1,164 @@
+{
+  "employer": {
+    "loading": "Loading...",
+    "draftBanner": {
+      "title": "Draft Company Profile Saved",
+      "description": "You have an incomplete company profile. Continue setting it up when you're ready.",
+      "continue": "Continue Setup →"
+    },
+    "company": {
+      "kvk": "KvK: {kvk}",
+      "edit": "Edit Company →",
+      "verification": {
+        "UNVERIFIED": "unverified",
+        "PENDING": "pending",
+        "BASIC_VERIFIED": "basic verified",
+        "PREMIUM_VERIFIED": "premium verified"
+      }
+    },
+    "stats": {
+      "draftOffers": "Draft Offers",
+      "submitted": "Submitted",
+      "shortlisted": "Shortlisted",
+      "accepted": "Accepted"
+    },
+    "actions": {
+      "title": "Quick Actions",
+      "createOffer": "Create New Offer",
+      "createOfferDesc": "Send an offer to a worker",
+      "searchWorkers": "Search Workers",
+      "searchWorkersDesc": "Find potential candidates",
+      "viewAllOffers": "View All Offers",
+      "viewAllOffersDesc": "Manage your offers",
+      "messages": "Messages",
+      "messagesDesc": "Talk to potential candidates"
+    },
+    "recentOffers": {
+      "title": "Recent Offers",
+      "viewAll": "View all",
+      "created": "Created {date}",
+      "empty": "No offers created yet",
+      "createFirst": "Create Your First Offer",
+      "salaryRange": "{min} - {max}",
+      "workArrangement": {
+        "ONSITE": "On-site",
+        "REMOTE": "Remote",
+        "HYBRID": "Hybrid"
+      }
+    },
+    "billing": {
+      "loading": "Loading billing...",
+      "title": "Billing & Invoices",
+      "subtitle": "Manage your introduction fees and invoices",
+      "backToDashboard": "← Back to Dashboard",
+      "summary": {
+        "unpaid": "Unpaid Invoices",
+        "outstanding": "Outstanding Amount",
+        "nextDue": "Next Due Date"
+      },
+      "tabs": {
+        "all": "All",
+        "unpaid": "Unpaid",
+        "paid": "Paid"
+      },
+      "empty": {
+        "title": "No invoices yet",
+        "description": "Invoices are created when a worker accepts your offer."
+      },
+      "table": {
+        "invoice": "Invoice",
+        "offer": "Offer",
+        "issued": "Issued",
+        "dueDate": "Due Date",
+        "amount": "Amount",
+        "status": "Status"
+      },
+      "pagination": {
+        "previous": "Previous",
+        "next": "Next",
+        "pageInfo": "Page {page} of {totalPages}"
+      }
+    },
+    "invoiceDetail": {
+      "loading": "Loading invoice...",
+      "notFound": "Invoice not found",
+      "backToBilling": "Back to Billing",
+      "issuedOn": "Issued {date}",
+      "dueDate": "Due Date",
+      "offer": "Offer",
+      "paidOn": "Paid On",
+      "paymentReference": "Payment Reference",
+      "lineItems": {
+        "title": "Line Items",
+        "description": "Description",
+        "qty": "Qty",
+        "unitPrice": "Unit Price",
+        "total": "Total"
+      },
+      "subtotal": "Subtotal",
+      "vat": "VAT ({rate}%)",
+      "total": "Total",
+      "payment": {
+        "title": "Payment Instructions",
+        "instructions": "Please transfer {amount} to the following bank account, referencing {invoiceNumber}:",
+        "accountHolder": "Account Holder:",
+        "accountHolderValue": "OfferMarket B.V.",
+        "reference": "Reference:",
+        "dueWithin": "Payment is due within {date}."
+      },
+      "notes": "Notes"
+    }
+  },
+  "worker": {
+    "loading": "Loading...",
+    "stats": {
+      "pendingOffers": "Pending Offers",
+      "shortlisted": "Shortlisted",
+      "accepted": "Accepted",
+      "conversations": "Conversations"
+    },
+    "profile": {
+      "title": "Your Profile",
+      "edit": "Edit",
+      "create": "Create",
+      "salaryRange": "{min} – {max}",
+      "salaryFrom": "From {amount}",
+      "salaryNotSet": "Not set",
+      "desiredSalary": "Desired Salary Range",
+      "noRegion": "No region set",
+      "locationPreference": "Location Preference",
+      "skillsCount": "{count} skills",
+      "noSkills": "No skills added",
+      "skills": "Skills",
+      "availabilityNotSet": "Not set",
+      "availability": "Availability",
+      "visibility": "Profile visibility: {visibility}",
+      "visibilityDefault": "anonymous",
+      "empty": "No profile created yet",
+      "createProfile": "Create Profile"
+    },
+    "recentOffers": {
+      "title": "Recent Offers",
+      "viewAll": "View all",
+      "company": "Company",
+      "empty": "No offers yet",
+      "emptyDesc": "Once you create your profile, employers will start sending offers",
+      "salaryRange": "{min} - {max}",
+      "workArrangement": {
+        "ONSITE": "On-site",
+        "REMOTE": "Remote",
+        "HYBRID": "Hybrid"
+      },
+      "statusLabel": {
+        "SUBMITTED": "New Offer",
+        "VIEWED": "New Offer",
+        "SHORTLISTED": "Shortlisted",
+        "ACCEPTED": "Accepted",
+        "REJECTED": "Declined",
+        "COUNTERED": "Counter Offer Sent",
+        "WITHDRAWN": "Withdrawn",
+        "EXPIRED": "Expired"
+      }
+    }
+  }
+}

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import ReportContentForm from './ReportContentForm';
 
 type ContentReportTarget = 'USER_PROFILE' | 'WORKER_PROFILE' | 'EMPLOYER_PROFILE' | 'OFFER' | 'CONVERSATION' | 'MESSAGE' | 'REVIEW' | 'OTHER';
@@ -29,6 +30,8 @@ export default function ReportContentButton({
 }: ReportContentButtonProps) {
   const [showForm, setShowForm] = useState(false);
 
+  const t = useTranslations('dsa.button');
+
   const handleClose = () => setShowForm(false);
   const handleSuccess = (publicId: string) => {
     // Auto-close after 5 seconds on success
@@ -41,15 +44,15 @@ export default function ReportContentButton({
         <button
           onClick={() => setShowForm(true)}
           className={`text-sm text-gray-500 hover:text-red-600 underline ${className}`}
-          title="Report this content"
+          title={t('reportTitle')}
         >
-          Report
+          {t('report')}
         </button>
       ) : (
         <button
           onClick={() => setShowForm(true)}
           className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-300 rounded-md hover:text-red-600 hover:border-red-300 transition-colors ${className}`}
-          title="Report this content"
+          title={t('reportTitle')}
         >
           <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />

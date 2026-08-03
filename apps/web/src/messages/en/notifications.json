@@ -1,0 +1,76 @@
+{
+  "offer_received": {
+    "title": "New offer received!",
+    "body": "{employerCompanyName} has sent you an offer for {jobTitle}"
+  },
+  "offer_accepted": {
+    "title": "🎉 Offer Accepted!",
+    "body": "{workerName} has accepted your offer for {jobTitle}. You can now contact them directly."
+  },
+  "offer_accepted_confirmation": {
+    "title": "Offer Accepted",
+    "body": "Your identity has been shared with {employerCompanyName}. You can now message them directly."
+  },
+  "offer_rejected": {
+    "title": "Offer Declined",
+    "body": "The candidate has declined your offer."
+  },
+  "offer_countered": {
+    "title": "Counter-Offer Received",
+    "body": "The candidate has submitted a counter-offer for {jobTitle}"
+  },
+  "offer_withdrawn": {
+    "title": "Offer Withdrawn",
+    "body": "The employer has withdrawn this offer."
+  },
+  "offer_expiring": {
+    "title": "Offer Expiring Soon",
+    "body": "An offer for {jobTitle} expires in less than 3 days. Review it before it expires."
+  },
+  "message_received": {
+    "title": "New message",
+    "body": "{contentPreview}"
+  },
+  "invoice_created": {
+    "title": "Invoice Created",
+    "body": "A new invoice ({invoiceNumber}) for €{amount} has been created."
+  },
+  "invoice_overdue": {
+    "title": "Invoice Overdue",
+    "body": "Invoice {invoiceNumber} is {daysOverdue} days overdue."
+  },
+  "breach": {
+    "notification": {
+      "title": "Data Breach Notification: {breachTitle}",
+      "body": "A data breach has been reported: \"{breachTitle}\". Severity: {severity}. Please check the privacy dashboard for details."
+    }
+  },
+  "support_ticket_updated": {
+    "title": "Your ticket {ticketNumber} was updated",
+    "body": "Support updated your ticket \"{subject}\" to {statusLabel}."
+  },
+  "support_offer_extended": {
+    "title": "Your offer expiry was extended",
+    "title_with_job": "Your offer \"{jobTitle}\" was extended",
+    "body": "Support extended the expiry of your offer to {expiry}.",
+    "body_with_job": "Support extended the expiry of your offer \"{jobTitle}\" to {expiry}."
+  },
+  "support_company_unblocked": {
+    "title": "A blocked company was unblocked",
+    "body": "Support removed a company block on your account. You can now interact with that employer again."
+  },
+  "ui": {
+    "title": "Notifications",
+    "markAllRead": "Mark all read",
+    "loading": "Loading...",
+    "empty": "No notifications yet",
+    "ariaLabel": "Notifications",
+    "ariaLabelUnread": "Notifications ({count} unread)"
+  },
+  "timeAgo": {
+    "justNow": "Just now",
+    "minutesAgo": "{count}m ago",
+    "hoursAgo": "{count}h ago",
+    "daysAgo": "{count}d ago"
+  }
+}

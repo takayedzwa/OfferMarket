@@ -141,6 +141,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // i18n: initialize the NEXT_LOCALE cookie from the user's server-persisted
+  // preferredLocale — but ONLY when no explicit cookie exists, so a user's
+  // current-session choice (set by the proxy / LanguageSwitcher) is respected.
+  // preferredLocale acts as the cross-device default. The LanguageSwitcher
+  // PATCHes preferredLocale on every switch, keeping it the source of truth.
+  useEffect(() => {
+    if (!user?.preferredLocale || typeof document === "undefined") return;
+    const hasCookie = document.cookie
+      .split("; ")
+      .some((c) => c.startsWith("NEXT_LOCALE="));
+    if (!hasCookie) {
+      document.cookie = `NEXT_LOCALE=${user.preferredLocale}; path=/; max-age=31536000; SameSite=Lax`;
+    }
+  }, [user?.preferredLocale]);
+
   // Redirect to appropriate dashboard after auth loads
   useEffect(() => {
     if (!loading && !user) {

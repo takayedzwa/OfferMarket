@@ -109,6 +109,9 @@ export function useNotifications({
         category: data.category,
         title: data.title,
         body: data.body,
+        // i18n: params pushed from the backend (Notification.actionData) so the
+        // bell can render the localized title/body in the viewer's locale.
+        actionData: data.actionData ?? null,
         actionUrl: data.actionUrl,
         isRead: false,
         readAt: null,

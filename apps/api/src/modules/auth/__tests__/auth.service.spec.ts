@@ -87,12 +87,23 @@ describe('AuthService', () => {
       });
       prisma.$transaction.mockRejectedValueOnce(p2002);
 
-      await expect(
-        service.registerEmployer('race@test.com', 'C0rrect-Horse-Battery!9q', '', {
+      // P2002 on kvkNumber maps to a coded BadRequestException so the frontend
+      // can translate it via the `errors` namespace (i18n). Assert on the
+      // response payload rather than Error.message (which is `[object Object]`
+      // for object-payload exceptions).
+      const kvkErr = await service
+        .registerEmployer('race@test.com', 'C0rrect-Horse-Battery!9q', '', {
           name: 'Acme',
           kvkNumber: '12345678',
+        })
+        .catch((e: unknown) => e);
+      expect(kvkErr).toBeInstanceOf(BadRequestException);
+      expect((kvkErr as BadRequestException).getResponse()).toEqual(
+        expect.objectContaining({
+          code: 'auth.kvk_already_exists',
+          message: 'Company with this KvK number already exists',
         }),
-      ).rejects.toThrow('Company with this KvK number already exists');
+      );
 
       // Non-P2002 errors re-throw unchanged.
       prisma.$transaction.mockRejectedValueOnce(new Error('something else'));

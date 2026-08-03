@@ -124,6 +124,11 @@ export const authApi = {
   refreshToken: (refreshToken: string) =>
     api.post('/auth/refresh', { refreshToken }),
 
+  // i18n: persist the user's preferred UI/email locale server-side so it
+  // survives across sessions/devices and drives server-side email rendering.
+  updatePreferredLocale: (preferredLocale: string) =>
+    api.patch('/auth/me/preferred-locale', { preferredLocale }),
+
   logout: () => {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('accessToken');
@@ -660,15 +665,21 @@ export const notificationsApi = {
 // UTILITY FUNCTIONS
 // ============================================================================
 
-export const formatCurrency = (amount: number, currency: string = 'EUR') => {
-  return new Intl.NumberFormat('nl-NL', {
+// Locale-aware formatters. `locale` defaults to the English source-of-truth
+// locale so a bare call never silently renders Dutch; component call sites
+// should prefer the `useFormat()` hook, which passes the active locale from
+// `useLocale()`. Replaces the former hardcoded `'nl-NL'` (which rendered Dutch
+// even for English users).
+export const formatCurrency = (amount: number, currency: string = 'EUR', locale: string = 'en', options?: Intl.NumberFormatOptions) => {
+  return new Intl.NumberFormat(locale, {
     style: 'currency',
     currency,
+    ...options,
   }).format(amount);
 };
 
-export const formatDate = (date: string | Date) => {
-  return new Intl.DateTimeFormat('nl-NL', {
+export const formatDate = (date: string | Date, locale: string = 'en', options?: Intl.DateTimeFormatOptions) => {
+  return new Intl.DateTimeFormat(locale, options ?? {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
@@ -690,17 +701,22 @@ export const getOfferStatusColor = (status: string) => {
   return colors[status] || 'bg-gray-100 text-gray-800';
 };
 
-export const getOfferStatusLabel = (status: string) => {
-  const labels: Record<string, string> = {
-    DRAFT: 'Draft',
-    SUBMITTED: 'Submitted',
-    VIEWED: 'Viewed',
-    SHORTLISTED: 'Shortlisted',
-    ACCEPTED: 'Accepted',
-    REJECTED: 'Rejected',
-    EXPIRED: 'Expired',
-    WITHDRAWN: 'Withdrawn',
-    COUNTERED: 'Countered',
+// Returns a translation key into the `enums.offerStatus` namespace (e.g.
+// `enums.offerStatus.ACCEPTED`) rather than English prose, so the caller can
+// render it with `useTranslations('enums.offerStatus')`. Unknown statuses fall
+// back to the raw status string (no key). `getOfferStatusColor` is kept as-is
+// since colours are not localized.
+export const getOfferStatusLabel = (status: string): string => {
+  const keys: Record<string, string> = {
+    DRAFT: 'DRAFT',
+    SUBMITTED: 'SUBMITTED',
+    VIEWED: 'VIEWED',
+    SHORTLISTED: 'SHORTLISTED',
+    ACCEPTED: 'ACCEPTED',
+    REJECTED: 'REJECTED',
+    EXPIRED: 'EXPIRED',
+    WITHDRAWN: 'WITHDRAWN',
+    COUNTERED: 'COUNTERED',
   };
-  return labels[status] || status;
+  return keys[status] ? `enums.offerStatus.${keys[status]}` : status;
 };

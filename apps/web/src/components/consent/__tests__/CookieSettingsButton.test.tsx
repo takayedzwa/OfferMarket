@@ -2,7 +2,18 @@ import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import CookieSettingsButton, { showConsentBanner } from '../CookieSettingsButton';
+import { NextIntlClientProvider } from 'next-intl';
+import enMessages from '@/messages/en';
 
+
+// Wraps a node in the provider the components need for useTranslations/useLocale.
+function renderWithIntl(ui: React.ReactElement) {
+  return render(
+    <NextIntlClientProvider locale="en" messages={enMessages}>
+      {ui}
+    </NextIntlClientProvider>,
+  );
+}
 describe('CookieSettingsButton', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -13,25 +24,25 @@ describe('CookieSettingsButton', () => {
   // ===========================================================================
   describe('rendering', () => {
     it('should render the Cookie Settings button', () => {
-      render(<CookieSettingsButton />);
+      renderWithIntl(<CookieSettingsButton />);
       expect(screen.getByLabelText('Manage cookie settings')).toBeInTheDocument();
     });
 
     it('should display the cookie emoji and label text', () => {
-      render(<CookieSettingsButton />);
+      renderWithIntl(<CookieSettingsButton />);
       const button = screen.getByLabelText('Manage cookie settings');
       expect(button).toHaveTextContent('🍪 Cookie Settings');
     });
 
     it('should have hover styling classes', () => {
-      render(<CookieSettingsButton />);
+      renderWithIntl(<CookieSettingsButton />);
       const button = screen.getByLabelText('Manage cookie settings');
       expect(button.className).toContain('hover:text-gray-700');
       expect(button.className).toContain('hover:underline');
     });
 
     it('should have text-sm class for subtle styling', () => {
-      render(<CookieSettingsButton />);
+      renderWithIntl(<CookieSettingsButton />);
       const button = screen.getByLabelText('Manage cookie settings');
       expect(button.className).toContain('text-sm');
     });
@@ -44,7 +55,7 @@ describe('CookieSettingsButton', () => {
     it('should dispatch consent:show custom event on click', () => {
       const dispatchSpy = jest.spyOn(window, 'dispatchEvent');
 
-      render(<CookieSettingsButton />);
+      renderWithIntl(<CookieSettingsButton />);
       fireEvent.click(screen.getByLabelText('Manage cookie settings'));
 
       expect(dispatchSpy).toHaveBeenCalledTimes(1);
@@ -57,7 +68,7 @@ describe('CookieSettingsButton', () => {
       const handler = () => { eventReceived = true; };
       window.addEventListener('consent:show', handler);
 
-      render(<CookieSettingsButton />);
+      renderWithIntl(<CookieSettingsButton />);
       fireEvent.click(screen.getByLabelText('Manage cookie settings'));
 
       expect(eventReceived).toBe(true);

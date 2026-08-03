@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { translateEmail } from '../../i18n/email';
 
 // ============================================================================
 // MAIL SERVICE
@@ -37,33 +38,49 @@ export class MailService {
    */
   readonly outbox: SentMail[] = [];
 
-  /** Send a verification code (email channel). */
-  sendVerificationCode(to: string, code: string, type: 'EMAIL' | 'PHONE'): void {
-    const subject =
-      type === 'EMAIL'
-        ? 'Your OfferMarket verification code'
-        : 'Your OfferMarket phone verification code';
-    const text = `Your OfferMarket verification code is: ${code}\n\nIt expires in 15 minutes. If you did not request this, you can safely ignore this email.`;
+  /**
+   * Send a verification code (email channel). Renders in the recipient's
+   * `locale` (User.preferredLocale) when provided; defaults to English so
+   * callers without a locale keep the historical wording.
+   */
+  sendVerificationCode(
+    to: string,
+    code: string,
+    type: 'EMAIL' | 'PHONE',
+    locale?: string | null,
+  ): void {
+    const subjectKey = type === 'EMAIL' ? 'verification.email_subject' : 'verification.phone_subject';
+    const subject = translateEmail(subjectKey, locale);
+    const text = translateEmail('verification.body', locale, { code });
     this.send({ to, subject, text });
   }
 
-  /** Send a password-reset link. */
-  sendPasswordReset(to: string, resetUrl: string): void {
-    const subject = 'Reset your OfferMarket password';
-    const text =
-      `We received a request to reset your OfferMarket password.\n\n` +
-      `Reset your password by visiting:\n${resetUrl}\n\n` +
-      `This link expires in 1 hour. If you did not request a password reset, you can safely ignore this email and your password will remain unchanged.`;
+  /** Send a password-reset link, localized to the recipient's preferred locale. */
+  sendPasswordReset(to: string, resetUrl: string, locale?: string | null): void {
+    const subject = translateEmail('password_reset.subject', locale);
+    const text = translateEmail('password_reset.body', locale, { resetUrl });
     this.send({ to, subject, text });
   }
 
-  /** Send a generic notification email (title + body + optional deep link). */
-  sendNotification(to: string, title: string, body: string, actionUrl: string): void {
+  /**
+   * Send a generic notification email (title + body + optional deep link). The
+   * framing (greeting link label + signature) is localized; the notification
+   * `title`/`body` are the English fallback stored on the Notification row.
+   * Fully localized notification emails (rendered from notificationType +
+   * actionData server-side) are deferred as an incremental step.
+   */
+  sendNotification(
+    to: string,
+    title: string,
+    body: string,
+    actionUrl: string,
+    locale?: string | null,
+  ): void {
     const subject = title;
-    const text =
-      `${title}\n\n${body}` +
-      (actionUrl ? `\n\nOpen: ${actionUrl}` : '') +
-      `\n\n— OfferMarket`;
+    const openLabel = translateEmail('notification.open_label', locale);
+    const text = actionUrl
+      ? translateEmail('notification.body_framing', locale, { title, body, actionUrl, openLabel })
+      : translateEmail('notification.body_framing_no_link', locale, { title, body });
     this.send({ to, subject, text });
   }
 

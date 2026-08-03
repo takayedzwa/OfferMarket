@@ -2,6 +2,8 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import DataSummaryCard from '../DataSummaryCard';
+import { NextIntlClientProvider } from 'next-intl';
+import enMessages from '@/messages/en';
 
 // Mock useConsent hook
 const mockGrantConsent = jest.fn().mockResolvedValue(true);
@@ -21,6 +23,27 @@ jest.mock('@/hooks/useConsent', () => ({
   useConsent: () => mockUseConsent,
 }));
 
+
+// Replicates the original nl-NL date formatting the components used before
+// i18n migration, so existing Dutch-date assertions (e.g. "10 augustus 2026")
+// keep passing. useFormat is fully mocked — provider locale only affects
+// useTranslations text, which stays English.
+jest.mock('@/hooks/useFormat', () => ({
+  useFormat: () => ({
+    currency: (amount: number) => `€${amount}`,
+    date: (iso: string, options?: Intl.DateTimeFormatOptions) =>
+      new Date(iso).toLocaleDateString('nl-NL', options ?? { year: 'numeric', month: 'long', day: 'numeric' }),
+  }),
+}));
+
+// Wraps a node in the provider the components need for useTranslations/useLocale.
+function renderWithIntl(ui: React.ReactElement) {
+  return render(
+    <NextIntlClientProvider locale="en" messages={enMessages}>
+      {ui}
+    </NextIntlClientProvider>,
+  );
+}
 describe('DataSummaryCard', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -34,7 +57,7 @@ describe('DataSummaryCard', () => {
       mockUseConsent.consents = [];
       mockUseConsent.loading = false;
 
-      render(<DataSummaryCard />);
+      renderWithIntl(<DataSummaryCard />);
 
       expect(screen.getByText('Privacy Policy')).toBeInTheDocument();
       expect(screen.getByText('Terms of Service')).toBeInTheDocument();
@@ -53,7 +76,7 @@ describe('DataSummaryCard', () => {
       mockUseConsent.consents = [];
       mockUseConsent.loading = false;
 
-      render(<DataSummaryCard />);
+      renderWithIntl(<DataSummaryCard />);
 
       const requiredBadges = screen.getAllByText('Required');
       expect(requiredBadges).toHaveLength(3); // PRIVACY_POLICY, TERMS_OF_SERVICE, DATA_PROCESSING
@@ -63,7 +86,7 @@ describe('DataSummaryCard', () => {
       mockUseConsent.consents = [];
       mockUseConsent.loading = false;
 
-      render(<DataSummaryCard />);
+      renderWithIntl(<DataSummaryCard />);
 
       expect(screen.getByText('Special Category')).toBeInTheDocument();
     });
@@ -72,7 +95,7 @@ describe('DataSummaryCard', () => {
       mockUseConsent.consents = [];
       mockUseConsent.loading = false;
 
-      render(<DataSummaryCard />);
+      renderWithIntl(<DataSummaryCard />);
 
       expect(screen.getAllByText('Active (Required)')).toHaveLength(3); // 3 required consents
     });
@@ -81,7 +104,7 @@ describe('DataSummaryCard', () => {
       mockUseConsent.consents = [];
       mockUseConsent.loading = true;
 
-      render(<DataSummaryCard />);
+      renderWithIntl(<DataSummaryCard />);
 
       // Should show loading skeleton (animated pulse div)
       const skeleton = document.querySelector('.animate-pulse');
@@ -94,7 +117,7 @@ describe('DataSummaryCard', () => {
       ];
       mockUseConsent.loading = true; // Still loading (refresh), but consents exist
 
-      render(<DataSummaryCard />);
+      renderWithIntl(<DataSummaryCard />);
 
       // Should NOT show skeleton — hasLoaded = consents.length > 0 || !loading
       const skeleton = document.querySelector('.animate-pulse');
@@ -107,7 +130,7 @@ describe('DataSummaryCard', () => {
       ];
       mockUseConsent.loading = false;
 
-      render(<DataSummaryCard />);
+      renderWithIntl(<DataSummaryCard />);
 
       expect(screen.getByText(/Granted/)).toBeInTheDocument();
     });
@@ -121,7 +144,7 @@ describe('DataSummaryCard', () => {
       mockUseConsent.consents = [];
       mockUseConsent.loading = false;
 
-      render(<DataSummaryCard />);
+      renderWithIntl(<DataSummaryCard />);
 
       // Find the toggle for Work Authorization (SPECIAL_CATEGORY)
       const workAuthRow = screen.getByText('Work Authorization').closest('div');
@@ -139,7 +162,7 @@ describe('DataSummaryCard', () => {
       mockUseConsent.consents = [];
       mockUseConsent.loading = false;
 
-      render(<DataSummaryCard />);
+      renderWithIntl(<DataSummaryCard />);
 
       const idRow = screen.getByText('ID Verification').closest('div');
       const toggle = idRow?.querySelector('button');
@@ -156,7 +179,7 @@ describe('DataSummaryCard', () => {
       mockUseConsent.consents = [];
       mockUseConsent.loading = false;
 
-      render(<DataSummaryCard />);
+      renderWithIntl(<DataSummaryCard />);
 
       const kvkRow = screen.getByText('KvK Verification').closest('div');
       const toggle = kvkRow?.querySelector('button');
@@ -173,7 +196,7 @@ describe('DataSummaryCard', () => {
       mockUseConsent.consents = [];
       mockUseConsent.loading = false;
 
-      render(<DataSummaryCard />);
+      renderWithIntl(<DataSummaryCard />);
 
       const analyticsRow = screen.getByText('Analytics Cookies').closest('div');
       const toggle = analyticsRow?.querySelector('button');
@@ -192,7 +215,7 @@ describe('DataSummaryCard', () => {
       ];
       mockUseConsent.loading = false;
 
-      render(<DataSummaryCard />);
+      renderWithIntl(<DataSummaryCard />);
 
       // Find the toggle for COOKIE_ANALYTICS (which is now granted)
       const allToggles = document.querySelectorAll('button');

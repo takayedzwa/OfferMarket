@@ -1,0 +1,472 @@
+{
+  "auditLogs": {
+    "title": "Audit Logs",
+    "actionsRecorded": "{total, plural, one {# action recorded} other {# actions recorded}}",
+    "searchPlaceholder": "Search by admin email or target user...",
+    "search": "Search",
+    "loading": "Loading...",
+    "empty": "No audit logs found",
+    "system": "System",
+    "targetDefault": "User",
+    "targetFormat": "{type}: {id}…",
+    "dash": "-",
+    "previous": "Previous",
+    "next": "Next",
+    "pageOf": "Page {page} of {total}",
+    "filter": {
+      "allActionTypes": "All Action Types"
+    },
+    "actionType": {
+      "USER_SUSPENDED": "User Suspended",
+      "USER_BANNED": "User Banned",
+      "USER_RESTORED": "User Restored",
+      "EMPLOYER_VERIFIED": "Employer Verified",
+      "EMPLOYER_REJECTED": "Employer Rejected",
+      "SETTINGS_UPDATED": "Settings Updated",
+      "OFFER_EXTENDED": "Offer Extended",
+      "TICKET_ASSIGNED": "Ticket Assigned"
+    },
+    "table": {
+      "action": "Action",
+      "admin": "Admin",
+      "target": "Target",
+      "details": "Details",
+      "timestamp": "Timestamp"
+    }
+  },
+  "verifications": {
+    "title": "Verification Queue",
+    "pendingCount": "{count, plural, one {# pending verification} other {# pending verifications}}",
+    "loading": "Loading...",
+    "emptyTitle": "All Caught Up!",
+    "emptyBody": "No pending verifications at the moment.",
+    "pending": "Pending",
+    "websiteLabel": "Website:",
+    "industryLabel": "Industry:",
+    "documentsLabel": "Documents:",
+    "businessLicense": "Business License",
+    "taxDocument": "Tax Document",
+    "documentN": "Document {n}",
+    "registeredOn": "Registered {date}",
+    "viewDetails": "View Details",
+    "viewFullCompany": "View full company details",
+    "reject": "Reject",
+    "verify": "Verify",
+    "cancel": "Cancel",
+    "modalTitleVerify": "Verify Employer",
+    "modalTitleReject": "Reject Employer",
+    "modalBodyVerify": "Confirm verification for {name}.",
+    "modalBodyReject": "Provide a reason for rejecting {name}.",
+    "placeholderVerify": "Add verification notes (optional)...",
+    "placeholderReject": "Enter rejection reason...",
+    "alertVerifyFailed": "Failed to verify employer",
+    "alertRejectFailed": "Failed to reject employer"
+  },
+  "trust": {
+    "title": "Trust & Fraud",
+    "blacklistCount": "{count, plural, one {# blacklisted entity} other {# blacklisted entities}}",
+    "loading": "Loading...",
+    "errorFallback": "Failed to load trust data",
+    "backToDashboard": "Back to Dashboard",
+    "recentTitle": "Recent Suspicious Activity",
+    "empty": "No suspicious activity recorded",
+    "dash": "-",
+    "stat": {
+      "totalActivities": "Total Activities",
+      "new": "New",
+      "confirmedFraud": "Confirmed Fraud",
+      "falsePositives": "False Positives"
+    },
+    "table": {
+      "activity": "Activity",
+      "entity": "Entity",
+      "severity": "Severity",
+      "status": "Status",
+      "risk": "Risk",
+      "detected": "Detected"
+    }
+  },
+  "dsa": {
+    "title": "DSA Compliance",
+    "subtitle": "Content reports & internal complaints",
+    "loading": "Loading...",
+    "errorFallback": "Failed to load DSA data",
+    "backToDashboard": "Back to Dashboard",
+    "contentReportsTitle": "Content Reports (Art. 16)",
+    "complaintsTitle": "Internal Complaints (Art. 20)",
+    "emptyReports": "No content reports",
+    "emptyComplaints": "No complaints",
+    "anonymous": "Anonymous",
+    "dash": "-",
+    "table": {
+      "status": "Status",
+      "category": "Category",
+      "priority": "Priority",
+      "target": "Target",
+      "reporter": "Reporter",
+      "created": "Created",
+      "type": "Type",
+      "complainant": "Complainant",
+      "submitted": "Submitted"
+    }
+  },
+  "support": {
+    "title": "Support",
+    "subtitle": "Support ticket queue",
+    "loading": "Loading...",
+    "errorFallback": "Failed to load tickets",
+    "backToDashboard": "Back to Dashboard",
+    "ticketsTitle": "Tickets",
+    "empty": "No tickets found",
+    "dash": "-",
+    "stat": {
+      "open": "Open",
+      "inProgress": "In Progress",
+      "resolvedToday": "Resolved Today"
+    },
+    "filter": {
+      "allStatuses": "All Statuses",
+      "OPEN": "Open",
+      "IN_PROGRESS": "In Progress",
+      "PENDING_USER": "Pending User",
+      "RESOLVED": "Resolved",
+      "CLOSED": "Closed"
+    },
+    "table": {
+      "ticket": "Ticket",
+      "subject": "Subject",
+      "user": "User",
+      "priority": "Priority",
+      "status": "Status",
+      "created": "Created"
+    }
+  },
+  "users": {
+    "title": "User Management",
+    "totalUsers": "{total, plural, one {# user total} other {# users total}}",
+    "addStaffUser": "Add Staff User",
+    "searchPlaceholder": "Search by email or phone...",
+    "search": "Search",
+    "loading": "Loading...",
+    "empty": "No users found",
+    "idPrefix": "ID: {id}",
+    "previous": "Previous",
+    "next": "Next",
+    "page": "Page {page}",
+    "actionFailed": "Failed to perform action",
+    "staffErrorFallback": "Failed to create staff user",
+    "filter": {
+      "allRoles": "All Roles",
+      "allStatuses": "All Statuses",
+      "WORKER": "Worker",
+      "EMPLOYER": "Employer",
+      "ADMIN": "Admin",
+      "SUPPORT": "Support",
+      "ACTIVE": "Active",
+      "SUSPENDED": "Suspended",
+      "BANNED": "Banned"
+    },
+    "table": {
+      "user": "User",
+      "role": "Role",
+      "status": "Status",
+      "joined": "Joined",
+      "actions": "Actions"
+    },
+    "action": {
+      "suspend": "Suspend",
+      "ban": "Ban",
+      "restore": "Restore",
+      "viewDetails": "View details"
+    },
+    "staffModal": {
+      "title": "Add Staff User",
+      "body": "Create a new admin or support account. The new user can sign in with this email and password.",
+      "firstName": "First name",
+      "lastName": "Last name",
+      "email": "Email",
+      "phoneOptional": "Phone (optional)",
+      "password": "Password",
+      "role": "Role",
+      "roleSupport": "Support",
+      "roleAdmin": "Admin",
+      "placeholderFirstName": "Jane",
+      "placeholderLastName": "Doe",
+      "placeholderEmail": "name@example.com",
+      "placeholderPhone": "+31 6 1234 5678",
+      "placeholderPassword": "Min. 8 chars, 1 upper, 1 lower, 1 digit",
+      "cancel": "Cancel",
+      "create": "Create User",
+      "creating": "Creating..."
+    }
+  },
+  "billing": {
+    "loading": "Loading billing...",
+    "title": "Billing Management",
+    "backToAdmin": "← Admin Dashboard",
+    "checkOverdue": "Check Overdue",
+    "emptyInvoices": "No invoices yet",
+    "previous": "Previous",
+    "next": "Next",
+    "pageOf": "Page {page} of {total}",
+    "settingsTitle": "Billing Settings",
+    "saveSettings": "Save Settings",
+    "settingsSaved": "Settings saved successfully",
+    "confirmCancel": "Are you sure you want to cancel this invoice?",
+    "overdueCount": "{count, plural, one {# invoice marked as overdue} other {# invoices marked as overdue}}",
+    "dash": "—",
+    "stat": {
+      "totalRevenue": "Total Revenue",
+      "paid": "Paid",
+      "outstanding": "Outstanding",
+      "overdue": "Overdue"
+    },
+    "tab": {
+      "invoices": "Invoices",
+      "settings": "Settings"
+    },
+    "filter": {
+      "allStatuses": "All Statuses",
+      "ISSUED": "Issued",
+      "PAID": "Paid",
+      "OVERDUE": "Overdue",
+      "CANCELLED": "Cancelled"
+    },
+    "table": {
+      "invoice": "Invoice",
+      "employer": "Employer",
+      "offer": "Offer",
+      "issued": "Issued",
+      "total": "Total",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "action": {
+      "view": "View",
+      "markPaid": "Mark as Paid",
+      "cancel": "Cancel"
+    },
+    "settings": {
+      "introductionFee": "Introduction Fee (€)",
+      "vatRate": "VAT Rate (%)",
+      "paymentTerms": "Payment Terms (days)",
+      "bankAccountIban": "Bank Account IBAN",
+      "bankAccountName": "Bank Account Name",
+      "invoicePrefix": "Invoice Number Prefix",
+      "placeholderIban": "NL00BANK0000000000"
+    },
+    "markPaidModal": {
+      "title": "Mark Invoice as Paid",
+      "paymentRef": "Payment Reference (optional)",
+      "paymentRefPlaceholder": "Bank transfer reference",
+      "notes": "Notes (optional)",
+      "confirm": "Confirm Payment",
+      "cancel": "Cancel"
+    }
+  },
+  "reports": {
+    "title": "Content Moderation",
+    "subtitle": "DSA Art. 16 — Notice-and-Action Mechanism",
+    "reportCount": "{total, plural, one {# report} other {# reports}}",
+    "loading": "Loading reports...",
+    "emptyTitle": "No Reports",
+    "emptyBody": "No content reports matching your filters",
+    "targetLabel": "Target: {type}",
+    "acknowledged": "✓ Acknowledged",
+    "referredToAuthorities": "⚠ Referred to authorities",
+    "previous": "Previous",
+    "next": "Next",
+    "pageOf": "Page {page} of {total}",
+    "filter": {
+      "allStatuses": "All Statuses",
+      "allCategories": "All Categories",
+      "RECEIVED": "Received",
+      "ASSESSMENT": "Under Assessment",
+      "ACTION_TAKEN": "Action Taken",
+      "NOTIFIED": "Notified",
+      "RESOLVED": "Resolved",
+      "DISMISSED": "Dismissed",
+      "ESCALATED": "Escalated",
+      "FRAUD_SCAM": "Fraud / Scam",
+      "HARASSMENT": "Harassment",
+      "HATE_SPEECH": "Hate speech",
+      "CHILD_SAFETY": "Child safety",
+      "TERRORISM": "Terrorism",
+      "PRIVACY_VIOLATION": "Privacy violation",
+      "COPYRIGHT_VIOLATION": "Copyright",
+      "MISLEADING_INFORMATION": "Misleading info",
+      "IMPERSONATION": "Impersonation",
+      "OTHER": "Other"
+    },
+    "detail": {
+      "title": "Report Details",
+      "priority": "Priority: {priority}",
+      "reportDetails": "Report Details",
+      "category": "Category",
+      "target": "Target",
+      "targetValue": "{type} ({id})",
+      "url": "URL",
+      "typeOfIllegalContent": "Type of illegal content",
+      "explanation": "Explanation",
+      "goodFaithDeclaration": "Good faith declaration",
+      "goodFaithValue": "✓ Submitted in good faith",
+      "timeline": "Timeline",
+      "submitted": "Submitted",
+      "acknowledged": "Acknowledged",
+      "assessed": "Assessed",
+      "actionTakenAt": "Action taken at",
+      "resolvedAt": "Resolved at",
+      "assessment": "Assessment",
+      "actionTaken": "Action Taken"
+    },
+    "action": {
+      "assess": "Assess Report",
+      "takeAction": "Take Action",
+      "escalate": "Escalate to Authorities (Art. 18)",
+      "createSor": "Create Statement of Reasons (Art. 17)"
+    },
+    "actionModal": {
+      "titleAssess": "Assess Report",
+      "titleAction": "Take Action",
+      "assessment": "Assessment",
+      "notes": "Notes",
+      "notesPlaceholder": "Assessment notes...",
+      "submitAssessment": "Submit Assessment",
+      "submitting": "Submitting...",
+      "cancel": "Cancel",
+      "action": "Action",
+      "resolutionNotes": "Resolution Notes",
+      "resolutionPlaceholder": "Resolution notes...",
+      "resolve": "Resolve Report",
+      "assessmentOptions": {
+        "ILLEGAL_CONTENT_FOUND": "Illegal content found",
+        "VIOLATES_TERMS": "Violates terms of service",
+        "NOT_VIOLATION": "No violation found",
+        "UNCLEAR_NEEDS_REVIEW": "Unclear — needs further review"
+      },
+      "actionOptions": {
+        "CONTENT_REMOVED": "Remove content",
+        "CONTENT_HIDDEN": "Hide content (visibility limit)",
+        "ACCOUNT_SUSPENDED": "Suspend account",
+        "ACCOUNT_BANNED": "Ban account",
+        "WARNING_ISSUED": "Issue warning",
+        "NO_ACTION": "No action",
+        "ESCALATED_TO_AUTHORITIES": "Escalate to authorities",
+        "REFERRED_TO_OUT_OF_COURT": "Refer to out-of-court dispute"
+      }
+    },
+    "sorModal": {
+      "title": "Statement of Reasons",
+      "subtitle": "DSA Art. 17",
+      "body": "DSA Art. 17 requires that the affected user receives a clear statement explaining why their content was restricted, including the type of restriction, facts and circumstances, source of decision, and redress options.",
+      "restrictionType": "Restriction type",
+      "reasons": "Reasons (comma-separated)",
+      "reasonsPlaceholder": "illegal_content, terms_violation, hate_speech",
+      "detailedExplanation": "Detailed explanation",
+      "explanationPlaceholder": "Explain why the content was restricted, including the facts and circumstances...",
+      "legalBasis": "Legal basis (optional)",
+      "legalBasisPlaceholder": "e.g., Wetboek van Strafrecht Art. 137c",
+      "create": "Create Statement of Reasons",
+      "creating": "Creating...",
+      "cancel": "Cancel",
+      "restrictionOptions": {
+        "REMOVAL": "Removal",
+        "VISIBILITY_LIMIT": "Visibility limitation",
+        "GEO_BLOCKING": "Geo-blocking",
+        "AGE_RESTRICTION": "Age restriction",
+        "ACCOUNT_SUSPENSION": "Account suspension",
+        "ACCOUNT_TERMINATION": "Account termination"
+      }
+    },
+    "alert": {
+      "unknownError": "Unknown error",
+      "assessFailed": "Failed to assess report: {message}",
+      "actionFailed": "Failed to take action: {message}",
+      "resolveFailed": "Failed to resolve report: {message}",
+      "escalateFailed": "Failed to escalate: {message}",
+      "escalated": "Report escalated to authorities (DSA Art. 18)",
+      "sorCreated": "Statement of reasons created (DSA Art. 17)",
+      "sorFailed": "Failed: {message}"
+    }
+  },
+  "privacy": {
+    "title": "GDPR / Privacy",
+    "subtitle": "Data subject requests & breach notifications",
+    "loading": "Loading...",
+    "errorFallback": "Failed to load privacy data",
+    "backToDashboard": "Back to Dashboard",
+    "dsrTitle": "Data Subject Requests",
+    "breachTitle": "Data Breach Notifications",
+    "emptyDsr": "No data subject requests",
+    "emptyBreaches": "No breach notifications",
+    "dash": "-",
+    "table": {
+      "type": "Type",
+      "user": "User",
+      "status": "Status",
+      "due": "Due",
+      "submitted": "Submitted",
+      "title": "Title",
+      "severity": "Severity",
+      "categories": "Categories",
+      "discovered": "Discovered"
+    }
+  },
+  "settings": {
+    "loading": "Loading...",
+    "title": "Platform Settings",
+    "subtitle": "Manage platform configuration",
+    "save": "Save Changes",
+    "saving": "Saving...",
+    "settingsSaved": "Settings saved successfully",
+    "settingsSaveFailed": "Failed to save settings",
+    "tab": {
+      "general": "General",
+      "financial": "Financial",
+      "verification": "Verification",
+      "system": "System"
+    },
+    "general": {
+      "title": "General Settings",
+      "platformName": "Platform Name",
+      "platformUrl": "Platform URL",
+      "supportEmail": "Support Email",
+      "welcomeMessage": "Welcome Message",
+      "termsOfServiceUrl": "Terms of Service URL",
+      "privacyPolicyUrl": "Privacy Policy URL",
+      "placeholderUrl": "https://offermarket.com"
+    },
+    "financial": {
+      "title": "Financial Settings",
+      "defaultCurrency": "Default Currency",
+      "serviceFee": "Service Fee (%)",
+      "serviceFeeHint": "Percentage charged on each transaction",
+      "taxRate": "Tax Rate (%)",
+      "minWithdrawal": "Minimum Withdrawal Amount",
+      "maxCredits": "Maximum Credits Purchase",
+      "currencyOptions": {
+        "USD": "USD - US Dollar",
+        "EUR": "EUR - Euro",
+        "GBP": "GBP - British Pound",
+        "CAD": "CAD - Canadian Dollar",
+        "AUD": "AUD - Australian Dollar"
+      }
+    },
+    "verification": {
+      "title": "Verification Settings",
+      "emailRequired": "Email Verification Required",
+      "emailRequiredHint": "Require users to verify their email address",
+      "phoneRequired": "Phone Verification Required",
+      "phoneRequiredHint": "Require users to verify their phone number",
+      "adminApproval": "Admin Approval for Employers",
+      "adminApprovalHint": "Require admin approval before employers can post jobs"
+    },
+    "system": {
+      "title": "System Settings",
+      "maintenanceMode": "Maintenance Mode",
+      "maintenanceModeHint": "Put the platform in maintenance mode",
+      "maintenanceMessage": "Maintenance Message",
+      "maintenanceMessageHint": "Message shown to users during maintenance"
+    }
+  }
+}

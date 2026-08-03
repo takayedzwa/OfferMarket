@@ -1,0 +1,49 @@
+{
+  "links": {
+    "home": "Home",
+    "dashboard": "Dashboard",
+    "offers": "Aanbiedingen",
+    "messages": "Berichten",
+    "searchWorkers": "Werkers zoeken",
+    "billing": "Facturatie",
+    "admin": "Beheer",
+    "support": "Support",
+    "tickets": "Tickets",
+    "users": "Gebruikers",
+    "profile": "Profiel"
+  },
+  "welcome": "Welkom, ",
+  "privacy": "Privacy",
+  "privacyTitle": "Privacy & Gegevens",
+  "report": "Melden",
+  "reportTitle": "Illegale inhoud melden (DSA art. 16)",
+  "signOut": "Uitloggen",
+  "signIn": "Inloggen",
+  "getStarted": "Aan de slag",
+  "menu": {
+    "open": "Menu openen",
+    "close": "Menu sluiten"
+  },
+  "footer": {
+    "tagline": "Een omgekeerde talentmarktplaats waar werkers de controle hebben.",
+    "legal": "Juridisch",
+    "privacyPolicy": "Privacybeleid",
+    "privacyDashboard": "Privacy-dashboard",
+    "termsOfService": "Servicevoorwaarden",
+    "cookiePolicy": "Cookiebeleid",
+    "reportComplain": "Melden & klagen",
+    "reportIllegalContent": "Illegale inhoud melden",
+    "checkReportStatus": "Meldingsstatus controleren",
+    "transparencyReport": "Transparantierapport",
+    "dsaNote": "DSA art. 12 & 16 — Eenvoudige toegang tot het melden van illegale inhoud",
+    "contact": "Contact",
+    "dataProtectionOfficer": "Functionaris voor gegevensbescherming",
+    "companyLine": "OfferMarket B.V. · Nederland",
+    "copyright": "© {year} OfferMarket B.V. Alle rechten voorbehouden.",
+    "privacy": "Privacy",
+    "terms": "Voorwaarden",
+    "cookies": "Cookies",
+    "cookieSettings": "Cookie-instellingen",
+    "cookieSettingsAria": "Cookie-instellingen beheren"
+  }
+}

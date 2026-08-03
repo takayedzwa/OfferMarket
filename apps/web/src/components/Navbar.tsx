@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { Link, usePathname } from "@/i18n/navigation";
 import { useAuth } from "../contexts/AuthContext";
 import NotificationBell from "./notifications/NotificationBell";
+import LanguageSwitcher from "./LanguageSwitcher";
 import {
   Home, Users, Briefcase, MessageSquare, FileText,
   Shield, Ticket, Building2, User, CreditCard, Lock, Flag,
@@ -12,6 +13,8 @@ import {
 } from "lucide-react";
 
 export default function Navbar() {
+  const t = useTranslations("nav");
+  const tCommon = useTranslations("common");
   const pathname = usePathname();
   const { user, loading: authLoading, logout } = useAuth();
 
@@ -43,36 +46,37 @@ export default function Navbar() {
   // Single source of truth for the role-gated nav links. Rendered both in the
   // desktop bar (hidden md:flex) and the mobile drawer (md:hidden) so the two
   // never diverge — add a link here once and it appears in both places.
+  // `label` holds a translation key resolved via `t(...)` at render time.
   const navLinks: { href: string; label: string; Icon: React.ComponentType<{ className?: string }> }[] = [
-    { href: "/", label: "Home", Icon: Home },
+    { href: "/", label: "links.home", Icon: Home },
   ];
   if (isAuthenticated) {
     if (userRole === "WORKER") {
       navLinks.push(
-        { href: "/dashboard/worker", label: "Dashboard", Icon: Briefcase },
-        { href: "/offers", label: "Offers", Icon: FileText },
-        { href: "/conversations", label: "Messages", Icon: MessageSquare },
-        { href: "/profile", label: "Profile", Icon: User },
+        { href: "/dashboard/worker", label: "links.dashboard", Icon: Briefcase },
+        { href: "/offers", label: "links.offers", Icon: FileText },
+        { href: "/conversations", label: "links.messages", Icon: MessageSquare },
+        { href: "/profile", label: "links.profile", Icon: User },
       );
     }
     if (userRole === "EMPLOYER") {
       navLinks.push(
-        { href: "/dashboard/employer", label: "Dashboard", Icon: Building2 },
-        { href: "/offers", label: "Offers", Icon: FileText },
-        { href: "/workers", label: "Search Workers", Icon: Users },
-        { href: "/conversations", label: "Messages", Icon: MessageSquare },
-        { href: "/dashboard/employer/billing", label: "Billing", Icon: CreditCard },
+        { href: "/dashboard/employer", label: "links.dashboard", Icon: Building2 },
+        { href: "/offers", label: "links.offers", Icon: FileText },
+        { href: "/workers", label: "links.searchWorkers", Icon: Users },
+        { href: "/conversations", label: "links.messages", Icon: MessageSquare },
+        { href: "/dashboard/employer/billing", label: "links.billing", Icon: CreditCard },
       );
     }
     if (isAdmin) {
-      navLinks.push({ href: "/admin", label: "Admin", Icon: Shield });
+      navLinks.push({ href: "/admin", label: "links.admin", Icon: Shield });
     }
     if (isSupport) {
       navLinks.push(
-        { href: "/support", label: "Support", Icon: Ticket },
-        { href: "/support/tickets", label: "Tickets", Icon: Ticket },
-        { href: "/support/users", label: "Users", Icon: Users },
-        { href: "/profile", label: "Profile", Icon: User },
+        { href: "/support", label: "links.support", Icon: Ticket },
+        { href: "/support/tickets", label: "links.tickets", Icon: Ticket },
+        { href: "/support/users", label: "links.users", Icon: Users },
+        { href: "/profile", label: "links.profile", Icon: User },
       );
     }
   }
@@ -104,7 +108,7 @@ export default function Navbar() {
             {navLinks.map(({ href, label, Icon }) => (
               <Link key={href} href={href} className={navLinkClass(href)}>
                 <Icon className="w-4 h-4 inline mr-1" />
-                {label}
+                {t(label)}
               </Link>
             ))}
           </nav>
@@ -117,12 +121,15 @@ export default function Navbar() {
                 type="button"
                 onClick={() => setMobileOpen((o) => !o)}
                 className="md:hidden p-2 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100"
-                aria-label={mobileOpen ? "Close menu" : "Open menu"}
+                aria-label={mobileOpen ? t("menu.close") : t("menu.open")}
                 aria-expanded={mobileOpen}
               >
                 {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
               </button>
             )}
+
+            {/* Language switcher — available to all visitors. */}
+            <LanguageSwitcher />
 
             {authLoading ? null : isAuthenticated ? (
               <>
@@ -130,8 +137,8 @@ export default function Navbar() {
                 <NotificationBell userId={user?.id ?? null} />
 
                 <div className="text-sm text-gray-600 hidden sm:block">
-                  <span className="text-gray-500">Welcome, </span>
-                  <span className="font-medium">{user?.email?.split("@")[0] || "User"}</span>
+                  <span className="text-gray-500">{t("welcome")}</span>
+                  <span className="font-medium">{user?.email?.split("@")[0] || tCommon("user.fallbackName")}</span>
                   {userRole && (
                     <span className={`ml-2 px-2 py-0.5 text-xs font-medium rounded-full ${
                       userRole === "ADMIN" ? "bg-purple-100 text-purple-800" :
@@ -146,24 +153,24 @@ export default function Navbar() {
                 <Link
                   href="/privacy/dashboard"
                   className="text-sm text-gray-600 hover:text-gray-900 px-2 py-1 rounded transition-colors flex items-center gap-1"
-                  title="Privacy & Data"
+                  title={t("privacyTitle")}
                 >
                   <Lock className="w-4 h-4" />
-                  <span className="hidden sm:inline">Privacy</span>
+                  <span className="hidden sm:inline">{t("privacy")}</span>
                 </Link>
                 <Link
                   href="/dsa/report"
                   className="text-sm text-red-600 hover:text-red-700 px-2 py-1 rounded transition-colors flex items-center gap-1"
-                  title="Report Illegal Content (DSA Art. 16)"
+                  title={t("reportTitle")}
                 >
                   <Flag className="w-4 h-4" />
-                  <span className="hidden sm:inline">Report</span>
+                  <span className="hidden sm:inline">{t("report")}</span>
                 </Link>
                 <button
                   onClick={logout}
                   className="text-sm text-gray-600 hover:text-gray-900 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors"
                 >
-                  Sign out
+                  {t("signOut")}
                 </button>
               </>
             ) : (
@@ -173,25 +180,25 @@ export default function Navbar() {
                   className="text-red-600 hover:text-red-700 px-3 py-2 text-sm font-medium flex items-center gap-1"
                 >
                   <Flag className="w-4 h-4" />
-                  Report
+                  {t("report")}
                 </Link>
                 <Link
                   href="/privacy"
                   className="text-gray-500 hover:text-gray-900 px-3 py-2 text-sm font-medium"
                 >
-                  Privacy
+                  {t("privacy")}
                 </Link>
                 <Link
                   href="/login"
                   className="text-gray-600 hover:text-gray-900 px-4 py-2 text-sm font-medium"
                 >
-                  Sign In
+                  {t("signIn")}
                 </Link>
                 <Link
                   href="/register"
                   className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
                 >
-                  Get Started
+                  {t("getStarted")}
                 </Link>
               </>
             )}
@@ -210,7 +217,7 @@ export default function Navbar() {
                 className={mobileLinkClass(href)}
               >
                 <Icon className="w-4 h-4" />
-                {label}
+                {t(label)}
               </Link>
             ))}
           </nav>

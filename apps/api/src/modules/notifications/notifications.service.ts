@@ -76,6 +76,7 @@ export class NotificationsService {
       category: 'offer',
       title: 'New offer received!',
       body: `${payload.employerCompanyName} has sent you an offer for ${payload.jobTitle}`,
+      actionData: { employerCompanyName: payload.employerCompanyName, jobTitle: payload.jobTitle },
       actionUrl: `/offers/${payload.offerId}`,
       channelEmail: true,
       channelPush: true,
@@ -89,6 +90,7 @@ export class NotificationsService {
       category: 'offer',
       title: '🎉 Offer Accepted!',
       body: `${payload.workerIdentity.fullName} has accepted your offer for ${payload.jobTitle}. You can now contact them directly.`,
+      actionData: { workerName: payload.workerIdentity.fullName, jobTitle: payload.jobTitle },
       actionUrl: `/conversations/${payload.conversationId}`,
       channelEmail: true,
       channelSms: true,
@@ -102,6 +104,7 @@ export class NotificationsService {
       category: 'offer',
       title: 'Offer Accepted',
       body: `Your identity has been shared with ${payload.employerCompanyName}. You can now message them directly.`,
+      actionData: { employerCompanyName: payload.employerCompanyName },
       actionUrl: `/conversations/${payload.conversationId}`,
       channelEmail: true,
     });
@@ -114,6 +117,7 @@ export class NotificationsService {
       category: 'offer',
       title: 'Offer Declined',
       body: payload.reason || 'The candidate has declined your offer.',
+      actionData: { reason: payload.reason ?? '' },
       actionUrl: `/offers/${payload.offerId}`,
       channelEmail: true,
     });
@@ -126,6 +130,7 @@ export class NotificationsService {
       category: 'offer',
       title: 'Counter-Offer Received',
       body: `The candidate has submitted a counter-offer for ${payload.jobTitle}`,
+      actionData: { jobTitle: payload.jobTitle },
       actionUrl: `/offers/${payload.offerId}`,
       channelEmail: true,
     });
@@ -138,6 +143,7 @@ export class NotificationsService {
       category: 'offer',
       title: 'Offer Withdrawn',
       body: payload.reason || 'The employer has withdrawn this offer.',
+      actionData: { reason: payload.reason ?? '' },
       actionUrl: `/offers/${payload.offerId}`,
       channelEmail: true,
     });
@@ -150,6 +156,7 @@ export class NotificationsService {
       category: 'offer',
       title: 'Offer Expiring Soon',
       body: `An offer for ${payload.jobTitle} expires in less than 3 days. Review it before it expires.`,
+      actionData: { jobTitle: payload.jobTitle },
       actionUrl: `/offers/${payload.offerId}`,
       channelEmail: true,
       channelPush: true,
@@ -167,6 +174,7 @@ export class NotificationsService {
       category: 'message',
       title: 'New message',
       body: payload.contentPreview.substring(0, 100),
+      actionData: { contentPreview: payload.contentPreview.substring(0, 100) },
       actionUrl: `/conversations/${payload.conversationId}`,
       channelEmail: true,
     });
@@ -183,6 +191,7 @@ export class NotificationsService {
       category: 'billing',
       title: 'Invoice Created',
       body: `A new invoice (${payload.invoiceNumber}) for €${(payload.totalCents / 100).toFixed(2)} has been created.`,
+      actionData: { invoiceNumber: payload.invoiceNumber, amount: (payload.totalCents / 100).toFixed(2) },
       actionUrl: `/dashboard/employer/billing`,
       channelEmail: true,
     });
@@ -195,6 +204,7 @@ export class NotificationsService {
       category: 'billing',
       title: 'Invoice Overdue',
       body: `Invoice ${payload.invoiceNumber} is ${payload.daysOverdue} days overdue.`,
+      actionData: { invoiceNumber: payload.invoiceNumber, daysOverdue: payload.daysOverdue },
       actionUrl: `/dashboard/employer/billing`,
       channelEmail: true,
       channelPush: true,
@@ -219,6 +229,15 @@ export class NotificationsService {
     channelEmail: boolean;
     channelPush?: boolean;
     channelSms?: boolean;
+    /**
+     * i18n interpolation params stored on the Notification row (Json? column).
+     * The frontend renders the localized title/body client-side from
+     * `notificationType` + these params (see NotificationBell), so a
+     * notification displays in the viewer's CURRENT locale — not the locale it
+     * was created in. The English `title`/`body` above are kept as a fallback
+     * for email rendering and un-updated clients.
+     */
+    actionData?: Record<string, unknown>;
   }) {
     try {
       // SECURITY (E-H8): GDPR Article 18 — a user who has restricted processing
@@ -250,6 +269,7 @@ export class NotificationsService {
           title: data.title,
           body: data.body,
           actionUrl: data.actionUrl,
+          actionData: data.actionData as any,
           channelEmail: data.channelEmail,
           channelPush: data.channelPush ?? false,
           channelSms: data.channelSms ?? false,
@@ -263,6 +283,7 @@ export class NotificationsService {
         category: notification.category,
         title: notification.title,
         body: notification.body,
+        actionData: notification.actionData,
         actionUrl: notification.actionUrl,
         createdAt: notification.createdAt.toISOString(),
       });
@@ -274,7 +295,7 @@ export class NotificationsService {
         try {
           const recipient = await this.prisma.user.findUnique({
             where: { id: data.userId },
-            select: { email: true },
+            select: { email: true, preferredLocale: true },
           });
           if (recipient?.email) {
             this.mailService.sendNotification(
@@ -282,6 +303,7 @@ export class NotificationsService {
               data.title,
               data.body,
               data.actionUrl,
+              recipient.preferredLocale,
             );
           }
         } catch (mailError) {
@@ -424,6 +446,7 @@ export class NotificationsService {
       category: 'privacy',
       title: `Data Breach Notification: ${payload.breachTitle}`,
       body: `A data breach has been reported: "${payload.breachTitle}". Severity: ${payload.severity}. Please check the privacy dashboard for details.`,
+      actionData: { breachTitle: payload.breachTitle, severity: payload.severity },
       actionUrl: `/privacy/dashboard`,
       channelEmail: true,
       channelPush: true,
@@ -443,6 +466,7 @@ export class NotificationsService {
       category: 'support',
       title: `Your ticket ${payload.ticketNumber} was updated`,
       body: `Support updated your ticket "${payload.subject}" to ${statusLabel}.`,
+      actionData: { ticketNumber: payload.ticketNumber, subject: payload.subject, statusLabel },
       actionUrl: payload.actionUrl,
       channelEmail: true,
       channelPush: true,
@@ -460,6 +484,7 @@ export class NotificationsService {
         ? `Your offer "${payload.jobTitle}" was extended`
         : 'Your offer expiry was extended',
       body: `Support extended the expiry of your offer${payload.jobTitle ? ` "${payload.jobTitle}"` : ''} to ${expiry}.`,
+      actionData: { jobTitle: payload.jobTitle ?? '', expiry },
       actionUrl: payload.actionUrl,
       channelEmail: true,
       channelPush: true,

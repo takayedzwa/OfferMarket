@@ -4,6 +4,7 @@ import { AppModule } from './app.module';
 import { SecurityHeadersMiddleware } from './middleware/security-headers.middleware';
 import { DataMinimizationInterceptor } from './interceptors/data-minimization.interceptor';
 import { SanitizeInputPipe } from './pipes/sanitize-input.pipe';
+import { AllExceptionsFilter } from './filters/all-exceptions.filter';
 import { Reflector } from '@nestjs/core';
 
 async function bootstrap() {
@@ -41,6 +42,12 @@ async function bootstrap() {
   // from API responses based on user role (Article 5(1)(c))
   const reflector = app.get(Reflector);
   app.useGlobalInterceptors(new DataMinimizationInterceptor());
+
+  // i18n: Global exception filter — normalizes all error responses to
+  // { statusCode, message, code?, params? } so the frontend can translate
+  // migrated error codes via the `errors` namespace, with the English message
+  // as a fallback. Sanitizes non-HttpException errors (no stack leak).
+  app.useGlobalFilters(new AllExceptionsFilter());
 
   // Global prefix
   app.setGlobalPrefix('api/v1');

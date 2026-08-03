@@ -1,0 +1,27 @@
+{
+  "list": {
+    "loading": "Gesprekken laden...",
+    "searchPlaceholder": "Gesprekken zoeken...",
+    "fallbackEmployer": "Werkgever",
+    "fallbackWorker": "Werknemer {id}",
+    "emptyTitle": "Nog geen gesprekken",
+    "emptyEmployer": "Start een gesprek wanneer je een aanbod stuurt",
+    "emptyWorker": "Gesprekken verschijnen hier wanneer werkgevers contact met je opnemen",
+    "regarding": "Over: {jobTitle}",
+    "selectTitle": "Selecteer een gesprek",
+    "selectSubtitle": "Kies een van je gesprekken om te beginnen met chatten",
+    "messagePlaceholder": "Typ een bericht..."
+  },
+  "detail": {
+    "loading": "Gesprek laden...",
+    "notFound": "Gesprek niet gevonden of je hebt geen toegang.",
+    "loadFailed": "Gesprek kon niet worden geladen. Probeer het opnieuw.",
+    "back": "Terug naar gesprekken",
+    "unknown": "Onbekend",
+    "fallbackEmployer": "Werkgever",
+    "fallbackWorker": "Werknemer",
+    "regarding": "Over: {jobTitle}",
+    "noMessages": "Nog geen berichten. Start het gesprek!",
+    "messagePlaceholder": "Typ een bericht..."
+  }
+}

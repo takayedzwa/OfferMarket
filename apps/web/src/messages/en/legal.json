@@ -1,0 +1,342 @@
+{
+  "terms": {
+    "_reviewNote": "Dutch legal translation — requires human/legal review before production use.",
+    "title": "Terms of Service",
+    "lastUpdated": "Last updated: July 12, 2026 · Version 2.0",
+    "dutchTitle": "Algemene Voorwaarden",
+    "companyName": "OfferMarket B.V.",
+    "s1": {
+      "title": "1. Definitions",
+      "list": {
+        "item1": "<strong>\"OfferMarket\"</strong> means OfferMarket B.V., registered in the Netherlands.",
+        "item2": "<strong>\"Platform\"</strong> means the OfferMarket web application and related services.",
+        "item3": "<strong>\"Worker\"</strong> means a professional who creates a profile to receive offers from employers.",
+        "item4": "<strong>\"Employer\"</strong> means a company or individual who sends offers to workers through the platform.",
+        "item5": "<strong>\"Offer\"</strong> means a proposal sent by an employer to a worker containing employment terms.",
+        "item6": "<strong>\"User\"</strong> means any person who uses the platform, including workers and employers."
+      }
+    },
+    "s2": {
+      "title": "2. Acceptance of Terms",
+      "p1": "By creating an account or using the OfferMarket platform, you agree to these Terms of Service and our <a>Privacy Policy</a>. If you do not agree, you must not use the platform.",
+      "p2": "These terms are governed by Dutch law. For dispute resolution, see <a>Section 23 (Dispute Resolution and Governing Law)</a>."
+    },
+    "s3": {
+      "title": "3. Account Registration",
+      "intro": "You must register to use the platform. By registering you represent and warrant that:",
+      "list": {
+        "item1": "You are at least 18 years old",
+        "item2": "You provide accurate and complete information",
+        "item3": "You will keep your information up to date",
+        "item4": "You will maintain the security of your account credentials",
+        "item5": "You will not create multiple accounts or impersonate others"
+      }
+    },
+    "s4": {
+      "title": "4. Platform Use",
+      "workersTitle": "4.1 For Workers",
+      "workersList": {
+        "item1": "You create a professional profile that employers can discover",
+        "item2": "Your profile is anonymous until you accept an offer — your name, email, and contact details are hidden",
+        "item3": "You may receive offers from verified employers",
+        "item4": "You are not obligated to accept any offer",
+        "item5": "Upon accepting an offer, your identity is revealed to the employer for contract purposes"
+      },
+      "employersTitle": "4.2 For Employers",
+      "employersList": {
+        "item1": "You can search anonymous worker profiles based on skills, experience, and preferences",
+        "item2": "You can send offers to workers with employment terms",
+        "item3": "You must be a registered business (KvK number required)",
+        "item4": "Offer terms must comply with Dutch employment law",
+        "item5": "Upon offer acceptance, the worker's identity is revealed for contract purposes"
+      }
+    },
+    "s5": {
+      "title": "5. Billing & Payments",
+      "p1": "Employers are charged an introduction fee when a worker accepts an offer. Payment terms are as specified in the invoice. All prices include VAT where applicable.",
+      "p2": "Late payments may incur interest at the statutory rate (Wet Handelscrediteuren). OfferMarket reserves the right to suspend accounts with overdue invoices."
+    },
+    "s6": {
+      "title": "6. Prohibited Conduct",
+      "intro": "You must not:",
+      "list": {
+        "item1": "Use the platform for any unlawful purpose",
+        "item2": "Discriminate against workers based on protected characteristics",
+        "item3": "Share or distribute worker personal data outside the platform without consent",
+        "item4": "Attempt to de-anonymize workers before offer acceptance",
+        "item5": "Create fake profiles or misrepresent your identity",
+        "item6": "Use automated systems (bots, scrapers) to extract data from the platform",
+        "item7": "Circumvent the platform to avoid introduction fees",
+        "item8": "Upload special category data (nationality, health, union membership) into profile free-text fields"
+      }
+    },
+    "s7": {
+      "title": "7. Intellectual Property",
+      "p1": "The platform, its design, and its content (excluding user-generated content) are owned by OfferMarket B.V. You retain ownership of your profile content and offers. By posting content, you grant OfferMarket a limited, non-exclusive license to display it on the platform."
+    },
+    "s8": {
+      "title": "8. Privacy & Data Protection",
+      "intro": "Our processing of personal data is governed by our <a>Privacy Policy</a>, which forms part of these terms. Key points:",
+      "list": {
+        "item1": "We process your data lawfully, fairly, and transparently (AVG Art. 5)",
+        "item2": "We only collect data necessary for the purposes stated",
+        "item3": "Worker profiles are anonymous by default — identity is only revealed upon offer acceptance",
+        "item4": "Work authorization status is special category data processed only with explicit consent",
+        "item5": "You can exercise your AVG rights through the <a>Privacy Dashboard</a>"
+      }
+    },
+    "s9": {
+      "title": "9. Liability",
+      "p1": "OfferMarket acts as an intermediary connecting workers and employers. We are not a party to any employment contract between users. OfferMarket is not liable for:",
+      "list": {
+        "item1": "The quality, legality, or accuracy of offers or profiles",
+        "item2": "Any employment disputes between workers and employers",
+        "item3": "Losses arising from reliance on information on the platform"
+      },
+      "p2": "Our total liability is limited to the fees you paid in the 12 months preceding the claim."
+    },
+    "s10": {
+      "title": "10. Force Majeure",
+      "p1": "Neither party shall be liable for any failure or delay in performing its obligations under these terms where such failure or delay results from circumstances beyond its reasonable control, including but not limited to: natural disasters, pandemics, war, terrorism, riots, strikes or other labour disputes, fire, flood, interruption or failure of internet service providers, telecommunications networks, power utilities, or cloud infrastructure providers, and governmental actions or orders.",
+      "p2": "If a force majeure event continues for more than 30 consecutive days, either party may terminate these terms with immediate effect by written notice to the other party, without liability for such termination.",
+      "p3": "OfferMarket B.V. will make reasonable efforts to notify users of the nature and expected duration of any force majeure event affecting the platform via email or a notice on the platform."
+    },
+    "s11": {
+      "title": "11. Termination",
+      "p1pre": "You may close your account at any time through the",
+      "dashboardLink": "Privacy Dashboard",
+      "p1mid": ". Upon account deletion, your personal data will be handled in accordance with our retention policy (see",
+      "privacyLink": "Privacy Policy",
+      "p1post": ").",
+      "p2": "OfferMarket may suspend or terminate accounts that violate these terms, with prior notice where possible."
+    },
+    "s12": {
+      "title": "12. Changes",
+      "p1": "We may update these terms. Significant changes will be communicated via email. Continued use of the platform after changes constitutes acceptance."
+    },
+    "s13": {
+      "title": "13. Illegal Content Reporting (DSA Art. 16)",
+      "intro": "Under the <strong>Digital Services Act</strong> (Regulation EU 2022/2065), you have the right to notify us of content on OfferMarket that you believe to be illegal. Our notice-and-action mechanism is available at:",
+      "reportLink": "Report Illegal Content →",
+      "statusNote": "You can also check the status of a report at <a>Report Status</a>.",
+      "list": {
+        "item1": "You may report content anonymously by providing an email address for acknowledgment.",
+        "item2": "You must provide a sufficiently detailed explanation of why you believe the content is illegal (DSA Art. 16(3)(a)).",
+        "item3": "You must confirm that your notice is submitted in good faith (DSA Art. 16(3)(d)).",
+        "item4": "We will acknowledge your report without undue delay and inform you of the decision."
+      }
+    },
+    "s14": {
+      "title": "14. Content Moderation (DSA Art. 14)",
+      "intro": "OfferMarket uses a combination of human review and automated systems to moderate content on the platform. Our content moderation policies and procedures include:",
+      "list": {
+        "item1": "<strong>Human review</strong> — All content reports are assessed by trained staff members.",
+        "item2": "<strong>Automated detection</strong> — We use automated systems to detect potentially illegal content (e.g., known illegal patterns, spam detection). Automated actions are reviewed by a human within 24 hours.",
+        "item3": "<strong>Notice-and-action procedure</strong> — We follow the procedure described in Section 12 when processing illegal content reports.",
+        "item4": "<strong>Statement of reasons</strong> — When we restrict content, we provide the affected user with a clear statement of reasons (DSA Art. 17)."
+      }
+    },
+    "s15": {
+      "title": "15. Statement of Reasons (DSA Art. 17)",
+      "intro": "When we restrict content on the platform (removal, visibility limitation, account suspension, etc.), we will provide the affected user with a statement of reasons that includes:",
+      "list": {
+        "item1": "The type of restriction applied (removal, visibility limitation, geo-blocking, etc.)",
+        "item2": "The factual circumstances and reasons for the decision",
+        "item3": "The source of the decision (user report, own investigation, authority order, trusted flagger)",
+        "item4": "Whether automated means were used in the decision",
+        "item5": "The legal or contractual ground for the restriction",
+        "item6": "The territorial scope of the restriction",
+        "item7": "Information on how to submit a complaint (see Section 17)"
+      }
+    },
+    "s16": {
+      "title": "16. Referral to Authorities (DSA Art. 18)",
+      "p1": "Where we have reasonable grounds to believe that a report concerns an offence involving a threat to the life or safety of persons, we will promptly refer the matter to the relevant law enforcement authorities in the Netherlands.",
+      "p2": "Reports involving suspected child safety concerns or terrorism-related content are escalated as a matter of priority."
+    },
+    "s17": {
+      "title": "17. Complaint-Handling (DSA Art. 20)",
+      "intro": "If you disagree with a content moderation decision, you may submit a complaint through our internal complaint-handling system. Complaints are:",
+      "list": {
+        "item1": "Free of charge",
+        "item2": "Handled by qualified staff who were not involved in the original decision",
+        "item3": "Acknowledged within 24 hours",
+        "item4": "Resolved within a reasonable timeframe"
+      },
+      "p2": "You may also seek out-of-court dispute settlement through certified bodies as provided for under DSA Art. 21, once such bodies are available."
+    },
+    "s18": {
+      "title": "18. Misuse of Notice-and-Action (DSA Art. 23)",
+      "intro": "Submitting manifestly unfounded notices or notices containing manifestly illegal content may result in:",
+      "list": {
+        "item1": "A first warning",
+        "item2": "A second warning",
+        "item3": "Temporary suspension of your ability to submit reports",
+        "item4": "Permanent ban from the notice-and-action mechanism"
+      },
+      "p2": "Misuse warnings are lifted after a reasonable period, provided no further misuse occurs."
+    },
+    "s19": {
+      "title": "19. Trader Traceability (DSA Art. 30)",
+      "intro": "As an online marketplace, OfferMarket collects and verifies information about employers (traders) who use the platform. Before an employer can publish offers, we collect:",
+      "list": {
+        "item1": "Full name or company name",
+        "item2": "KvK (Chamber of Commerce) number",
+        "item3": "Physical address",
+        "item4": "Contact email and phone number",
+        "item5": "VAT identification number (where applicable)",
+        "item6": "Self-certification that the trader complies with applicable EU rules"
+      },
+      "p2": "This information is displayed on employer profiles and is stored for 6 months after the end of the contractual relationship, in accordance with DSA Art. 30(4)."
+    },
+    "s20": {
+      "title": "20. Transparency Reporting (DSA Arts. 15, 24)",
+      "intro": "OfferMarket publishes transparency reports on content moderation activities, available at:",
+      "transparencyLink": "Transparency Report →",
+      "p2": "These reports include information on the number of notices received, content removed, accounts suspended, response times, and the use of automated means for content moderation."
+    },
+    "s21": {
+      "title": "21. Single Point of Contact",
+      "intro": "For all matters related to the Digital Services Act, you may contact:",
+      "company": "OfferMarket B.V. — DSA Single Point of Contact",
+      "emailLabel": "Email:",
+      "email": "legal@offermarket.nl",
+      "urgentNote": "For urgent matters involving threats to life or safety, contact the relevant law enforcement authorities directly."
+    },
+    "s22": {
+      "title": "22. Severability",
+      "p1": "If any provision of these terms is held to be invalid, illegal, or unenforceable by a court of competent jurisdiction, such provision shall be modified to the minimum extent necessary to make it valid and enforceable, or if modification is not possible, shall be severed from these terms. The invalidity of any provision shall not affect the validity or enforceability of any other provision, which shall remain in full force and effect.",
+      "p2": "These terms shall be interpreted so as to best effect the parties' intentions, and any provisions that are found to be invalid or unenforceable shall be replaced by valid provisions that most closely match the intent of the original provisions.",
+      "p3": "This applies in particular to the limitation of liability provisions in Section 9, which shall be reduced to the maximum extent permitted under applicable mandatory law, including but not limited to Dutch Book 6 Article 7:658 (employer liability) and Article 6:248 BW (reasonableness and fairness)."
+    },
+    "s23": {
+      "title": "23. Dispute Resolution and Governing Law",
+      "governingTitle": "23.1 Governing Law",
+      "governingP": "These terms are governed by and construed in accordance with the laws of the Netherlands, without regard to its conflict of law provisions.",
+      "consumerTitle": "23.2 Consumer Disputes (B2C)",
+      "consumerIntro": "If you are a consumer as defined in Dutch law (BW 6:248c), the following applies to you:",
+      "consumerList": {
+        "item1": "<strong>Out-of-court dispute resolution</strong> — Before initiating court proceedings, you may submit a complaint to the Geschillencommissie (Disputes Committee) via <a>degeschillencommissie.nl</a>. The Geschillencommissie issues a binding ruling on disputes concerning the interpretation or performance of these terms.",
+        "item2": "<strong>EU Online Dispute Resolution</strong> — The European Commission provides an online dispute resolution (ODR) platform at <a>ec.europa.eu/consumers/odr</a>, which consumers may use to resolve disputes arising from online services without recourse to court (EU Directive 2013/11/EU).",
+        "item3": "<strong>Mandatory consumer rights</strong> — Nothing in these terms deprives you of the protection afforded by mandatory provisions of Dutch law or the law of your habitual residence as a consumer. Where mandatory consumer protection laws in your country of residence provide greater protection than Dutch law, those laws shall prevail."
+      },
+      "businessTitle": "23.3 Business Disputes (B2B)",
+      "businessP": "If you are a business user (employer), disputes arising out of or in connection with these terms shall be submitted to the competent court in Amsterdam, the Netherlands (Rechtbank Amsterdam).",
+      "internalTitle": "23.4 Internal Complaint Procedure",
+      "internalP": "Before initiating formal dispute resolution, you may file a complaint with OfferMarket via <a>legal@offermarket.nl</a>. We will acknowledge your complaint within 5 business days and provide a substantive response within 30 calendar days.",
+      "limitationTitle": "23.5 Limitation Period",
+      "limitationP": "Claims arising from these terms must be brought within the statutory limitation period under Dutch law (generally 5 years from the date the claim becomes due and the creditor is aware of the relevant facts, per BW 3:306), unless a shorter period is provided by mandatory law."
+    },
+    "s24": {
+      "title": "24. Contact",
+      "company": "OfferMarket B.V.",
+      "address": "Herengracht 420, 1017 Amsterdam, Netherlands",
+      "kvk": "KvK: 93075284",
+      "emailLabel": "Email:",
+      "email": "legal@offermarket.nl"
+    },
+    "footer": {
+      "copyright": "© {year} OfferMarket B.V. ·",
+      "privacyLink": "Privacy Policy",
+      "termsLink": "Terms of Service",
+      "cookiesLink": "Cookie Policy",
+      "reportLink": "Report Illegal Content"
+    }
+  },
+  "cookies": {
+    "_reviewNote": "Dutch legal translation — requires human/legal review before production use.",
+    "title": "Cookie Policy",
+    "lastUpdated": "Last updated: July 12, 2026 · Version 1.1",
+    "dutchTitle": "Cookiebeleid",
+    "companyName": "OfferMarket B.V.",
+    "s1": {
+      "title": "1. What Are Cookies",
+      "p1": "Cookies are small text files stored on your device when you visit our website. They help us provide you with a better experience by remembering your preferences, enabling essential functionality, and helping us understand how you use our platform."
+    },
+    "s2": {
+      "title": "2. Legal Basis",
+      "p1": "This cookie policy is made in accordance with <strong>Article 11.7a of the Dutch Telecommunicatiewet</strong> (Telecommunicatiewet), which implements <strong>Article 5(3) of the ePrivacy Directive</strong> (Directive 2002/58/EC, as amended by Directive 2009/136/EC).",
+      "p2": "Under this law, we are required to obtain your <strong>informed and unambiguous consent</strong> before storing or accessing non-essential cookies on your device. Essential cookies (strictly necessary for the functioning of the website) are exempt from this requirement.",
+      "p3": "Your consent is <strong>freely given, specific, informed, and unambiguous</strong>. You may withdraw your consent at any time through the cookie banner, the Cookie Settings link in the footer, or our <a>Privacy Dashboard</a>. Withdrawing consent is as easy as giving it.",
+      "p4": "Consent is valid for a maximum of <strong>13 months</strong>, after which you will be asked to renew it. We store your consent preference with a timestamp so we can verify compliance.",
+      "p5": "Cookies are small text files stored on your device when you visit our website. They help us provide you with a better experience by remembering your preferences, enabling essential functionality, and helping us understand how you use our platform."
+    },
+    "s3": {
+      "title": "3. Types of Cookies We Use",
+      "essential": {
+        "badge": "Essential",
+        "title": "Essential Cookies",
+        "description": "These cookies are strictly necessary for the website to function. They cannot be disabled.",
+        "tableHeaders": { "cookie": "Cookie", "purpose": "Purpose", "duration": "Duration" },
+        "rows": {
+          "row1": { "cookie": "accessToken", "purpose": "Authentication session", "duration": "Session" },
+          "row2": { "cookie": "refreshToken", "purpose": "Session persistence", "duration": "30 days" },
+          "row3": { "cookie": "offermarket_cookie_consent", "purpose": "Stores your cookie preferences", "duration": "1 year" }
+        }
+      },
+      "analytics": {
+        "badge": "Analytics",
+        "title": "Analytics Cookies",
+        "description": "These cookies help us understand how visitors interact with our website. We use PostHog for anonymized analytics. These cookies require your consent.",
+        "tableHeaders": { "cookie": "Cookie", "purpose": "Purpose", "duration": "Duration" },
+        "rows": {
+          "row1": { "cookie": "ph_*", "purpose": "PostHog analytics — page views, feature usage", "duration": "1 year" }
+        }
+      },
+      "marketing": {
+        "badge": "Marketing",
+        "title": "Marketing Cookies",
+        "description": "These cookies are used to track visitors across websites for advertising purposes. We do not currently use any marketing cookies, but this category is available if we introduce them in the future.",
+        "italicNote": "No marketing cookies are currently in use."
+      }
+    },
+    "s4": {
+      "title": "4. How to Manage Cookies",
+      "intro": "You can manage your cookie preferences at any time:",
+      "list": {
+        "item1": "Through our <a>Privacy Dashboard</a> — consent management section",
+        "item2": "By clicking the cookie banner that appears on your first visit",
+        "item3": "Using the <strong>Cookie Settings</strong> link in the page footer",
+        "item4": "Through your browser settings — most browsers allow you to block or delete cookies"
+      },
+      "p2": "Please note that disabling essential cookies may prevent the platform from functioning correctly."
+    },
+    "s5": {
+      "title": "5. PostHog Analytics",
+      "intro": "We use PostHog for product analytics. PostHog is only activated after you give explicit consent per <strong>Article 11.7a of the Telecommunicatiewet</strong>. When analytics cookies are enabled:",
+      "list": {
+        "item1": "Page views and feature usage are tracked",
+        "item2": "IP addresses are collected but we configure PostHog to mask them",
+        "item3": "Data is stored on EU-based servers",
+        "item4": "We have a Data Processing Agreement with PostHog",
+        "item5": "You can withdraw your consent at any time through the cookie banner, Cookie Settings link, or <a>Privacy Dashboard</a>",
+        "item6": "When consent is withdrawn, all tracking stops immediately"
+      }
+    },
+    "s6": {
+      "title": "6. Local Storage",
+      "intro": "In addition to cookies, we use browser local storage for:",
+      "list": {
+        "item1": "<strong>Authentication tokens</strong> — to maintain your login session",
+        "item2": "<strong>User preferences</strong> — such as theme and notification settings",
+        "item3": "<strong>Cookie consent preferences</strong> — to remember your choices"
+      },
+      "p2": "Local storage data is not shared with third parties and does not track you across websites."
+    },
+    "s7": {
+      "title": "7. Changes to This Policy",
+      "p1": "We may update this cookie policy from time to time. Changes will be reflected in the \"Last updated\" date at the top. If we introduce new non-essential cookies, we will seek your consent again through the cookie banner."
+    },
+    "s8": {
+      "title": "8. Contact",
+      "p1": "For questions about our use of cookies, contact our Data Protection Officer at <a>dpo@offermarket.nl</a>."
+    },
+    "footer": {
+      "copyright": "© {year} OfferMarket B.V. ·",
+      "privacyLink": "Privacy Policy",
+      "termsLink": "Terms of Service",
+      "cookiesLink": "Cookie Policy",
+      "dashboardLink": "Privacy Dashboard"
+    }
+  }
+}

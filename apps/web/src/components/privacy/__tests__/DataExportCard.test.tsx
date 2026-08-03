@@ -2,6 +2,8 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import DataExportCard from '../DataExportCard';
+import { NextIntlClientProvider } from 'next-intl';
+import enMessages from '@/messages/en';
 
 // Mock fetch
 const mockFetch = jest.fn();
@@ -21,6 +23,15 @@ Object.defineProperty(window, 'localStorage', { value: localStorageMock });
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
 
+
+// Wraps a node in the provider the components need for useTranslations/useLocale.
+function renderWithIntl(ui: React.ReactElement) {
+  return render(
+    <NextIntlClientProvider locale="en" messages={enMessages}>
+      {ui}
+    </NextIntlClientProvider>,
+  );
+}
 describe('DataExportCard', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -38,7 +49,7 @@ describe('DataExportCard', () => {
   // ===========================================================================
   describe('export request flow', () => {
     it('should show "Request Data Export" button in idle state', () => {
-      render(<DataExportCard />);
+      renderWithIntl(<DataExportCard />);
       expect(screen.getByText('Request Data Export')).toBeInTheDocument();
     });
 
@@ -48,7 +59,7 @@ describe('DataExportCard', () => {
         json: async () => ({ id: 'export-1', status: 'PENDING' }),
       });
 
-      render(<DataExportCard />);
+      renderWithIntl(<DataExportCard />);
       fireEvent.click(screen.getByText('Request Data Export'));
 
       await waitFor(() => {
@@ -69,7 +80,7 @@ describe('DataExportCard', () => {
         json: async () => ({ message: 'You already have a pending data export request' }),
       });
 
-      render(<DataExportCard />);
+      renderWithIntl(<DataExportCard />);
       fireEvent.click(screen.getByText('Request Data Export'));
 
       await waitFor(() => {
@@ -84,7 +95,7 @@ describe('DataExportCard', () => {
         json: async () => ({ message: 'Internal server error' }),
       });
 
-      render(<DataExportCard />);
+      renderWithIntl(<DataExportCard />);
       fireEvent.click(screen.getByText('Request Data Export'));
 
       await waitFor(() => {
@@ -99,7 +110,7 @@ describe('DataExportCard', () => {
         json: async () => ({ message: 'Server error' }),
       });
 
-      render(<DataExportCard />);
+      renderWithIntl(<DataExportCard />);
       fireEvent.click(screen.getByText('Request Data Export'));
 
       await waitFor(() => {
@@ -125,7 +136,7 @@ describe('DataExportCard', () => {
         json: async () => [{ id: 'export-1', status: 'COMPLETED' }],
       });
 
-      render(<DataExportCard />);
+      renderWithIntl(<DataExportCard />);
       fireEvent.click(screen.getByText('Request Data Export'));
 
       // Advance timers to trigger polling
@@ -152,7 +163,7 @@ describe('DataExportCard', () => {
         ],
       });
 
-      render(<DataExportCard />);
+      renderWithIntl(<DataExportCard />);
       fireEvent.click(screen.getByText('Request Data Export'));
 
       await act(async () => {
@@ -175,7 +186,7 @@ describe('DataExportCard', () => {
         json: async () => [{ id: 'export-1', status: 'FAILED' }],
       });
 
-      render(<DataExportCard />);
+      renderWithIntl(<DataExportCard />);
       fireEvent.click(screen.getByText('Request Data Export'));
 
       await act(async () => {
@@ -198,7 +209,7 @@ describe('DataExportCard', () => {
         json: async () => [],
       });
 
-      render(<DataExportCard />);
+      renderWithIntl(<DataExportCard />);
       fireEvent.click(screen.getByText('Request Data Export'));
 
       await act(async () => {

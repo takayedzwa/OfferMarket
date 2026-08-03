@@ -1,0 +1,49 @@
+{
+  "links": {
+    "home": "Home",
+    "dashboard": "Dashboard",
+    "offers": "Offers",
+    "messages": "Messages",
+    "searchWorkers": "Search Workers",
+    "billing": "Billing",
+    "admin": "Admin",
+    "support": "Support",
+    "tickets": "Tickets",
+    "users": "Users",
+    "profile": "Profile"
+  },
+  "welcome": "Welcome, ",
+  "privacy": "Privacy",
+  "privacyTitle": "Privacy & Data",
+  "report": "Report",
+  "reportTitle": "Report Illegal Content (DSA Art. 16)",
+  "signOut": "Sign out",
+  "signIn": "Sign In",
+  "getStarted": "Get Started",
+  "menu": {
+    "open": "Open menu",
+    "close": "Close menu"
+  },
+  "footer": {
+    "tagline": "A reverse talent marketplace where workers have leverage.",
+    "legal": "Legal",
+    "privacyPolicy": "Privacy Policy",
+    "privacyDashboard": "Privacy Dashboard",
+    "termsOfService": "Terms of Service",
+    "cookiePolicy": "Cookie Policy",
+    "reportComplain": "Report & Complain",
+    "reportIllegalContent": "Report Illegal Content",
+    "checkReportStatus": "Check Report Status",
+    "transparencyReport": "Transparency Report",
+    "dsaNote": "DSA Art. 12 & 16 — Easy access to illegal content reporting",
+    "contact": "Contact",
+    "dataProtectionOfficer": "Data Protection Officer",
+    "companyLine": "OfferMarket B.V. · Netherlands",
+    "copyright": "© {year} OfferMarket B.V. All rights reserved.",
+    "privacy": "Privacy",
+    "terms": "Terms",
+    "cookies": "Cookies",
+    "cookieSettings": "Cookie Settings",
+    "cookieSettingsAria": "Manage cookie settings"
+  }
+}

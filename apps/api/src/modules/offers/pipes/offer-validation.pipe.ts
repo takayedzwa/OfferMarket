@@ -31,7 +31,15 @@ export class OfferValidationPipe implements PipeTransform {
 
     if (!result.valid) {
       const errorMessages = result.errors.map(e => `${e.field || 'Offer'}: ${e.message}`).join('; ');
-      throw new BadRequestException(errorMessages);
+      // Preserve the per-field `code` strings (OFFER_VALIDATION_*) in the
+      // payload so the frontend can translate them per-field in a future pass.
+      // No top-level `code` is set: the frontend translator falls back to the
+      // joined English `message`, preserving current behavior without
+      // regression. Full validation i18n is a deferred, review-gated step.
+      throw new BadRequestException({
+        message: errorMessages,
+        validationErrors: result.errors,
+      });
     }
 
     return value;

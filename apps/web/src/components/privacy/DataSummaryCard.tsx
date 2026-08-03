@@ -1,26 +1,30 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
+import { useFormat } from '@/hooks/useFormat';
 import { useConsent, ConsentType } from '@/hooks/useConsent';
 
 export default function DataSummaryCard() {
+  const t = useTranslations('privacy.consent');
+  const { date } = useFormat();
   const { consents, loading, grantConsent, withdrawConsent } = useConsent();
   // Track whether we've ever loaded successfully — only show skeleton on first load,
   // not when refreshing after a toggle (which would cause a jarring page jump)
   const hasLoaded = consents.length > 0 || !loading;
 
   const consentCategories = [
-    { type: 'PRIVACY_POLICY', label: 'Privacy Policy', description: 'Processing of your personal data under our privacy policy', required: true },
-    { type: 'TERMS_OF_SERVICE', label: 'Terms of Service', description: 'Acceptance of our terms of service for platform usage', required: true },
-    { type: 'DATA_PROCESSING', label: 'Data Processing', description: 'Processing your data to provide OfferMarket services', required: true },
-    { type: 'COOKIE_ANALYTICS', label: 'Analytics Cookies', description: 'Anonymized analytics to improve our platform (PostHog)', required: false },
-    { type: 'COOKIE_MARKETING', label: 'Marketing Cookies', description: 'Targeted advertising and marketing communications', required: false },
-    { type: 'EMAIL_NOTIFICATIONS', label: 'Email Notifications', description: 'Service-related emails about offers and messages', required: false },
-    { type: 'PROFILE_VISIBLE', label: 'Profile Visibility', description: 'Allow employers to discover your anonymous profile', required: false },
-    { type: 'MARKETING', label: 'Marketing Communications', description: 'Promotional emails about new features and updates', required: false },
-    { type: 'SPECIAL_CATEGORY', label: 'Work Authorization', description: 'Processing of your work authorization status (immigration data) — special category under GDPR Article 9', required: false },
-    { type: 'ID_VERIFICATION', label: 'ID Verification', description: 'Processing of identity verification documents', required: false },
-    { type: 'KVK_PROCESSING', label: 'KvK Verification', description: 'Processing of Chamber of Commerce registration data', required: false },
+    { type: 'PRIVACY_POLICY', required: true },
+    { type: 'TERMS_OF_SERVICE', required: true },
+    { type: 'DATA_PROCESSING', required: true },
+    { type: 'COOKIE_ANALYTICS', required: false },
+    { type: 'COOKIE_MARKETING', required: false },
+    { type: 'EMAIL_NOTIFICATIONS', required: false },
+    { type: 'PROFILE_VISIBLE', required: false },
+    { type: 'MARKETING', required: false },
+    { type: 'SPECIAL_CATEGORY', required: false },
+    { type: 'ID_VERIFICATION', required: false },
+    { type: 'KVK_PROCESSING', required: false },
   ] as const;
 
   if (loading && !hasLoaded) {
@@ -39,9 +43,9 @@ export default function DataSummaryCard() {
   return (
     <div className="bg-white shadow rounded-lg">
       <div className="px-6 py-4 border-b border-gray-200">
-        <h3 className="text-lg font-medium text-gray-900">Consent Management</h3>
+        <h3 className="text-lg font-medium text-gray-900">{t('title')}</h3>
         <p className="mt-1 text-sm text-gray-500">
-          Manage your consent preferences. Required consents cannot be withdrawn while your account is active.
+          {t('cardSubtitle')}
         </p>
       </div>
       <div className="divide-y divide-gray-200">
@@ -53,29 +57,31 @@ export default function DataSummaryCard() {
             <div key={cat.type} className="px-6 py-4 flex items-center justify-between">
               <div className="flex-1">
                 <div className="flex items-center gap-2">
-                  <p className="text-sm font-medium text-gray-900">{cat.label}</p>
+                  <p className="text-sm font-medium text-gray-900">{t(`categories.${cat.type}.label`)}</p>
                   {cat.required && (
                     <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
-                      Required
+                      {t('required')}
                     </span>
                   )}
                   {cat.type === 'SPECIAL_CATEGORY' && (
                     <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800">
-                      Special Category
+                      {t('specialCategory')}
                     </span>
                   )}
                 </div>
-                <p className="text-sm text-gray-500 mt-0.5">{cat.description}</p>
+                <p className="text-sm text-gray-500 mt-0.5">{t(`categories.${cat.type}.description`)}</p>
                 {record && (
                   <p className="text-xs text-gray-400 mt-1">
-                    {isGranted ? `Granted ${new Date(record.grantedAt).toLocaleDateString('nl-NL')}` : `Withdrawn ${record.withdrawnAt ? new Date(record.withdrawnAt).toLocaleDateString('nl-NL') : ''}`}
+                    {isGranted
+                      ? t('granted', { date: date(record.grantedAt) })
+                      : t('withdrawn', { date: record.withdrawnAt ? date(record.withdrawnAt) : '' })}
                   </p>
                 )}
               </div>
               <div className="ml-4">
                 {cat.required ? (
                   <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                    Active (Required)
+                    {t('activeRequired')}
                   </span>
                 ) : (
                   <ConsentToggle type={cat.type} granted={!!isGranted} onGrant={grantConsent} onWithdraw={withdrawConsent} />

@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
+import { Link } from '@/i18n/navigation';
 
 /**
  * DSA Art. 16: Notice-and-Action mechanism.
@@ -17,6 +19,17 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v
 export type ContentReportTarget = 'USER_PROFILE' | 'WORKER_PROFILE' | 'EMPLOYER_PROFILE' | 'OFFER' | 'CONVERSATION' | 'MESSAGE' | 'REVIEW' | 'OTHER';
 export type ContentReportCategory = 'ILLEGAL_CONTENT' | 'FRAUD_SCAM' | 'HARASSMENT' | 'HATE_SPEECH' | 'COPYRIGHT_VIOLATION' | 'PRIVACY_VIOLATION' | 'MISLEADING_INFORMATION' | 'CHILD_SAFETY' | 'TERRORISM' | 'DRUGS_WEAPONS' | 'IMPERSONATION' | 'SPAM' | 'OTHER';
 
+const CATEGORY_VALUES: ContentReportCategory[] = [
+  'ILLEGAL_CONTENT', 'FRAUD_SCAM', 'HARASSMENT', 'HATE_SPEECH', 'COPYRIGHT_VIOLATION',
+  'PRIVACY_VIOLATION', 'MISLEADING_INFORMATION', 'CHILD_SAFETY', 'TERRORISM',
+  'DRUGS_WEAPONS', 'IMPERSONATION', 'SPAM', 'OTHER',
+];
+
+const TARGET_VALUES: ContentReportTarget[] = [
+  'USER_PROFILE', 'WORKER_PROFILE', 'EMPLOYER_PROFILE', 'OFFER', 'CONVERSATION',
+  'MESSAGE', 'REVIEW', 'OTHER',
+];
+
 interface ReportContentFormProps {
   /** Pre-filled target type and ID (e.g., from a "Report" button on a profile) */
   targetType?: ContentReportTarget;
@@ -28,33 +41,6 @@ interface ReportContentFormProps {
   /** Callback after successful submission */
   onSuccess?: (publicId: string) => void;
 }
-
-const CATEGORY_LABELS: Record<ContentReportCategory, string> = {
-  ILLEGAL_CONTENT: 'Illegal content',
-  FRAUD_SCAM: 'Fraud or scam',
-  HARASSMENT: 'Harassment or bullying',
-  HATE_SPEECH: 'Hate speech',
-  COPYRIGHT_VIOLATION: 'Copyright violation',
-  PRIVACY_VIOLATION: 'Privacy violation (doxxing, unauthorized data)',
-  MISLEADING_INFORMATION: 'Misleading information',
-  CHILD_SAFETY: 'Child safety concern',
-  TERRORISM: 'Terrorism-related content',
-  DRUGS_WEAPONS: 'Illegal products or services (drugs, weapons)',
-  IMPERSONATION: 'Impersonation / fake identity',
-  SPAM: 'Spam',
-  OTHER: 'Other',
-};
-
-const TARGET_LABELS: Record<ContentReportTarget, string> = {
-  USER_PROFILE: 'User profile',
-  WORKER_PROFILE: 'Worker profile',
-  EMPLOYER_PROFILE: 'Employer profile',
-  OFFER: 'Job offer',
-  CONVERSATION: 'Conversation',
-  MESSAGE: 'Message',
-  REVIEW: 'Review',
-  OTHER: 'Other',
-};
 
 export default function ReportContentForm({
   targetType,
@@ -77,19 +63,38 @@ export default function ReportContentForm({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [publicId, setPublicId] = useState<string | null>(null);
 
+  const t = useTranslations('dsa.form');
+  const tEnums = useTranslations('enums');
+
+  const getCategoryLabel = (category: ContentReportCategory) => {
+    try {
+      return tEnums(`contentReportCategory.${category}`);
+    } catch {
+      return category.replace(/_/g, ' ').toLowerCase();
+    }
+  };
+
+  const getTargetLabel = (target: ContentReportTarget) => {
+    try {
+      return tEnums(`contentReportTarget.${target}`);
+    } catch {
+      return target.replace(/_/g, ' ').toLowerCase();
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setStatus('submitting');
     setErrorMessage(null);
 
     if (!formData.explanation.trim()) {
-      setErrorMessage('Please provide a detailed explanation of why this content is illegal or violates our terms.');
+      setErrorMessage(t('validation.explanationRequired'));
       setStatus('error');
       return;
     }
 
     if (!formData.goodFaithDeclaration) {
-      setErrorMessage('You must confirm that your report is submitted in good faith.');
+      setErrorMessage(t('validation.goodFaithRequired'));
       setStatus('error');
       return;
     }
@@ -119,7 +124,7 @@ export default function ReportContentForm({
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.message || 'Failed to submit report');
+        throw new Error(data.message || t('submitError'));
       }
 
       const data = await response.json();
@@ -128,7 +133,7 @@ export default function ReportContentForm({
       onSuccess?.(data.publicId);
     } catch (err) {
       setStatus('error');
-      setErrorMessage(err instanceof Error ? err.message : 'An error occurred. Please try again.');
+      setErrorMessage(err instanceof Error ? err.message : t('genericError'));
     }
   };
 
@@ -141,29 +146,29 @@ export default function ReportContentForm({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h3 className="mt-4 text-lg font-semibold text-gray-900">Report Submitted</h3>
+          <h3 className="mt-4 text-lg font-semibold text-gray-900">{t('submittedTitle')}</h3>
           <p className="mt-2 text-sm text-gray-600">
-            Your report has been received and acknowledged. We will review it as soon as possible.
+            {t('submittedBody')}
           </p>
           <div className="mt-4 bg-gray-50 rounded-md p-3">
-            <p className="text-xs text-gray-500">Reference number</p>
+            <p className="text-xs text-gray-500">{t('referenceLabel')}</p>
             <p className="text-lg font-mono font-bold text-gray-900">{publicId}</p>
             <p className="mt-1 text-xs text-gray-500">
-              Save this reference to check the status of your report at{' '}
-              <a href={`/dsa/status/${publicId}`} className="text-blue-600 hover:underline">
-                Report Status
-              </a>
+              {t('saveReference')}{' '}
+              <Link href={`/dsa/status/${publicId}`} className="text-blue-600 hover:underline">
+                {t('reportStatusLink')}
+              </Link>
             </p>
           </div>
           <p className="mt-4 text-xs text-gray-500">
-            DSA Art. 16(4): You will receive an acknowledgment without undue delay.
+            {t('acknowledgmentNote')}
           </p>
           {onClose && (
             <button
               onClick={onClose}
               className="mt-4 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
             >
-              Close
+              {t('close')}
             </button>
           )}
         </div>
@@ -174,10 +179,9 @@ export default function ReportContentForm({
   return (
     <div className="max-w-lg mx-auto p-6 bg-white rounded-lg shadow">
       <div className="mb-6">
-        <h2 className="text-xl font-semibold text-gray-900">Report Illegal Content</h2>
+        <h2 className="text-xl font-semibold text-gray-900">{t('title')}</h2>
         <p className="mt-1 text-sm text-gray-500">
-          DSA Art. 16 — Report content you believe is illegal or violates our terms.
-          You may report anonymously by providing only your email.
+          {t('intro')}
         </p>
       </div>
 
@@ -185,7 +189,7 @@ export default function ReportContentForm({
         {/* Target Type */}
         <div>
           <label htmlFor="targetType" className="block text-sm font-medium text-gray-700">
-            What are you reporting?
+            {t('targetLabel')}
           </label>
           <select
             id="targetType"
@@ -194,8 +198,8 @@ export default function ReportContentForm({
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm border px-3 py-2"
             disabled={!!targetType}
           >
-            {Object.entries(TARGET_LABELS).map(([value, label]) => (
-              <option key={value} value={value}>{label}</option>
+            {TARGET_VALUES.map((value) => (
+              <option key={value} value={value}>{getTargetLabel(value)}</option>
             ))}
           </select>
         </div>
@@ -204,14 +208,14 @@ export default function ReportContentForm({
         {(!targetId) && (
           <div>
             <label htmlFor="targetId" className="block text-sm font-medium text-gray-700">
-              ID or reference of the content
+              {t('targetIdLabel')}
             </label>
             <input
               id="targetId"
               type="text"
               value={formData.targetId}
               onChange={(e) => setFormData({ ...formData, targetId: e.target.value })}
-              placeholder="e.g., offer ID, username"
+              placeholder={t('targetIdPlaceholder')}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm border px-3 py-2"
             />
           </div>
@@ -220,14 +224,14 @@ export default function ReportContentForm({
         {/* URL */}
         <div>
           <label htmlFor="url" className="block text-sm font-medium text-gray-700">
-            URL of the content <span className="text-gray-400">(optional)</span>
+            {t('urlLabel')} <span className="text-gray-400">{t('optional')}</span>
           </label>
           <input
             id="url"
             type="url"
             value={formData.url}
             onChange={(e) => setFormData({ ...formData, url: e.target.value })}
-            placeholder="https://offermarket.nl/..."
+            placeholder={t('urlPlaceholder')}
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm border px-3 py-2"
           />
         </div>
@@ -235,7 +239,7 @@ export default function ReportContentForm({
         {/* Category */}
         <div>
           <label htmlFor="category" className="block text-sm font-medium text-gray-700">
-            Category of illegal content
+            {t('categoryLabel')}
           </label>
           <select
             id="category"
@@ -244,8 +248,8 @@ export default function ReportContentForm({
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm border px-3 py-2"
             required
           >
-            {Object.entries(CATEGORY_LABELS).map(([value, label]) => (
-              <option key={value} value={value}>{label}</option>
+            {CATEGORY_VALUES.map((value) => (
+              <option key={value} value={value}>{getCategoryLabel(value)}</option>
             ))}
           </select>
         </div>
@@ -254,14 +258,14 @@ export default function ReportContentForm({
         {formData.category === 'ILLEGAL_CONTENT' && (
           <div>
             <label htmlFor="illegalContentType" className="block text-sm font-medium text-gray-700">
-              Type of illegal content
+              {t('illegalTypeLabel')}
             </label>
             <input
               id="illegalContentType"
               type="text"
               value={formData.illegalContentType}
               onChange={(e) => setFormData({ ...formData, illegalContentType: e.target.value })}
-              placeholder="e.g., Dutch Criminal Code Art. 137c"
+              placeholder={t('illegalTypePlaceholder')}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm border px-3 py-2"
             />
           </div>
@@ -270,10 +274,10 @@ export default function ReportContentForm({
         {/* Explanation — DSA Art. 16(3)(a) */}
         <div>
           <label htmlFor="explanation" className="block text-sm font-medium text-gray-700">
-            Detailed explanation <span className="text-red-500">*</span>
+            {t('explanationLabel')} <span className="text-red-500">*</span>
           </label>
           <p className="text-xs text-gray-500 mt-1">
-            DSA Art. 16(3): Please explain in detail why you believe this content is illegal.
+            {t('explanationHint')}
           </p>
           <textarea
             id="explanation"
@@ -281,7 +285,7 @@ export default function ReportContentForm({
             onChange={(e) => setFormData({ ...formData, explanation: e.target.value })}
             rows={5}
             required
-            placeholder="Please describe the content you are reporting and why you believe it is illegal..."
+            placeholder={t('explanationPlaceholder')}
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm border px-3 py-2"
           />
         </div>
@@ -289,18 +293,18 @@ export default function ReportContentForm({
         {/* Reporter Email — required for anonymous reports */}
         <div>
           <label htmlFor="reporterEmail" className="block text-sm font-medium text-gray-700">
-            Your email address <span className="text-gray-400">(for acknowledgment)</span>
+            {t('emailLabel')} <span className="text-gray-400">{t('emailHint')}</span>
           </label>
           <input
             id="reporterEmail"
             type="email"
             value={formData.reporterEmail}
             onChange={(e) => setFormData({ ...formData, reporterEmail: e.target.value })}
-            placeholder="your@email.com"
+            placeholder={t('emailPlaceholder')}
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm border px-3 py-2"
           />
           <p className="text-xs text-gray-500 mt-1">
-            Required for anonymous reports. We will send you an acknowledgment and updates.
+            {t('emailNote')}
           </p>
         </div>
 
@@ -315,12 +319,12 @@ export default function ReportContentForm({
             required
           />
           <label htmlFor="goodFaith" className="ml-2 block text-sm text-gray-700">
-            I declare that this report is submitted in good faith and that the information provided is accurate to the best of my knowledge.
+            {t('goodFaithLabel')}
             <span className="text-red-500">*</span>
           </label>
         </div>
         <p className="text-xs text-gray-500 -mt-2 ml-6">
-          DSA Art. 16(3)(d): False or malicious reports may result in reporting restrictions under DSA Art. 23.
+          {t('goodFaithNote')}
         </p>
 
         {/* Error message */}
@@ -338,7 +342,7 @@ export default function ReportContentForm({
               onClick={onClose}
               className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
             >
-              Cancel
+              {t('cancel')}
             </button>
           )}
           <button
@@ -346,7 +350,7 @@ export default function ReportContentForm({
             disabled={status === 'submitting'}
             className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {status === 'submitting' ? 'Submitting...' : 'Submit Report'}
+            {status === 'submitting' ? t('submitting') : t('submit')}
           </button>
         </div>
       </form>

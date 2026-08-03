@@ -1,0 +1,498 @@
+{
+  "overview": {
+    "title": "Privacy Policy",
+    "lastUpdated": "Last updated: July 11, 2026 · Version 1.0",
+    "dutchTitle": "Privacyverklaring",
+    "companyName": "OfferMarket B.V.",
+    "section1": {
+      "title": "1. Controller",
+      "intro": "The data controller responsible for your personal data is:",
+      "company": "OfferMarket B.V.",
+      "kvk": "KvK: 93075284",
+      "address": "Herengracht 420, 1017 Amsterdam, Netherlands",
+      "dpoLabel": "Data Protection Officer:",
+      "dpoEmail": "dpo@offermarket.nl",
+      "contactQuestion": "For questions about this privacy policy or your rights under the AVG (Algemene Verordening Gegevensbescherming), contact our DPO at the email above."
+    },
+    "section2": {
+      "title": "2. Personal Data We Process",
+      "intro": "We process the following categories of personal data:",
+      "tableHeaders": {
+        "category": "Category",
+        "examples": "Examples",
+        "legalBasis": "Legal Basis"
+      },
+      "rows": {
+        "identity": {
+          "category": "Identity data",
+          "examples": "Name, email, phone number",
+          "legalBasis": "Contract performance (Art. 6(1)(b))"
+        },
+        "profile": {
+          "category": "Profile data",
+          "examples": "Skills, experience, education, certifications",
+          "legalBasis": "Contract performance (Art. 6(1)(b))"
+        },
+        "special": {
+          "category": "Special category data",
+          "examples": "Work authorization status (immigration data)",
+          "legalBasis": "Explicit consent (Art. 9(2)(a))"
+        },
+        "professional": {
+          "category": "Professional data",
+          "examples": "Work preferences, salary expectations, availability",
+          "legalBasis": "Contract performance (Art. 6(1)(b))"
+        },
+        "communication": {
+          "category": "Communication data",
+          "examples": "Messages between users, notifications",
+          "legalBasis": "Contract performance (Art. 6(1)(b))"
+        },
+        "company": {
+          "category": "Company data",
+          "examples": "KvK number, company name, billing info",
+          "legalBasis": "Legal obligation (Art. 6(1)(c))"
+        },
+        "verification": {
+          "category": "Verification documents",
+          "examples": "ID copies, certificates, diplomas",
+          "legalBasis": "Legal obligation (Art. 6(1)(c))"
+        },
+        "financial": {
+          "category": "Financial data",
+          "examples": "Invoices, payment records",
+          "legalBasis": "Legal obligation (Art. 6(1)(c))"
+        },
+        "technical": {
+          "category": "Technical data",
+          "examples": "IP address, browser, device info",
+          "legalBasis": "Legitimate interest (Art. 6(1)(f))"
+        },
+        "usage": {
+          "category": "Usage data",
+          "examples": "Page views, feature usage, search history",
+          "legalBasis": "Consent (Art. 6(1)(a))"
+        }
+      }
+    },
+    "section3": {
+      "title": "3. Special Category Data",
+      "important": "⚠️ Important — AVG Article 9",
+      "p1": "We process work authorization status (EU citizen, work permit holder, etc.) which may reveal immigration status and, by extension, national origin. This constitutes special category data under AVG Article 9.",
+      "p2": "We only process this data with your <strong>explicit consent</strong>. You may withdraw this consent at any time through your privacy settings. If consent is withdrawn, your work authorization status will not be shown to employers, though a simple yes/no flag (hasWorkAuthorization) may still be displayed.",
+      "p3": "We strongly advise against including other special category data (nationality, gender, health information, union membership) in your profile. Our free-text fields are not designed for this type of data, and we are not authorized to process it."
+    },
+    "section4": {
+      "title": "4. Legal Bases for Processing",
+      "intro": "We process your personal data on the following legal bases:",
+      "consent": "<strong>Consent (Art. 6(1)(a))</strong> — Analytics, marketing communications, work authorization processing, cookie usage",
+      "contract": "<strong>Contract performance (Art. 6(1)(b))</strong> — Providing the platform, matching workers with employers, processing offers, messaging",
+      "obligation": "<strong>Legal obligation (Art. 6(1)(c))</strong> — KvK verification, tax record retention (7 years), fraud prevention",
+      "interest": "<strong>Legitimate interest (Art. 6(1)(f))</strong> — Security, platform improvement, audit logging, anonymized analytics"
+    },
+    "section5": {
+      "title": "5. Data Sharing & Recipients",
+      "intro": "We share your personal data with the following categories of recipients:",
+      "employers": "<strong>Employers/Workers</strong> — Anonymized profile data until offer acceptance, then identity data as agreed",
+      "aws": "<strong>Amazon Web Services (AWS)</strong> — Cloud infrastructure, file storage (S3), email (SES)",
+      "stripe": "<strong>Stripe</strong> — Payment processing and invoicing",
+      "posthog": "<strong>PostHog</strong> — Anonymized analytics (only with your consent)",
+      "twilio": "<strong>Twilio</strong> — SMS notifications",
+      "sentry": "<strong>Sentry</strong> — Error monitoring (minimal personal data)",
+      "dpaNote": "We have Data Processing Agreements (DPAs) with all processors. We do not sell your personal data."
+    },
+    "section6": {
+      "title": "6. Data Retention",
+      "intro": "We retain your personal data only as long as necessary:",
+      "activeAccounts": "<strong>Active accounts</strong> — Until account deletion",
+      "invoices": "<strong>Invoices & financial records</strong> — 7 years (Dutch tax obligation)",
+      "kvk": "<strong>KvK verification data</strong> — 7 years after account closure",
+      "messages": "<strong>Messages</strong> — 2 years after conversation closure",
+      "verification": "<strong>Verification documents</strong> — 30 days after verification complete",
+      "consentRecords": "<strong>Consent records</strong> — 7 years after consent withdrawal",
+      "ipAddresses": "<strong>IP addresses</strong> — 6 months",
+      "auditLogs": "<strong>Audit logs</strong> — 7 years (anonymized after account deletion)",
+      "analytics": "<strong>Analytics data (PostHog)</strong> — Until consent withdrawal"
+    },
+    "section7": {
+      "title": "7. Your Rights Under the AVG",
+      "intro": "You have the following rights regarding your personal data:",
+      "accessTitle": "Right of Access (Art. 15)",
+      "accessBody": "You can request a copy of all personal data we hold about you.",
+      "accessLink": "Request your data →",
+      "rectificationTitle": "Right to Rectification (Art. 16)",
+      "rectificationBody": "You can correct inaccurate personal data through your profile settings or by contacting us.",
+      "erasureTitle": "Right to Erasure (Art. 17)",
+      "erasureBody": "You can request deletion of your personal data. Some data must be retained by law.",
+      "erasureLink": "Request deletion →",
+      "restrictionTitle": "Right to Restriction (Art. 18)",
+      "restrictionBody": "You can request that we restrict the processing of your data while a dispute is resolved.",
+      "restrictionLink": "Restrict processing →",
+      "portabilityTitle": "Right to Data Portability (Art. 20)",
+      "portabilityBody": "You can receive your data in a machine-readable format (JSON/CSV).",
+      "portabilityLink": "Export your data →",
+      "objectTitle": "Right to Object (Art. 21)",
+      "objectBody": "You can object to processing based on legitimate interest or for direct marketing purposes.",
+      "withdrawTitle": "Right to Withdraw Consent (Art. 7(3))",
+      "withdrawBody": "Where processing is based on consent, you can withdraw it at any time.",
+      "withdrawLink": "Manage consents →",
+      "exerciseIntro": "To exercise any of these rights, use your",
+      "privacyDashboardLink": "Privacy Dashboard",
+      "exerciseMid": "or contact our DPO at",
+      "dpoEmail": "dpo@offermarket.nl",
+      "complaintIntro": "If you are not satisfied with our response, you have the right to lodge a complaint with the",
+      "apLink": "Autoriteit Persoonsgegevens",
+      "complaintOutro": "(Dutch Data Protection Authority)."
+    },
+    "section8": {
+      "title": "8. Automated Decision-Making & Profiling",
+      "p1": "We use automated systems to match workers with employers based on skills, experience, and preferences. These are not decisions that produce legal effects or significantly affect you. Our matching algorithm does not use special category data (such as nationality or health data) as input factors.",
+      "p2": "Workers can always control their profile visibility and what information employers can see. Our anonymous profile system ensures that employers cannot identify you until you accept an offer."
+    },
+    "section9": {
+      "title": "9. International Data Transfers",
+      "p1": "Our primary infrastructure is hosted within the European Union (AWS EU regions — Ireland and Frankfurt). However, some of our processors operate outside the EU:",
+      "tableHeaders": {
+        "processor": "Processor",
+        "processing": "Processing",
+        "country": "Country",
+        "safeguard": "Safeguard"
+      },
+      "rows": {
+        "aws": {
+          "processor": "AWS (Amazon Web Services)",
+          "processing": "Infrastructure, hosting",
+          "country": "Ireland / Germany (EU)",
+          "safeguard": "EU-hosted — no third-country transfer"
+        },
+        "posthog": {
+          "processor": "PostHog",
+          "processing": "Analytics (EU-hosted instance)",
+          "country": "Germany (EU)",
+          "safeguard": "EU-hosted — no third-country transfer"
+        },
+        "stripe": {
+          "processor": "Stripe",
+          "processing": "Payment processing",
+          "country": "United States",
+          "safeguard": "SCCs + Stripe Data Processing Agreement; EU-US Data Privacy Framework"
+        },
+        "twilio": {
+          "processor": "Twilio (SendGrid)",
+          "processing": "Email delivery",
+          "country": "United States",
+          "safeguard": "SCCs + Twilio DPA"
+        },
+        "sentry": {
+          "processor": "Sentry",
+          "processing": "Error monitoring",
+          "country": "United States",
+          "safeguard": "SCCs + Sentry DPA; Data Processing Agreement"
+        }
+      },
+      "sccNote": "Where data is transferred to countries outside the EEA that do not have an adequacy decision, we rely on Standard Contractual Clauses (SCCs) approved by the European Commission, supplemented by Data Processing Agreements that include the mandatory Art. 28 GDPR provisions. You may request a copy of the relevant SCCs by contacting our DPO."
+    },
+    "section10": {
+      "title": "10. Security Measures",
+      "intro": "We implement appropriate technical and organizational measures to protect your data:",
+      "encryption": "Encryption in transit (TLS 1.3) and at rest (AES-256)",
+      "rbac": "Role-based access control for admin access",
+      "anonymized": "Anonymized worker profiles until offer acceptance",
+      "audits": "Regular security audits and penetration testing",
+      "breach": "Breach notification within 72 hours to the Dutch DPA",
+      "tfa": "Two-factor authentication available for all accounts",
+      "ipHashing": "IP address hashing for analytics"
+    },
+    "section11": {
+      "title": "11. Cookies",
+      "intro": "For detailed information about the cookies we use, please see our",
+      "cookiePolicyLink": "Cookie Policy"
+    },
+    "section12": {
+      "title": "12. Changes to This Policy",
+      "body": "We may update this privacy policy from time to time. We will notify you of significant changes via email and through a prominent notice on our website. We will always obtain your consent for any new processing that requires it."
+    },
+    "section13": {
+      "title": "13. Contact",
+      "intro": "For any questions about this privacy policy or your data protection rights:",
+      "dpoLabel": "Data Protection Officer:",
+      "dpoValue": "dpo@offermarket.nl",
+      "companyLabel": "OfferMarket B.V.",
+      "address": "Herengracht 420, 1017 Amsterdam, Netherlands",
+      "kvkLabel": "KvK:",
+      "kvkValue": "93075284"
+    },
+    "footer": {
+      "copyright": "© {year} OfferMarket B.V. ·",
+      "privacyLink": "Privacy Policy",
+      "termsLink": "Terms of Service",
+      "cookiesLink": "Cookie Policy",
+      "dashboardLink": "Privacy Dashboard",
+      "reportLink": "Report Illegal Content"
+    }
+  },
+  "dashboard": {
+    "loading": "Loading...",
+    "title": "Privacy Dashboard",
+    "subtitle": "Manage your personal data, consent preferences, and exercise your GDPR rights. Under the AVG (Algemene Verordening Gegevensbescherming), you have full control over your data.",
+    "rights": {
+      "accessTitle": "Right of Access",
+      "accessRef": "Art. 15 AVG",
+      "accessBody": "Request confirmation and a copy of all personal data we hold about you.",
+      "erasureTitle": "Right to Erasure",
+      "erasureRef": "Art. 17 AVG",
+      "erasureBody": "Request deletion of your personal data with a 30-day grace period.",
+      "portabilityTitle": "Data Portability",
+      "portabilityRef": "Art. 20 AVG",
+      "portabilityBody": "Export your data in a machine-readable format for transfer.",
+      "automatedTitle": "Automated Decisions",
+      "automatedRef": "Art. 22 AVG",
+      "automatedBody": "Object to decisions made solely by automated means and request human review."
+    },
+    "tabs": {
+      "overview": "Overview",
+      "consents": "Consents",
+      "access": "Access Request",
+      "export": "Data Portability",
+      "restriction": "Restriction",
+      "automatedDecision": "Automated Decisions",
+      "deletion": "Delete Account"
+    },
+    "overview": {
+      "dataSummaryTitle": "Your Data Summary",
+      "profileFields": "Profile Fields",
+      "offers": "Offers",
+      "messages": "Messages",
+      "activeConsents": "Active Consents",
+      "unableToLoad": "Unable to load data summary.",
+      "quickActionsTitle": "Quick Actions",
+      "downloadTitle": "Download My Data",
+      "downloadBody": "Get a copy of all your personal data",
+      "manageTitle": "Manage Consents",
+      "manageBody": "Update your consent preferences",
+      "restrictTitle": "Restrict Processing",
+      "restrictBody": "Limit how your data is processed",
+      "policyTitle": "Privacy Policy",
+      "policyBody": "Read our privacy policy",
+      "rightsTitle": "Your rights under the AVG",
+      "rightsBody": "If you believe that the processing of your personal data infringes the AVG, you have the right to lodge a complaint with the Dutch Data Protection Authority (Autoriteit Persoonsgegevens).",
+      "apLink": "Autoriteit Persoonsgegevens →"
+    },
+    "access": {
+      "title": "Right of Access (Art. 15 AVG)",
+      "intro": "Under Article 15 of the AVG, you have the right to obtain confirmation as to whether personal data concerning you is being processed, and access to that data along with information about the purposes, categories, recipients, retention periods, and your rights.",
+      "portabilityNote": "This is different from Data Portability (Art. 20), which allows you to receive your data in a machine-readable format for transfer to another controller. Use this tab to submit a formal access request; use the “Data Portability” tab for data export.",
+      "receiveTitle": "What you'll receive",
+      "receive1": "Confirmation that your data is being processed",
+      "receive2": "A complete copy of all personal data we hold about you",
+      "receive3": "The purposes of processing",
+      "receive4": "The categories of data concerned",
+      "receive5": "Recipients or categories of recipients",
+      "receive6": "Retention periods or criteria",
+      "receive7": "Information about your rights (rectification, erasure, restriction, objection)",
+      "receive8": "Information about the source of the data (if not collected from you directly)",
+      "receive9": "Information about automated decision-making, including profiling",
+      "submit": "Submit Access Request",
+      "portabilityInstead": "I want Data Portability instead →",
+      "responseTime": "We will respond to your request within 30 days. In complex cases, this may be extended by a further 60 days, in which case we will inform you of the delay and the reasons.",
+      "submitSuccess": "Your access request has been submitted. We will respond within 30 days as required by the AVG.",
+      "submitPending": "You may already have a pending access request.",
+      "submitError": "Unable to submit access request. Please try again later."
+    },
+    "automated": {
+      "title": "Automated Decision-Making (Art. 22 AVG)",
+      "intro": "Under Article 22 of the AVG, you have the right not to be subject to a decision based solely on automated processing — including profiling — that produces legal effects or similarly significantly affects you. You can object to such decisions and request human review.",
+      "examplesTitle": "Examples of automated decisions",
+      "example1": "Automated rejection of job applications or offers",
+      "example2": "Algorithmic profile scoring that affects your visibility to employers",
+      "example3": "Automated fraud detection that restricts your account",
+      "example4": "Automated trust or risk scores that limit your access",
+      "typeLabel": "Type of automated decision *",
+      "typePlaceholder": "Select a decision type...",
+      "typeProfileScoring": "Profile visibility/scoring",
+      "typeOfferMatching": "Automated offer matching/rejection",
+      "typeTrustRisk": "Trust/risk score affecting access",
+      "typeAccountRestriction": "Automated account restriction",
+      "typeFraudDetection": "Automated fraud detection",
+      "typeOther": "Other",
+      "reasonLabel": "Why do you believe this decision was made solely by automated means? *",
+      "reasonPlaceholder": "Describe the decision and why you believe it was made without human intervention...",
+      "humanReviewLabel": "I request human review of this decision (recommended)",
+      "submit": "Submit Objection",
+      "alertTypeRequired": "Please select a decision type.",
+      "alertReasonRequired": "Please describe why you believe this decision was automated.",
+      "submitSuccess": "Your objection to the automated decision has been submitted. {message}",
+      "submitSuccessFallback": "Processing of this type of decision has been paused pending human review.",
+      "submitError": "Unable to submit your objection. Please try again later.",
+      "footer": "When you submit this objection, your processing will be restricted until a human reviews the decision. You will be contacted within 30 days with the outcome of the review."
+    }
+  },
+  "delete": {
+    "back": "← Back to Privacy Dashboard",
+    "title": "Delete Your Account",
+    "subtitle": "Exercise your right to erasure under AVG Article 17. This will permanently delete your account and personal data after a 30-day grace period.",
+    "alternativesTitle": "Alternative options:",
+    "restrictTitle": "Restrict processing",
+    "restrictBody": "Keep your account but limit how your data is used.",
+    "restrictLink": "Learn more",
+    "exportTitle": "Export your data",
+    "exportBody": "Download a copy before deleting.",
+    "exportLink": "Export data",
+    "hideTitle": "Hide your profile",
+    "hideBody": "Make your profile invisible without deleting your account. Available in your profile settings."
+  },
+  "consent": {
+    "back": "← Back to Privacy Dashboard",
+    "title": "Consent Management",
+    "subtitle": "Manage your consent preferences for each type of data processing. Under the AVG (GDPR), you have the right to withdraw consent at any time.",
+    "noteLabel": "Note:",
+    "noteBody": "Withdrawing consent for required processing (such as data processing for contract performance) may limit your ability to use certain features. Special category consent (work authorization) can be withdrawn at any time without affecting core functionality — your profile will simply not show your work authorization status to employers.",
+    "required": "Required",
+    "specialCategory": "Special Category",
+    "activeRequired": "Active (Required)",
+    "granted": "Granted {date}",
+    "withdrawn": "Withdrawn {date}",
+    "categories": {
+      "PRIVACY_POLICY": {
+        "label": "Privacy Policy",
+        "description": "Processing of your personal data under our privacy policy"
+      },
+      "TERMS_OF_SERVICE": {
+        "label": "Terms of Service",
+        "description": "Acceptance of our terms of service for platform usage"
+      },
+      "DATA_PROCESSING": {
+        "label": "Data Processing",
+        "description": "Processing your data to provide OfferMarket services"
+      },
+      "COOKIE_ANALYTICS": {
+        "label": "Analytics Cookies",
+        "description": "Anonymized analytics to improve our platform (PostHog)"
+      },
+      "COOKIE_MARKETING": {
+        "label": "Marketing Cookies",
+        "description": "Targeted advertising and marketing communications"
+      },
+      "EMAIL_NOTIFICATIONS": {
+        "label": "Email Notifications",
+        "description": "Service-related emails about offers and messages"
+      },
+      "PROFILE_VISIBLE": {
+        "label": "Profile Visibility",
+        "description": "Allow employers to discover your anonymous profile"
+      },
+      "MARKETING": {
+        "label": "Marketing Communications",
+        "description": "Promotional emails about new features and updates"
+      },
+      "SPECIAL_CATEGORY": {
+        "label": "Work Authorization",
+        "description": "Processing of your work authorization status (immigration data) — special category under GDPR Article 9"
+      },
+      "ID_VERIFICATION": {
+        "label": "ID Verification",
+        "description": "Processing of identity verification documents"
+      },
+      "KVK_PROCESSING": {
+        "label": "KvK Verification",
+        "description": "Processing of Chamber of Commerce registration data"
+      }
+    },
+    "cardSubtitle": "Manage your consent preferences. Required consents cannot be withdrawn while your account is active."
+  },
+  "export": {
+    "back": "← Back to Privacy Dashboard",
+    "title": "Data Export",
+    "subtitle": "Exercise your right to data portability under AVG Article 20. Download all personal data we hold about you in a machine-readable format.",
+    "includedTitle": "What's included in your export:",
+    "item1": "Profile information (name, email, phone)",
+    "item2": "Worker/Employer profile data",
+    "item3": "Skills, certifications, education, work experience",
+    "item4": "Offers sent and received",
+    "item5": "Messages (anonymized for other parties)",
+    "item6": "Notifications",
+    "item7": "Consent records",
+    "item8": "Account activity logs",
+    "footnote": "Your export is provided in JSON format for maximum portability. Download links expire after 30 days. You can request a new export at any time."
+  },
+  "restriction": {
+    "title": "Processing Restriction",
+    "subtitle": "Restrict how we process your data — GDPR Article 18 (Right to Restriction of Processing).",
+    "warning": "When processing is restricted, we will only store your data and not process it further, except where required by law. This may limit your ability to use the platform.",
+    "statusLabel": "Processing Restriction Status",
+    "restrictedSince": "Restricted since {date}",
+    "noActive": "No active restriction",
+    "reasonLabel": "Reason for restriction (optional)",
+    "reasonPlaceholder": "Why do you want to restrict processing of your data?",
+    "updateError": "Failed to update processing restriction",
+    "genericError": "An error occurred"
+  },
+  "exportCard": {
+    "title": "Data Export",
+    "subtitle": "Download all your personal data — your right under GDPR Article 20 (Data Portability).",
+    "infoBody": "Your export will include: profile data, work history, education, skills, certifications, offers, messages, notifications, consent records, and audit logs.",
+    "requestBtn": "Request Data Export",
+    "requesting": "Requesting your data export...",
+    "processing": "Preparing your data export. This may take a few minutes...",
+    "ready": "Your data export is ready!",
+    "downloadBtn": "Download Export (JSON)",
+    "downloadHint": "Download link expires in 30 days",
+    "errorFallback": "An error occurred. Please try again.",
+    "tryAgain": "Try Again",
+    "pendingError": "You already have a pending data export request. Please check the status below.",
+    "requestError": "Failed to request data export",
+    "exportFailed": "Export failed. Please try again.",
+    "exportTimeout": "Export is taking longer than expected. Please check back later.",
+    "exportExpired": "Export link has expired. Please request a new export.",
+    "statusCheckError": "Failed to check export status.",
+    "genericError": "An error occurred"
+  },
+  "deletionCard": {
+    "title": "Account Deletion",
+    "subtitle": "Request permanent deletion of your account and personal data — GDPR Article 17 (Right to Erasure).",
+    "warningTitle": "Important — Read before proceeding",
+    "warning1": "Your account and personal data will be permanently deleted.",
+    "warning2": "You have a <strong>30-day grace period</strong> to cancel this request.",
+    "warning3": "Some data must be retained by law (invoices for 7 years, KvK numbers).",
+    "warning4": "This action cannot be undone after the grace period ends.",
+    "warning5": "Your anonymous profile, offers, and messages will be anonymized.",
+    "whatTitle": "What happens to your data:",
+    "willDeleteTitle": "Will be deleted:",
+    "willDelete": [
+      "Email address",
+      "Phone number",
+      "Profile information",
+      "Work history & education",
+      "Skills & certifications",
+      "Messages",
+      "Notifications",
+      "Verification documents",
+      "Login credentials"
+    ],
+    "retainedTitle": "Retained by law:",
+    "retained": [
+      "Anonymized invoices (7 years — tax obligation)",
+      "KvK registration numbers (legal obligation)",
+      "Audit logs (anonymized, 7 years)",
+      "Consent records (7 years after withdrawal)"
+    ],
+    "requestBtn": "Request Account Deletion",
+    "reasonLabel": "Reason for deletion (optional)",
+    "reasonPlaceholder": "Tell us why you're leaving (this helps us improve)...",
+    "confirmBtn": "Yes, delete my account",
+    "cancelBtn": "Cancel",
+    "processing": "Processing your deletion request...",
+    "graceTitle": "Deletion Request Submitted",
+    "graceBody": "Your account will be permanently deleted on <strong>{date}</strong>.",
+    "graceCancelNote": "You can cancel this request within the 30-day grace period.",
+    "cancelDeletionBtn": "Cancel Deletion Request",
+    "cancelledTitle": "Deletion Cancelled",
+    "cancelledBody": "Your account is safe. Your data will not be deleted.",
+    "backBtn": "Back",
+    "errorFallback": "An error occurred. Please try again.",
+    "tryAgain": "Try Again",
+    "requestError": "Failed to request account deletion",
+    "cancelError": "Failed to cancel deletion",
+    "genericError": "An error occurred"
+  }
+}

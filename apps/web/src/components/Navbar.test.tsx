@@ -1,6 +1,8 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { NextIntlClientProvider } from 'next-intl';
 import Navbar from './Navbar';
+import enMessages from '@/messages/en';
 
 // --- Module-level mocks ---
 
@@ -15,12 +17,44 @@ jest.mock('next/navigation', () => ({
   useSearchParams: () => new URLSearchParams(),
 }));
 
-// Mock next/link to render as a regular anchor tag
+// Navbar uses the locale-aware navigation helpers from `@/i18n/navigation`
+// (next-intl). Mock them so no Next router is required and links render as
+// plain anchors. The English catalog supplies the same visible strings the
+// assertions check (e.g. "Sign In", "Dashboard").
+jest.mock('@/i18n/navigation', () => ({
+  Link: function MockLink({ children, href, ...props }: { children: React.ReactNode; href: string; [key: string]: any }) {
+    return <a href={href} {...props}>{children}</a>;
+  },
+  usePathname: () => '/',
+  useRouter: () => ({ push: mockPush, replace: mockReplace, back: mockBack, prefetch: mockPrefetch }),
+  redirect: jest.fn(),
+  getPathname: jest.fn(),
+}));
+
+// NotificationBell pulls in a live WebSocket hook (useSocket → socket.io-client)
+// that has no place in a Navbar render test. Mock it as a static bell so the
+// authenticated-state assertions (role badge, nav links, sign-out) can run.
+jest.mock('./notifications/NotificationBell', () => {
+  return function MockNotificationBell() {
+    return <div data-testid="notification-bell" />;
+  };
+});
+
+// Mock next/link to render as a regular anchor tag (still used by some children)
 jest.mock('next/link', () => {
   return function MockLink({ children, href, ...props }: { children: React.ReactNode; href: string; [key: string]: any }) {
     return <a href={href} {...props}>{children}</a>;
   };
 });
+
+// Wraps a node in the provider Navbar needs for `useTranslations`/`useLocale`.
+function renderWithIntl(ui: React.ReactElement) {
+  return render(
+    <NextIntlClientProvider locale="en" messages={enMessages}>
+      {ui}
+    </NextIntlClientProvider>,
+  );
+}
 
 const mockUseAuth = jest.fn();
 const mockLogout = jest.fn();
@@ -53,6 +87,7 @@ jest.mock('lucide-react', () => ({
   ChevronUp: () => 'ChevronUpIcon',
   Car: () => 'CarIcon',
   Globe: () => 'GlobeIcon',
+  Menu: () => 'MenuIcon',
   Star: () => 'StarIcon',
   ArrowRight: () => 'ArrowRightIcon',
   Award: () => 'AwardIcon',
@@ -87,7 +122,7 @@ describe('Navbar', () => {
         refreshUser: jest.fn(),
       });
 
-      render(<Navbar />);
+      renderWithIntl(<Navbar />);
 
       expect(screen.getByText('Sign In')).toBeInTheDocument();
       expect(screen.getByText('Get Started')).toBeInTheDocument();
@@ -104,7 +139,7 @@ describe('Navbar', () => {
       localStorage.setItem('userId', 'user-1');
       localStorage.setItem('userRole', 'WORKER');
 
-      render(<Navbar />);
+      renderWithIntl(<Navbar />);
 
       // After useEffect fires, worker nav items should appear
       // Links include icon text (e.g. "BriefcaseIconDashboard"), so use getByRole with name match
@@ -128,7 +163,7 @@ describe('Navbar', () => {
       localStorage.setItem('userId', 'user-2');
       localStorage.setItem('userRole', 'EMPLOYER');
 
-      render(<Navbar />);
+      renderWithIntl(<Navbar />);
 
       await waitFor(() => {
         expect(screen.getByRole('link', { name: /search workers/i })).toBeInTheDocument();
@@ -148,7 +183,7 @@ describe('Navbar', () => {
       localStorage.setItem('userId', 'admin-1');
       localStorage.setItem('userRole', 'ADMIN');
 
-      render(<Navbar />);
+      renderWithIntl(<Navbar />);
 
       await waitFor(() => {
         expect(screen.getByRole('link', { name: /admin/i })).toBeInTheDocument();
@@ -166,7 +201,7 @@ describe('Navbar', () => {
       localStorage.setItem('userId', 'support-1');
       localStorage.setItem('userRole', 'SUPPORT');
 
-      render(<Navbar />);
+      renderWithIntl(<Navbar />);
 
       await waitFor(() => {
         expect(screen.getByRole('link', { name: /support/i })).toBeInTheDocument();
@@ -191,7 +226,7 @@ describe('Navbar', () => {
       localStorage.setItem('userId', 'user-1');
       localStorage.setItem('userRole', 'WORKER');
 
-      render(<Navbar />);
+      renderWithIntl(<Navbar />);
 
       await waitFor(() => {
         expect(screen.getByText('WORKER')).toBeInTheDocument();
@@ -209,7 +244,7 @@ describe('Navbar', () => {
       localStorage.setItem('userId', 'user-2');
       localStorage.setItem('userRole', 'EMPLOYER');
 
-      render(<Navbar />);
+      renderWithIntl(<Navbar />);
 
       await waitFor(() => {
         expect(screen.getByText('EMPLOYER')).toBeInTheDocument();
@@ -227,7 +262,7 @@ describe('Navbar', () => {
       localStorage.setItem('userId', 'admin-1');
       localStorage.setItem('userRole', 'ADMIN');
 
-      render(<Navbar />);
+      renderWithIntl(<Navbar />);
 
       await waitFor(() => {
         expect(screen.getByText('ADMIN')).toBeInTheDocument();
@@ -251,7 +286,7 @@ describe('Navbar', () => {
       localStorage.setItem('userId', 'user-1');
       localStorage.setItem('userRole', 'WORKER');
 
-      render(<Navbar />);
+      renderWithIntl(<Navbar />);
 
       await waitFor(() => {
         expect(screen.getByText('Sign out')).toBeInTheDocument();
@@ -275,7 +310,7 @@ describe('Navbar', () => {
         refreshUser: jest.fn(),
       });
 
-      render(<Navbar />);
+      renderWithIntl(<Navbar />);
 
       expect(screen.getByText('Sign In')).toBeInTheDocument();
       expect(screen.getByText('Get Started')).toBeInTheDocument();
@@ -289,7 +324,7 @@ describe('Navbar', () => {
         refreshUser: jest.fn(),
       });
 
-      render(<Navbar />);
+      renderWithIntl(<Navbar />);
 
       expect(screen.queryByText('Dashboard')).not.toBeInTheDocument();
       expect(screen.queryByText('Admin')).not.toBeInTheDocument();
@@ -313,7 +348,7 @@ describe('Navbar', () => {
       localStorage.setItem('userId', 'user-1');
       localStorage.setItem('userRole', 'WORKER');
 
-      render(<Navbar />);
+      renderWithIntl(<Navbar />);
 
       await waitFor(() => {
         // AuthContext provides user.email as 'worker@example.com'
@@ -340,7 +375,7 @@ describe('Navbar', () => {
       });
       localStorage.setItem('accessToken', 'test-token');
 
-      render(<Navbar />);
+      renderWithIntl(<Navbar />);
 
       // Neither the authed nor the unauthed user menu should be shown.
       expect(screen.queryByText('Sign out')).not.toBeInTheDocument();
