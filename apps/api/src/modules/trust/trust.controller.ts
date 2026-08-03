@@ -12,12 +12,14 @@ import {
   UseGuards,
   BadRequestException,
   NotFoundException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { TrustService } from './trust.service';
 import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
 import { RolesGuard } from '../../guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { PrismaService } from '../../prisma/prisma.service';
 import {
   SubmitEmployerVerificationDto,
   SubmitEmployerDocumentDto,
@@ -38,7 +40,30 @@ import { CalculateReputationScoreDto } from './dto/reputation.dto';
 @Controller('trust')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class TrustController {
-  constructor(private trustService: TrustService) {}
+  constructor(
+    private trustService: TrustService,
+    private prisma: PrismaService,
+  ) {}
+
+  // ============================================================================
+  // EMPLOYER SELF-SERVICE VERIFICATION — ownership helper
+  // ----------------------------------------------------------------------------
+  // A-C2: submitEmployerVerification and submitEmployerDocument act on a
+  // specific employer. Previously the :employerId path param was trusted
+  // directly, letting any authenticated user submit verification data or
+  // documents for ANY employer (IDOR). Resolve the acting employer from the
+  // verified JWT and require the path param to match it.
+  // ============================================================================
+  private async resolveOwnEmployerId(userId: string, claimedEmployerId: string): Promise<string> {
+    const employer = await this.prisma.employer.findUnique({
+      where: { userId },
+      select: { id: true },
+    });
+    if (!employer || employer.id !== claimedEmployerId) {
+      throw new ForbiddenException('Not authorized to act on behalf of this employer');
+    }
+    return employer.id;
+  }
 
   // ============================================================================
   // EMPLOYER VERIFICATION ENDPOINTS
@@ -61,29 +86,40 @@ export class TrustController {
    * POST /trust/employers/:employerId/verification
    * Submit employer verification data
    */
+  // A-C2: employer self-service — restricted to EMPLOYER and the path
+  // employerId must match the employer resolved from the JWT.
   @Post('employers/:employerId/verification')
+  @Roles('EMPLOYER')
   async submitEmployerVerification(
     @Param('employerId') employerId: string,
     @Body() dto: SubmitEmployerVerificationDto,
     @Request() req: any,
   ) {
-    return this.trustService.submitEmployerVerification(employerId, dto);
+    const ownedEmployerId = await this.resolveOwnEmployerId(req.user.id, employerId);
+    return this.trustService.submitEmployerVerification(ownedEmployerId, dto);
   }
 
   /**
    * POST /trust/employers/:employerId/documents
    * Submit employer verification document
    */
+  // A-C2: employer self-service — restricted to EMPLOYER and the path
+  // employerId must match the employer resolved from the JWT. The audit actor
+  // is the verified user id (req.user.id) — previously req.user.userId was
+  // used, which the JWT strategy never populates, so performedBy was logged
+  // as undefined.
   @Post('employers/:employerId/documents')
+  @Roles('EMPLOYER')
   async submitEmployerDocument(
     @Param('employerId') employerId: string,
     @Body() dto: SubmitEmployerDocumentDto,
     @Request() req: any,
   ) {
+    const ownedEmployerId = await this.resolveOwnEmployerId(req.user.id, employerId);
     return this.trustService.submitEmployerDocument(
-      employerId,
+      ownedEmployerId,
       dto,
-      req.user?.userId,
+      req.user.id,
     );
   }
 
@@ -101,7 +137,7 @@ export class TrustController {
     return this.trustService.reviewEmployerVerification(
       employerId,
       dto,
-      req.user?.userId,
+      req.user.id,
     );
   }
 
@@ -124,7 +160,7 @@ export class TrustController {
   ) {
     return this.trustService.reportSuspiciousActivity(
       dto,
-      req.user?.userId,
+      req.user.id,
     );
   }
 
@@ -156,7 +192,7 @@ export class TrustController {
     return this.trustService.reviewSuspiciousActivity(
       activityId,
       dto,
-      req.user?.userId,
+      req.user.id,
     );
   }
 
@@ -170,7 +206,7 @@ export class TrustController {
     @Body() dto: CreateFraudIndicatorDto,
     @Request() req: any,
   ) {
-    return this.trustService.createFraudIndicator(dto, req.user?.userId, req.user?.role);
+    return this.trustService.createFraudIndicator(dto, req.user.id, req.user.role);
   }
 
   /**
@@ -190,7 +226,7 @@ export class TrustController {
     return this.trustService.updateFraudIndicator(
       indicatorId,
       dto,
-      req.user?.userId,
+      req.user.id,
     );
   }
 
@@ -248,7 +284,7 @@ export class TrustController {
       primaryUserId,
       suspectedUserId,
       dto,
-      req.user?.userId,
+      req.user.id,
     );
   }
 
@@ -264,7 +300,7 @@ export class TrustController {
   @Roles('ADMIN')
   @Throttle({ short: { ttl: 60000, limit: 20 } })
   async addToBlacklist(@Body() dto: AddToBlacklistDto, @Request() req: any) {
-    return this.trustService.addToBlacklist(dto, req.user?.userId);
+    return this.trustService.addToBlacklist(dto, req.user.id);
   }
 
   /**
@@ -283,7 +319,7 @@ export class TrustController {
       entityType,
       entityId,
       dto,
-      req.user?.userId,
+      req.user.id,
     );
   }
 

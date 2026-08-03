@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, ForbiddenException, BadRequestException 
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../../prisma/prisma.service';
 import { NotificationEventType } from '../notifications/notification.types';
+import { assertTargetProcessingNotRestricted } from '../../common/utils/processing-restriction';
 
 /**
  * MESSAGES SERVICE
@@ -120,6 +121,18 @@ export class MessagesService {
     const recipientId = conversation.participant1Id === senderId
       ? conversation.participant2Id
       : conversation.participant1Id;
+
+    // E-H8: GDPR Article 18 target-subject check. Sending a message stores and
+    // notifies on the recipient's personal data, so if the recipient has
+    // restricted processing the send must be blocked. The global guard only
+    // checks the *sender* (actor); the recipient (target) check lives here.
+    // The generic message does not reveal that the recipient restricted
+    // processing.
+    await assertTargetProcessingNotRestricted(
+      this.prisma,
+      recipientId,
+      'Cannot send a message in this conversation.',
+    );
 
     // Create message
     const message = await this.prisma.message.create({

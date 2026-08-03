@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../contexts/AuthContext";
 import Navbar from "../../components/Navbar";
-import { workersApi, employersApi, api } from "../../lib/api";
+import { workersApi, employersApi, api, uploadsApi, trustApi } from "../../lib/api";
 import { PrivateWorkerProfile, Employer } from "../../lib/types";
 import {
   User,
@@ -20,7 +20,33 @@ import {
   CheckCircle,
   Clock,
   XCircle,
+  Upload,
+  AlertCircle,
 } from "lucide-react";
+
+// Document types accepted for employer verification, mirrored from the
+// Prisma DocumentType enum. Only the subset relevant to employer verification
+// is offered in the UI; the backend accepts the full enum.
+const DOCUMENT_TYPE_OPTIONS = [
+  { value: "BUSINESS_REGISTRATION", label: "Business Registration" },
+  { value: "TAX_DOCUMENT", label: "Tax Document" },
+  { value: "BANK_STATEMENT", label: "Bank Statement" },
+  { value: "UTILITY_BILL", label: "Utility Bill" },
+  { value: "ID_CARD", label: "ID Card" },
+  { value: "PASSPORT", label: "Passport" },
+  { value: "CERTIFICATE", label: "Certificate" },
+  { value: "DIPLOMA", label: "Diploma" },
+  { value: "REFERENCE_LETTER", label: "Reference Letter" },
+  { value: "OTHER", label: "Other" },
+] as const;
+
+const ALLOWED_MIME_TYPES = [
+  "application/pdf",
+  "image/png",
+  "image/jpeg",
+  "image/webp",
+] as const;
+const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB — matches backend limit
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -28,6 +54,13 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState<PrivateWorkerProfile | null>(null);
   const [employer, setEmployer] = useState<Employer | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Employer verification document upload state.
+  const [docType, setDocType] = useState<string>(DOCUMENT_TYPE_OPTIONS[0].value);
+  const [docFile, setDocFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadSuccess, setUploadSuccess] = useState<string | null>(null);
 
   const userRole: string | null = user?.role ?? null;
 
@@ -68,6 +101,80 @@ export default function ProfilePage() {
 
     loadProfile();
   }, [userRole, authLoading, user, router]);
+
+  // ============================================================================
+  // EMPLOYER VERIFICATION DOCUMENT UPLOAD
+  // ----------------------------------------------------------------------------
+  // Flow: presign via /uploads/verification-document (employer resolved from
+  // JWT server-side) → PUT file directly to S3 → compute SHA-256 via Web Crypto
+  // → submit {documentType, fileUrl, fileHash, metadata.mimeType} to
+  // /trust/employers/:employerId/documents (employerId is the acting
+  // employer's own id; the backend re-resolves it from the JWT and rejects
+  // path-param mismatches, preventing IDOR).
+  // ============================================================================
+  async function handleUploadDocument() {
+    if (!employer || !docFile) return;
+    setUploadError(null);
+    setUploadSuccess(null);
+    setUploading(true);
+    try {
+      // Client-side boundary checks mirror the backend allow-list/size limit.
+      if (!ALLOWED_MIME_TYPES.includes(docFile.type as (typeof ALLOWED_MIME_TYPES)[number])) {
+        throw new Error("Unsupported file type. Use PDF, PNG, JPEG, or WebP.");
+      }
+      if (docFile.size > MAX_FILE_SIZE_BYTES) {
+        throw new Error("File is too large. Maximum size is 10 MB.");
+      }
+
+      // 1. Request a presigned PUT URL from the backend.
+      const presignRes = await uploadsApi.presignVerificationDocument({
+        fileName: docFile.name,
+        mimeType: docFile.type,
+      });
+      const { uploadUrl, fileUrl } = presignRes.data;
+
+      // 2. Upload the raw file bytes directly to S3.
+      const putRes = await fetch(uploadUrl, {
+        method: "PUT",
+        headers: { "Content-Type": docFile.type },
+        body: docFile,
+      });
+      if (!putRes.ok) {
+        throw new Error(`Upload to storage failed (${putRes.status}). Please try again.`);
+      }
+
+      // 3. Compute a SHA-256 hash of the file for integrity tracking.
+      const fileBuffer = await docFile.arrayBuffer();
+      const digest = await crypto.subtle.digest("SHA-256", fileBuffer);
+      const fileHash = Array.from(new Uint8Array(digest))
+        .map((b) => b.toString(16).padStart(2, "0"))
+        .join("");
+
+      // 4. Submit the document reference to the trust service. The employer's
+      // own id is used; the backend re-verifies ownership from the JWT.
+      await trustApi.submitEmployerDocument(employer.id, {
+        documentType: docType,
+        fileUrl,
+        fileHash,
+        metadata: { mimeType: docFile.type, fileName: docFile.name },
+      });
+
+      setUploadSuccess("Document submitted for verification.");
+      setDocFile(null);
+      // Reset the file input so the same file can be re-selected later.
+      const input = document.getElementById("doc-file-input") as HTMLInputElement | null;
+      if (input) input.value = "";
+
+      // Refresh the employer profile so the verification status reflects the
+      // newly submitted document.
+      const refreshed = await api.get("/employers/me/company");
+      if (refreshed.data) setEmployer(refreshed.data);
+    } catch (err: any) {
+      setUploadError(err?.response?.data?.message || err?.message || "Upload failed.");
+    } finally {
+      setUploading(false);
+    }
+  }
 
   if (loading) {
     return (
@@ -321,6 +428,89 @@ export default function ProfilePage() {
                 )}
               </div>
             </div>
+
+            {/* Verification document upload */}
+            {/* Only shown when verification is not yet complete, so employers
+                can submit supporting documents for review. */}
+            {employer.verificationStatus !== "BASIC_VERIFIED" &&
+              employer.verificationStatus !== "PREMIUM_VERIFIED" && (
+              <div className="bg-white rounded-xl border shadow-sm p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                  <Upload className="w-5 h-5" />
+                  Submit Verification Document
+                </h3>
+                <p className="text-sm text-gray-500 mb-4">
+                  Upload a document to support your verification. Accepted
+                  types: PDF, PNG, JPEG, WebP (max 10 MB).
+                </p>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Document type
+                    </label>
+                    <select
+                      value={docType}
+                      onChange={(e) => setDocType(e.target.value)}
+                      disabled={uploading}
+                      className="w-full max-w-sm rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
+                    >
+                      {DOCUMENT_TYPE_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      File
+                    </label>
+                    <input
+                      id="doc-file-input"
+                      type="file"
+                      accept=".pdf,.png,.jpeg,.jpg,.webp,application/pdf,image/png,image/jpeg,image/webp"
+                      onChange={(e) => {
+                        setDocFile(e.target.files?.[0] ?? null);
+                        setUploadError(null);
+                        setUploadSuccess(null);
+                      }}
+                      disabled={uploading}
+                      className="block w-full text-sm text-gray-700 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                    />
+                    {docFile && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        {docFile.name} ({(docFile.size / 1024 / 1024).toFixed(2)} MB)
+                      </p>
+                    )}
+                  </div>
+
+                  {uploadError && (
+                    <div className="flex items-start gap-2 text-sm text-red-700 bg-red-50 rounded-lg p-3">
+                      <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+                      <span>{uploadError}</span>
+                    </div>
+                  )}
+                  {uploadSuccess && (
+                    <div className="flex items-start gap-2 text-sm text-green-700 bg-green-50 rounded-lg p-3">
+                      <CheckCircle className="w-4 h-4 mt-0.5 shrink-0" />
+                      <span>{uploadSuccess}</span>
+                    </div>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={handleUploadDocument}
+                    disabled={uploading || !docFile}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <Upload className="w-4 h-4" />
+                    {uploading ? "Uploading..." : "Submit document"}
+                  </button>
+                </div>
+              </div>
+            )}
           </>
         )}
 
