@@ -60,12 +60,15 @@ api.interceptors.response.use(
 
       const refreshToken = localStorage.getItem('refreshToken');
       if (!refreshToken) {
-        // No refresh token — redirect to login
+        // No refresh token — clear credentials and reject. We deliberately do
+        // NOT hard-navigate to /login here: this interceptor runs on EVERY 401,
+        // including the `/auth/me` probe AuthProvider fires on mount for
+        // logged-out visitors on public pages (landing/login). Navigating here
+        // caused an infinite reload loop (`/auth/me` 401 -> reload /login ->
+        // `/auth/me` 401 -> ...). Route-level redirect-to-login for protected
+        // pages is owned by AuthContext, which knows the current path.
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
-        if (typeof window !== 'undefined') {
-          window.location.href = '/login';
-        }
         return Promise.reject(error);
       }
 
@@ -85,11 +88,11 @@ api.interceptors.response.use(
         return api(originalRequest);
       } catch (refreshError) {
         processQueue(refreshError, null);
+        // Refresh failed (expired/revoked) — clear credentials and reject.
+        // AuthContext handles the redirect to login for protected pages; do
+        // NOT reload here (see the no-refresh-token branch above).
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
-        if (typeof window !== 'undefined') {
-          window.location.href = '/login';
-        }
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;
