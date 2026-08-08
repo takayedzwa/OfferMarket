@@ -1,0 +1,1605 @@
+"use client";
+
+import { useState, useEffect, useCallback } from "react";
+import { useTranslations } from "next-intl";
+import { useRouter } from "@/i18n/navigation";
+import { useAuth } from "@/contexts/AuthContext";
+import { workersApi, enumsApi, regionsApi } from "@/lib/api";
+import { getCountries, getProvinces, getCities, getDefaultCountryCode, type LocationOption, type CityOption } from "@/lib/location";
+import {
+  ArrowLeft, Save, ChevronDown, ChevronUp,
+  Plus, X, Car, Shield, GraduationCap, Briefcase,
+  Globe, Award, Languages, User
+} from "lucide-react";
+
+enum Availability {
+  IMMEDIATE = "IMMEDIATE",
+  ONE_MONTH = "ONE_MONTH",
+  THREE_MONTHS = "THREE_MONTHS",
+  SIX_MONTHS = "SIX_MONTHS",
+  NOT_AVAILABLE = "NOT_AVAILABLE",
+}
+
+// ============================================================================
+// Visible Companies Manager Component
+// ============================================================================
+// Allows workers to manage which employers can see their profile when
+// visibility is set to SELECTED_COMPANIES.
+// ============================================================================
+
+function VisibleCompaniesManager() {
+  const t = useTranslations("profile.edit");
+  const [visibleCompanies, setVisibleCompanies] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [adding, setAdding] = useState(false);
+  const [employerIdToAdd, setEmployerIdToAdd] = useState("");
+  const [error, setError] = useState("");
+
+  const fetchVisibleCompanies = useCallback(async () => {
+    try {
+      const response = await workersApi.getVisibleCompanies();
+      setVisibleCompanies(response.data || []);
+    } catch (err) {
+      console.error("Failed to fetch visible companies:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchVisibleCompanies();
+  }, [fetchVisibleCompanies]);
+
+  const handleAdd = async () => {
+    if (!employerIdToAdd.trim()) return;
+    setAdding(true);
+    setError("");
+    try {
+      await workersApi.addVisibleCompany(employerIdToAdd.trim());
+      setEmployerIdToAdd("");
+      await fetchVisibleCompanies();
+    } catch (err: any) {
+      setError(err.response?.data?.message || t("errAddCompany"));
+    } finally {
+      setAdding(false);
+    }
+  };
+
+  const handleRemove = async (employerId: string) => {
+    try {
+      await workersApi.removeVisibleCompany(employerId);
+      await fetchVisibleCompanies();
+    } catch (err) {
+      console.error("Failed to remove visible company:", err);
+    }
+  };
+
+  if (loading) {
+    return <p className="text-sm text-gray-500">{t("loadingVisibleCompanies")}</p>;
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="flex gap-2">
+        <input
+          type="text"
+          value={employerIdToAdd}
+          onChange={(e) => setEmployerIdToAdd(e.target.value)}
+          placeholder={t("placeholderEmployerId")}
+          className="flex-1 px-3 py-2 border border-yellow-300 rounded-lg text-sm focus:ring-2 focus:ring-yellow-500 focus:border-transparent outline-none"
+        />
+        <button
+          type="button"
+          onClick={handleAdd}
+          disabled={adding || !employerIdToAdd.trim()}
+          className="px-4 py-2 bg-yellow-600 text-white text-sm rounded-lg hover:bg-yellow-700 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {adding ? t("adding") : t("add")}
+        </button>
+      </div>
+      {error && <p className="text-sm text-red-600">{error}</p>}
+      {visibleCompanies.length > 0 ? (
+        <ul className="space-y-2">
+          {visibleCompanies.map((vc: any) => (
+            <li key={vc.id} className="flex items-center justify-between p-2 bg-white border border-yellow-200 rounded-lg">
+              <span className="text-sm text-gray-900">
+                {vc.employer?.companyName || vc.employerId}
+                {vc.employer?.companyTradeName && (
+                  <span className="text-gray-500 ml-1">({vc.employer.companyTradeName})</span>
+                )}
+              </span>
+              <button
+                type="button"
+                onClick={() => handleRemove(vc.employerId)}
+                className="text-red-600 hover:text-red-700 text-sm"
+              >
+                {t("remove")}
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-sm text-yellow-700">
+          {t("noCompanies")}
+        </p>
+      )}
+    </div>
+  );
+}
+
+enum SkillLevel {
+  BEGINNER = "BEGINNER",
+  INTERMEDIATE = "INTERMEDIATE",
+  ADVANCED = "ADVANCED",
+  EXPERT = "EXPERT",
+  MASTER = "MASTER",
+}
+
+interface EnumOption {
+  value: string;
+  label: string;
+  description?: string;
+}
+
+interface ProfileSkill {
+  id: string;
+  skillId: string;
+  level: string;
+  yearsOfExperience?: number;
+  isPrimary: boolean;
+  skill?: { id: string; name: string; category?: string };
+}
+
+interface Certification {
+  id: string;
+  name: string;
+  issuingBody: string;
+  certificationNumber?: string;
+  validFrom?: string;
+  validUntil?: string;
+  isLifetime?: boolean;
+}
+
+interface WorkerLanguage {
+  id: string;
+  language: string;
+  level: string;
+}
+
+interface Education {
+  id: string;
+  qualification: string;
+  institution?: string;
+  country?: string;
+  yearCompleted?: number;
+}
+
+interface ProjectExperience {
+  id: string;
+  projectType: string;
+  industry: string;
+  durationMonths?: number;
+  responsibilities?: string[];
+  description?: string;
+  startDate?: string;
+  endDate?: string;
+}
+
+type SectionKey =
+  | "basicInfo"
+  | "location"
+  | "salary"
+  | "skills"
+  | "certifications"
+  | "languages"
+  | "education"
+  | "projects"
+  | "privacy";
+
+const SKILL_LEVEL_VALUES: string[] = [
+  "BEGINNER", "INTERMEDIATE", "ADVANCED", "EXPERT", "MASTER",
+];
+
+const LANGUAGE_OPTIONS = [
+  "Dutch", "English", "German", "French", "Spanish", "Italian", "Polish",
+  "Turkish", "Arabic", "Russian", "Portuguese", "Mandarin",
+];
+
+const LANGUAGE_LEVEL_VALUES = ["A1", "A2", "B1", "B2", "C1", "C2", "NATIVE"];
+
+export default function EditWorkerProfile() {
+  const router = useRouter();
+  const t = useTranslations("profile.edit");
+  const tEnums = useTranslations("enums");
+  const { user } = useAuth();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [savingSection, setSavingSection] = useState<string | null>(null);
+
+  // Enum data
+  const [trades, setTrades] = useState<any[]>([]);
+  const [workScheduleOptions, setWorkScheduleOptions] = useState<EnumOption[]>([]);
+  const [industryOptions, setIndustryOptions] = useState<EnumOption[]>([]);
+  const [careerPriorityOptions, setCareerPriorityOptions] = useState<EnumOption[]>([]);
+  const [employmentTypeOptions, setEmploymentTypeOptions] = useState<EnumOption[]>([]);
+  const [specializationOptions, setSpecializationOptions] = useState<EnumOption[]>([]);
+  const [workAuthorizationOptions, setWorkAuthorizationOptions] = useState<EnumOption[]>([]);
+  const [skillsCatalog, setSkillsCatalog] = useState<any[]>([]);
+
+  // Location state (Country → Province → City cascading dropdowns)
+  const [selectedCountry, setSelectedCountry] = useState(getDefaultCountryCode());
+  const [selectedProvince, setSelectedProvince] = useState("");
+  const [selectedCity, setSelectedCity] = useState("");
+  const [provinces, setProvinces] = useState<LocationOption[]>([]);
+  const [cities, setCities] = useState<CityOption[]>([]);
+
+  // Collapsible sections
+  const [openSections, setOpenSections] = useState<Set<SectionKey>>(
+    new Set(["basicInfo", "location", "salary"])
+  );
+
+  // Sub-resource state
+  const [profileSkills, setProfileSkills] = useState<ProfileSkill[]>([]);
+  const [certifications, setCertifications] = useState<Certification[]>([]);
+  const [languages, setLanguages] = useState<WorkerLanguage[]>([]);
+  const [education, setEducation] = useState<Education[]>([]);
+  const [projectExperiences, setProjectExperiences] = useState<ProjectExperience[]>([]);
+
+  // Add-form state
+  const [showAddSkill, setShowAddSkill] = useState(false);
+  const [newSkillText, setNewSkillText] = useState("");
+  const [newSkillId, setNewSkillId] = useState("");
+  const [newSkillLevel, setNewSkillLevel] = useState("INTERMEDIATE");
+  const [newSkillYears, setNewSkillYears] = useState(0);
+  const [newSkillIsPrimary, setNewSkillIsPrimary] = useState(false);
+  const [showAddCert, setShowAddCert] = useState(false);
+  const [newCert, setNewCert] = useState({ name: "", issuingBody: "", certificationNumber: "", validFrom: "", validUntil: "", isLifetime: false });
+  const [showAddLang, setShowAddLang] = useState(false);
+  const [newLang, setNewLang] = useState({ language: "Dutch", level: "B2" });
+  const [showAddEdu, setShowAddEdu] = useState(false);
+  const [newEdu, setNewEdu] = useState({ qualification: "", institution: "", country: "NL", yearCompleted: "" });
+  const [showAddProject, setShowAddProject] = useState(false);
+  const [newProject, setNewProject] = useState({ projectType: "", industry: "", durationMonths: "", description: "" });
+
+  const [formData, setFormData] = useState({
+    // Basic Info
+    headline: "",
+    summary: "",
+    primaryTrade: "",
+    availability: Availability.IMMEDIATE,
+    yearsOfExperience: 0,
+    noticePeriodDays: 0,
+    specializations: [] as string[],
+    // Location & Mobility
+    postalCode: "",
+    regionId: "",
+    travelDistanceKm: 30,
+    hasDrivingLicense: false,
+    hasOwnVehicle: false,
+    workAuthorization: "",
+    // Salary & Employment
+    desiredSalaryMin: 50000,
+    desiredSalaryMax: 70000,
+    desiredHourlyRate: 0,
+    employmentTypes: ["FULL_TIME"] as string[],
+    workSchedulePrefs: [] as string[],
+    industryPrefs: [] as string[],
+    careerPriorities: [] as string[],
+    // Privacy
+    profileVisibility: "ALL_VERIFIED" as "ALL_VERIFIED" | "SELECTED_COMPANIES" | "HIDDEN",
+  });
+
+  const toggleSection = useCallback((key: SectionKey) => {
+    setOpenSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }, []);
+
+  // Load all data on mount
+  useEffect(() => {
+    workersApi.getTrades()
+      .then((res) => setTrades(res.data.trades || []))
+      .catch(() => setTrades([{ value: "Electrician", label: "Electrician", available: true }]));
+
+    enumsApi.getWorkSchedule()
+      .then((res) => setWorkScheduleOptions(res.data))
+      .catch(() => setWorkScheduleOptions([
+        { value: "STANDARD", label: "Standard" },
+        { value: "FLEXIBLE", label: "Flexible" },
+        { value: "WEEKEND", label: "Weekend" },
+        { value: "EVENING", label: "Evening" },
+        { value: "ROTATING", label: "Rotating" },
+      ]));
+
+    enumsApi.getIndustry()
+      .then((res) => setIndustryOptions(res.data))
+      .catch(() => setIndustryOptions([
+        { value: "CONSTRUCTION", label: "Construction" },
+        { value: "INDUSTRIAL", label: "Industrial" },
+        { value: "RESIDENTIAL", label: "Residential" },
+        { value: "COMMERCIAL", label: "Commercial" },
+        { value: "INFRASTRUCTURE", label: "Infrastructure" },
+        { value: "ENERGY", label: "Energy" },
+        { value: "TELECOM", label: "Telecom" },
+      ]));
+
+    enumsApi.getCareerPriority()
+      .then((res) => setCareerPriorityOptions(res.data))
+      .catch(() => setCareerPriorityOptions([
+        { value: "WORK_LIFE_BALANCE", label: "Work Life Balance" },
+        { value: "HIGH_SALARY", label: "High Salary" },
+        { value: "CAREER_GROWTH", label: "Career Growth" },
+        { value: "REMOTE_FLEXIBILITY", label: "Remote Flexibility" },
+        { value: "JOB_SECURITY", label: "Job Security" },
+        { value: "IMPACTFUL_WORK", label: "Impactful Work" },
+      ]));
+
+    enumsApi.getEmploymentType()
+      .then((res) => setEmploymentTypeOptions(res.data))
+      .catch(() => setEmploymentTypeOptions([
+        { value: "FULL_TIME", label: "Full-time" },
+        { value: "PART_TIME", label: "Part-time" },
+        { value: "FREELANCE", label: "Freelance" },
+        { value: "CONTRACT", label: "Contract" },
+      ]));
+
+    enumsApi.getSpecialization()
+      .then((res) => setSpecializationOptions(res.data))
+      .catch(() => setSpecializationOptions([
+        { value: "INDUSTRIAL_INSTALLATIONS", label: "Industrial Installations" },
+        { value: "RESIDENTIAL_ELECTRICAL", label: "Residential Electrical" },
+        { value: "SOLAR_PV", label: "Solar PV" },
+        { value: "PLC_SYSTEMS", label: "PLC Systems" },
+        { value: "RENEWABLE_ENERGY", label: "Renewable Energy" },
+        { value: "DATA_CENTERS", label: "Data Centers" },
+      ]));
+
+    enumsApi.getWorkAuthorization()
+      .then((res) => setWorkAuthorizationOptions(res.data))
+      .catch(() => setWorkAuthorizationOptions([
+        { value: "EU_CITIZEN", label: "EU Citizen" },
+        { value: "DUTCH_WORK_PERMIT", label: "Dutch Work Permit" },
+        { value: "SCHENGEN_VISA", label: "Schengen Visa" },
+        { value: "OTHER", label: "Other" },
+      ]));
+
+    // Load provinces for location dropdown
+    setProvinces(getProvinces(selectedCountry));
+
+    workersApi.getSkillsCatalog()
+      .then((res) => {
+        const data = res.data;
+        // API might return array directly or wrapped in { skills: [...] }
+        const skills = Array.isArray(data) ? data : (data.skills || data.items || []);
+        setSkillsCatalog(skills);
+      })
+      .catch(() => {});
+
+    // Load profile data
+    workersApi.getMyProfile()
+      .then((res) => {
+        const p = res.data;
+        setFormData({
+          headline: p.headline || "",
+          summary: p.summary || "",
+          primaryTrade: p.primaryTrade || "",
+          availability: p.availability || Availability.IMMEDIATE,
+          yearsOfExperience: p.yearsOfExperience || 0,
+          noticePeriodDays: p.noticePeriodDays || 0,
+          specializations: p.specializations || [],
+          postalCode: p.postalCode || "",
+          regionId: p.regionId || "",
+          travelDistanceKm: p.travelDistanceKm || 30,
+          hasDrivingLicense: p.hasDrivingLicense || false,
+          hasOwnVehicle: p.hasOwnVehicle || false,
+          workAuthorization: p.workAuthorization || "",
+          desiredSalaryMin: p.desiredSalaryMin || 50000,
+          desiredSalaryMax: p.desiredSalaryMax || 70000,
+          desiredHourlyRate: p.desiredHourlyRate || 0,
+          employmentTypes: p.employmentTypes || ["FULL_TIME"],
+          workSchedulePrefs: p.workSchedulePrefs || [],
+          industryPrefs: p.industryPrefs || [],
+          careerPriorities: p.careerPriorities || [],
+          profileVisibility: p.profileVisibility || "ALL_VERIFIED",
+        });
+        setProfileSkills(p.skills || []);
+        setCertifications(p.certifications || []);
+        setLanguages(p.languages || []);
+        setEducation(p.education || []);
+        setProjectExperiences(p.projectExperiences || []);
+
+        // Reverse-resolve regionId to province and city dropdowns
+        if (p.regionId && p.region) {
+          const allProvinces = getProvinces(selectedCountry);
+          if (p.region.type === 'CITY' && p.region.province) {
+            // City record — match province by province code/name
+            const provinceMatch = allProvinces.find((prov: LocationOption) =>
+              prov.name === p.region.province || prov.code === p.region.province
+            );
+            if (provinceMatch) {
+              setSelectedProvince(provinceMatch.code);
+              const provinceCities = getCities(provinceMatch.code, selectedCountry);
+              setCities(provinceCities);
+              // Try to find the city in the province cities by name
+              const cityMatch = provinceCities.find((c: CityOption) => c.name === p.region.name);
+              if (cityMatch) {
+                setSelectedCity(cityMatch.id);
+              }
+            }
+          } else if (p.region.type === 'PROVINCE') {
+            // Province-level record — match by name
+            const provinceMatch = allProvinces.find((prov: LocationOption) =>
+              prov.name === p.region.name || prov.code === p.region.province
+            );
+            if (provinceMatch) {
+              setSelectedProvince(provinceMatch.code);
+              setCities(getCities(provinceMatch.code, selectedCountry));
+            }
+          }
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to load profile:", err);
+      });
+  }, []);
+
+  const updateField = (field: string, value: any) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleSaveProfile = async () => {
+    setLoading(true);
+    setError("");
+    setSuccess("");
+    try {
+      const payload = { ...formData };
+
+      // Resolve location to a regionId via the backend
+      if (selectedProvince && selectedCity) {
+        const provinceObj = provinces.find((p: LocationOption) => p.code === selectedProvince);
+        const cityObj = cities.find((c: CityOption) => c.id === selectedCity);
+        if (provinceObj && cityObj) {
+          try {
+            const countryObj = getCountries().find((c: LocationOption) => c.code === selectedCountry);
+            const res = await regionsApi.resolveRegion({
+              countryCode: selectedCountry,
+              countryName: countryObj?.name || selectedCountry,
+              provinceCode: selectedProvince,
+              provinceName: provinceObj.name,
+              cityName: cityObj.name,
+              cityLatitude: cityObj.latitude,
+              cityLongitude: cityObj.longitude,
+            });
+            payload.regionId = res.data.id;
+          } catch (err) {
+            console.error("Failed to resolve region:", err);
+            // Fall back to saving without regionId change
+          }
+        }
+      } else if (selectedProvince && !selectedCity) {
+        // Only province selected — resolve at province level
+        const provinceObj = provinces.find((p: LocationOption) => p.code === selectedProvince);
+        if (provinceObj) {
+          try {
+            const countryObj = getCountries().find((c: LocationOption) => c.code === selectedCountry);
+            const res = await regionsApi.resolveRegion({
+              countryCode: selectedCountry,
+              countryName: countryObj?.name || selectedCountry,
+              provinceCode: selectedProvince,
+              provinceName: provinceObj.name,
+              cityName: provinceObj.name, // province-level region
+            });
+            payload.regionId = res.data.id;
+          } catch (err) {
+            console.error("Failed to resolve region:", err);
+          }
+        }
+      }
+
+      await workersApi.updateProfile(payload);
+      setSuccess(t("successUpdate"));
+    } catch (err: any) {
+      setError(err.response?.data?.message || t("errUpdate"));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // When user selects or types a skill, resolve it to a catalog ID (or keep custom text)
+  const handleSkillTextChange = (text: string) => {
+    setNewSkillText(text);
+    // Check if it matches a catalog skill
+    const match = skillsCatalog.find((s: any) => s.name && s.name.toLowerCase() === text.toLowerCase());
+    if (match) {
+      setNewSkillId(match.id);
+    } else {
+      setNewSkillId(""); // custom text, no catalog match
+    }
+  };
+
+  const handleSkillCatalogSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selectedId = e.target.value;
+    if (selectedId) {
+      setNewSkillId(selectedId);
+      const skill = skillsCatalog.find((s: any) => s.id === selectedId);
+      if (skill) {
+        setNewSkillText(skill.name || "");
+      }
+    }
+  };
+
+  // --- Sub-resource handlers ---
+
+  const handleAddSkill = async () => {
+    if (!newSkillId && !newSkillText.trim()) return;
+    try {
+      setSavingSection("skills");
+      const payload: any = {
+        level: newSkillLevel,
+      };
+      if (newSkillId) {
+        payload.skillId = newSkillId;
+      } else {
+        payload.name = newSkillText.trim();
+      }
+      if (newSkillYears > 0) payload.yearsOfExperience = newSkillYears;
+      if (newSkillIsPrimary) payload.isPrimary = true;
+      await workersApi.addSkill(payload);
+      const res = await workersApi.getMyProfile();
+      setProfileSkills(res.data.skills || []);
+      setShowAddSkill(false);
+      setNewSkillText("");
+      setNewSkillId("");
+      setNewSkillLevel("INTERMEDIATE");
+      setNewSkillYears(0);
+      setNewSkillIsPrimary(false);
+    } catch (err: any) {
+      setError(err.response?.data?.message || t("errAddSkill"));
+    } finally {
+      setSavingSection(null);
+    }
+  };
+
+  const handleRemoveSkill = async (id: string) => {
+    try {
+      await workersApi.removeSkill(id);
+      setProfileSkills((prev) => prev.filter((s) => s.id !== id));
+    } catch (err: any) {
+      setError(err.response?.data?.message || t("errRemoveSkill"));
+    }
+  };
+
+  const handleAddCertification = async () => {
+    if (!newCert.name || !newCert.issuingBody) return;
+    try {
+      setSavingSection("certifications");
+      await workersApi.addCertification(newCert);
+      const res = await workersApi.getMyProfile();
+      setCertifications(res.data.certifications || []);
+      setShowAddCert(false);
+      setNewCert({ name: "", issuingBody: "", certificationNumber: "", validFrom: "", validUntil: "", isLifetime: false });
+    } catch (err: any) {
+      setError(err.response?.data?.message || t("errAddCert"));
+    } finally {
+      setSavingSection(null);
+    }
+  };
+
+  const handleRemoveCertification = async (id: string) => {
+    try {
+      await workersApi.removeCertification(id);
+      setCertifications((prev) => prev.filter((c) => c.id !== id));
+    } catch (err: any) {
+      setError(err.response?.data?.message || t("errRemoveCert"));
+    }
+  };
+
+  const handleAddLanguage = async () => {
+    try {
+      setSavingSection("languages");
+      await workersApi.addLanguage(newLang);
+      const res = await workersApi.getMyProfile();
+      setLanguages(res.data.languages || []);
+      setShowAddLang(false);
+      setNewLang({ language: "Dutch", level: "B2" });
+    } catch (err: any) {
+      setError(err.response?.data?.message || t("errAddLang"));
+    } finally {
+      setSavingSection(null);
+    }
+  };
+
+  const handleRemoveLanguage = async (id: string) => {
+    try {
+      await workersApi.removeLanguage(id);
+      setLanguages((prev) => prev.filter((l) => l.id !== id));
+    } catch (err: any) {
+      setError(err.response?.data?.message || t("errRemoveLang"));
+    }
+  };
+
+  const handleAddEducation = async () => {
+    if (!newEdu.qualification) return;
+    try {
+      setSavingSection("education");
+      const payload: any = { qualification: newEdu.qualification };
+      if (newEdu.institution) payload.institution = newEdu.institution;
+      if (newEdu.country) payload.country = newEdu.country;
+      if (newEdu.yearCompleted) payload.yearCompleted = parseInt(newEdu.yearCompleted);
+      await workersApi.addEducation(payload);
+      const res = await workersApi.getMyProfile();
+      setEducation(res.data.education || []);
+      setShowAddEdu(false);
+      setNewEdu({ qualification: "", institution: "", country: "NL", yearCompleted: "" });
+    } catch (err: any) {
+      setError(err.response?.data?.message || t("errAddEdu"));
+    } finally {
+      setSavingSection(null);
+    }
+  };
+
+  const handleRemoveEducation = async (id: string) => {
+    try {
+      await workersApi.removeEducation(id);
+      setEducation((prev) => prev.filter((e) => e.id !== id));
+    } catch (err: any) {
+      setError(err.response?.data?.message || t("errRemoveEdu"));
+    }
+  };
+
+  const handleAddProject = async () => {
+    if (!newProject.projectType || !newProject.industry) return;
+    try {
+      setSavingSection("projects");
+      const payload: any = { projectType: newProject.projectType, industry: newProject.industry };
+      if (newProject.durationMonths) payload.durationMonths = parseInt(newProject.durationMonths);
+      if (newProject.description) payload.description = newProject.description;
+      await workersApi.addProjectExperience(payload);
+      const res = await workersApi.getMyProfile();
+      setProjectExperiences(res.data.projectExperiences || []);
+      setShowAddProject(false);
+      setNewProject({ projectType: "", industry: "", durationMonths: "", description: "" });
+    } catch (err: any) {
+      setError(err.response?.data?.message || t("errAddProject"));
+    } finally {
+      setSavingSection(null);
+    }
+  };
+
+  const handleRemoveProject = async (id: string) => {
+    try {
+      await workersApi.removeProjectExperience(id);
+      setProjectExperiences((prev) => prev.filter((p) => p.id !== id));
+    } catch (err: any) {
+      setError(err.response?.data?.message || t("errRemoveProject"));
+    }
+  };
+
+  // Derive whether a section is open (useful for rendering)
+  const isOpen = (key: SectionKey) => openSections.has(key);
+
+  const skillLevelLabel = (level: string) => {
+    try { return tEnums(`skillLevel.${level}` as never); } catch { return level; }
+  };
+  const languageLevelLabel = (level: string) => {
+    try { return tEnums(`languageLevel.${level}` as never); } catch { return level; }
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="bg-white border-b sticky top-0 z-10">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center gap-4 h-16">
+            <button onClick={() => router.back()} className="p-2 hover:bg-gray-100 rounded-lg">
+              <ArrowLeft className="w-5 h-5 text-gray-600" />
+            </button>
+            <div>
+              <h1 className="text-lg font-semibold text-gray-900">{t("headerTitle")}</h1>
+              <p className="text-sm text-gray-500">{t("headerSubtitle")}</p>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-4">
+        {/* Alerts */}
+        {error && (
+          <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">{error}</div>
+        )}
+        {success && (
+          <div className="p-4 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm">{success}</div>
+        )}
+
+        {/* ===== Basic Info ===== */}
+        <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
+          <button
+            type="button"
+            onClick={() => toggleSection("basicInfo")}
+            className="w-full flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <User className="w-5 h-5 text-blue-600" />
+              <h3 className="text-base font-semibold text-gray-900">{t("sectionBasicInfo")}</h3>
+            </div>
+            {isOpen("basicInfo") ? <ChevronUp className="w-5 h-5 text-gray-400" /> : <ChevronDown className="w-5 h-5 text-gray-400" />}
+          </button>
+          {isOpen("basicInfo") && (
+            <div className="px-6 pb-6 space-y-4 border-t">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t("labelHeadline")}</label>
+                <input
+                  type="text"
+                  value={formData.headline}
+                  onChange={(e) => updateField("headline", e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
+                  placeholder={t("placeholderHeadline")}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t("labelSummary")}</label>
+                <textarea
+                  value={formData.summary}
+                  onChange={(e) => updateField("summary", e.target.value)}
+                  rows={3}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
+                  placeholder={t("placeholderSummary")}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t("labelPrimaryTrade")}</label>
+                <select
+                  value={formData.primaryTrade}
+                  onChange={(e) => updateField("primaryTrade", e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
+                >
+                  <option value="">{t("placeholderSelectTrade")}</option>
+                  {trades.map((trade) => (
+                    trade.available ? (
+                      <option key={trade.value} value={trade.value}>{trade.label}</option>
+                    ) : (
+                      <option key={trade.value} value={trade.value} disabled>{trade.label} {trade.comingSoon && t("comingSoon")}</option>
+                    )
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t("labelSpecializations")}</label>
+                <div className="flex flex-wrap gap-2">
+                  {specializationOptions.map((spec) => (
+                    <label key={spec.value} className="flex items-center gap-1.5 text-sm text-gray-700 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-200 cursor-pointer hover:bg-blue-50 hover:border-blue-300 transition-colors">
+                      <input
+                        type="checkbox"
+                        checked={formData.specializations.includes(spec.value)}
+                        onChange={(e) => {
+                          const specs = e.target.checked
+                            ? [...formData.specializations, spec.value]
+                            : formData.specializations.filter((s) => s !== spec.value);
+                          updateField("specializations", specs);
+                        }}
+                        className="w-3.5 h-3.5 text-blue-600 border-gray-300 rounded focus:ring-blue-600"
+                      />
+                      {spec.label}
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t("labelAvailability")}</label>
+                  <select
+                    value={formData.availability}
+                    onChange={(e) => updateField("availability", e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
+                  >
+                    <option value={Availability.IMMEDIATE}>{t("selectAvailabilityImmediate")}</option>
+                    <option value={Availability.ONE_MONTH}>{t("selectAvailabilityOneMonth")}</option>
+                    <option value={Availability.THREE_MONTHS}>{t("selectAvailabilityThreeMonths")}</option>
+                    <option value={Availability.SIX_MONTHS}>{t("selectAvailabilitySixMonths")}</option>
+                    <option value={Availability.NOT_AVAILABLE}>{t("selectAvailabilityNotAvailable")}</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t("labelNoticePeriod")}</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="90"
+                    value={formData.noticePeriodDays}
+                    onChange={(e) => updateField("noticePeriodDays", parseInt(e.target.value) || 0)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t("labelYearsExp")}</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="50"
+                  value={formData.yearsOfExperience}
+                  onChange={(e) => updateField("yearsOfExperience", parseInt(e.target.value) || 0)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
+                />
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* ===== Location & Mobility ===== */}
+        <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
+          <button
+            type="button"
+            onClick={() => toggleSection("location")}
+            className="w-full flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <Car className="w-5 h-5 text-blue-600" />
+              <h3 className="text-base font-semibold text-gray-900">{t("sectionLocation")}</h3>
+            </div>
+            {isOpen("location") ? <ChevronUp className="w-5 h-5 text-gray-400" /> : <ChevronDown className="w-5 h-5 text-gray-400" />}
+          </button>
+          {isOpen("location") && (
+            <div className="px-6 pb-6 space-y-4 border-t">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t("labelCountry")}</label>
+                  <select
+                    value={selectedCountry}
+                    onChange={(e) => {
+                      const country = e.target.value;
+                      setSelectedCountry(country);
+                      setSelectedProvince("");
+                      setSelectedCity("");
+                      setProvinces(getProvinces(country));
+                      setCities([]);
+                    }}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
+                  >
+                    {getCountries().map((c: LocationOption) => (
+                      <option key={c.code} value={c.code}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t("labelProvince")}</label>
+                  <select
+                    value={selectedProvince}
+                    onChange={(e) => {
+                      const prov = e.target.value;
+                      setSelectedProvince(prov);
+                      setSelectedCity("");
+                      if (prov) {
+                        setCities(getCities(prov, selectedCountry));
+                      } else {
+                        setCities([]);
+                      }
+                    }}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
+                  >
+                    <option value="">{t("placeholderSelectProvince")}</option>
+                    {provinces.map((p: LocationOption) => (
+                      <option key={p.code} value={p.code}>{p.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t("labelCity")}</label>
+                  <select
+                    value={selectedCity}
+                    onChange={(e) => setSelectedCity(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
+                    disabled={!selectedProvince}
+                  >
+                    <option value="">{t("placeholderSelectCity")}</option>
+                    {cities.map((c: CityOption) => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t("labelPostalCode")}</label>
+                  <input
+                    type="text"
+                    value={formData.postalCode}
+                    onChange={(e) => updateField("postalCode", e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
+                    placeholder={t("placeholderPostalCode")}
+                    maxLength={10}
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t("labelWorkRadius")}</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="500"
+                  value={formData.travelDistanceKm}
+                  onChange={(e) => updateField("travelDistanceKm", parseInt(e.target.value) || 30)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
+                />
+                <p className="mt-1 text-sm text-gray-500">
+                  {t("workRadiusHint", { km: formData.travelDistanceKm })}
+                </p>
+              </div>
+              <div className="flex items-center gap-6">
+                <label className="flex items-center gap-2 text-sm text-gray-700">
+                  <input
+                    type="checkbox"
+                    checked={formData.hasDrivingLicense}
+                    onChange={(e) => updateField("hasDrivingLicense", e.target.checked)}
+                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-600"
+                  />
+                  {t("labelDrivingLicence")}
+                </label>
+                <label className="flex items-center gap-2 text-sm text-gray-700">
+                  <input
+                    type="checkbox"
+                    checked={formData.hasOwnVehicle}
+                    onChange={(e) => updateField("hasOwnVehicle", e.target.checked)}
+                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-600"
+                  />
+                  {t("labelOwnVehicle")}
+                </label>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t("labelWorkAuth")}</label>
+                <select
+                  value={formData.workAuthorization}
+                  onChange={(e) => updateField("workAuthorization", e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
+                >
+                  <option value="">{t("placeholderSelect")}</option>
+                  {workAuthorizationOptions.map((opt) => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* ===== Salary & Employment ===== */}
+        <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
+          <button
+            type="button"
+            onClick={() => toggleSection("salary")}
+            className="w-full flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <Briefcase className="w-5 h-5 text-blue-600" />
+              <h3 className="text-base font-semibold text-gray-900">{t("sectionSalary")}</h3>
+            </div>
+            {isOpen("salary") ? <ChevronUp className="w-5 h-5 text-gray-400" /> : <ChevronDown className="w-5 h-5 text-gray-400" />}
+          </button>
+          {isOpen("salary") && (
+            <div className="px-6 pb-6 space-y-4 border-t">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t("labelMinSalary")}</label>
+                  <input
+                    type="number"
+                    min="20000"
+                    max="200000"
+                    step="1000"
+                    value={formData.desiredSalaryMin}
+                    onChange={(e) => updateField("desiredSalaryMin", parseInt(e.target.value) || 0)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t("labelMaxSalary")}</label>
+                  <input
+                    type="number"
+                    min="20000"
+                    max="200000"
+                    step="1000"
+                    value={formData.desiredSalaryMax}
+                    onChange={(e) => updateField("desiredSalaryMax", parseInt(e.target.value) || 0)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t("labelHourlyRate")}</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="500"
+                  step="5"
+                  value={formData.desiredHourlyRate}
+                  onChange={(e) => updateField("desiredHourlyRate", parseInt(e.target.value) || 0)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
+                  placeholder={t("placeholderHourlyRate")}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t("labelEmploymentTypes")}</label>
+                <div className="flex flex-wrap gap-2">
+                  {employmentTypeOptions.map((type) => (
+                    <label key={type.value} className="flex items-center gap-1.5 text-sm text-gray-700 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-200 cursor-pointer hover:bg-blue-50 hover:border-blue-300 transition-colors">
+                      <input
+                        type="checkbox"
+                        checked={formData.employmentTypes.includes(type.value)}
+                        onChange={(e) => {
+                          const types = e.target.checked
+                            ? [...formData.employmentTypes, type.value]
+                            : formData.employmentTypes.filter((t) => t !== type.value);
+                          updateField("employmentTypes", types);
+                        }}
+                        className="w-3.5 h-3.5 text-blue-600 border-gray-300 rounded focus:ring-blue-600"
+                      />
+                      {type.label}
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t("labelWorkSchedule")}</label>
+                <div className="flex flex-wrap gap-2">
+                  {workScheduleOptions.map((schedule) => (
+                    <label key={schedule.value} className="flex items-center gap-1.5 text-sm text-gray-700 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-200 cursor-pointer hover:bg-blue-50 hover:border-blue-300 transition-colors">
+                      <input
+                        type="checkbox"
+                        checked={formData.workSchedulePrefs.includes(schedule.value)}
+                        onChange={(e) => {
+                          const prefs = e.target.checked
+                            ? [...formData.workSchedulePrefs, schedule.value]
+                            : formData.workSchedulePrefs.filter((p) => p !== schedule.value);
+                          updateField("workSchedulePrefs", prefs);
+                        }}
+                        className="w-3.5 h-3.5 text-blue-600 border-gray-300 rounded focus:ring-blue-600"
+                      />
+                      {schedule.label}
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t("labelIndustryPrefs")}</label>
+                <div className="flex flex-wrap gap-2">
+                  {industryOptions.map((industry) => (
+                    <label key={industry.value} className="flex items-center gap-1.5 text-sm text-gray-700 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-200 cursor-pointer hover:bg-blue-50 hover:border-blue-300 transition-colors">
+                      <input
+                        type="checkbox"
+                        checked={formData.industryPrefs.includes(industry.value)}
+                        onChange={(e) => {
+                          const prefs = e.target.checked
+                            ? [...formData.industryPrefs, industry.value]
+                            : formData.industryPrefs.filter((p) => p !== industry.value);
+                          updateField("industryPrefs", prefs);
+                        }}
+                        className="w-3.5 h-3.5 text-blue-600 border-gray-300 rounded focus:ring-blue-600"
+                      />
+                      {industry.label}
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">{t("labelCareerPriorities")}</label>
+                <div className="flex flex-wrap gap-2">
+                  {careerPriorityOptions.map((priority) => (
+                    <label key={priority.value} className="flex items-center gap-1.5 text-sm text-gray-700 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-200 cursor-pointer hover:bg-blue-50 hover:border-blue-300 transition-colors">
+                      <input
+                        type="checkbox"
+                        checked={formData.careerPriorities.includes(priority.value)}
+                        onChange={(e) => {
+                          const priorities = e.target.checked
+                            ? [...formData.careerPriorities, priority.value]
+                            : formData.careerPriorities.filter((p) => p !== priority.value);
+                          updateField("careerPriorities", priorities);
+                        }}
+                        className="w-3.5 h-3.5 text-blue-600 border-gray-300 rounded focus:ring-blue-600"
+                      />
+                      {priority.label}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* ===== Skills ===== */}
+        <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
+          <button
+            type="button"
+            onClick={() => toggleSection("skills")}
+            className="w-full flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <Award className="w-5 h-5 text-blue-600" />
+              <h3 className="text-base font-semibold text-gray-900">{t("sectionSkills", { count: profileSkills.length })}</h3>
+            </div>
+            {isOpen("skills") ? <ChevronUp className="w-5 h-5 text-gray-400" /> : <ChevronDown className="w-5 h-5 text-gray-400" />}
+          </button>
+          {isOpen("skills") && (
+            <div className="px-6 pb-6 space-y-4 border-t">
+              {profileSkills.length > 0 && (
+                <div className="space-y-2">
+                  {profileSkills.map((ps) => (
+                    <div key={ps.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <span className="font-medium text-gray-900">{ps.skill?.name || ps.skillId}</span>
+                        <span className="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-700 rounded">
+                          {skillLevelLabel(ps.level)}
+                        </span>
+                        {ps.isPrimary && (
+                          <span className="px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-700 rounded">{t("primary")}</span>
+                        )}
+                        {ps.yearsOfExperience ? (
+                          <span className="text-sm text-gray-500">{t("yrs", { count: ps.yearsOfExperience })}</span>
+                        ) : null}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveSkill(ps.id)}
+                        className="text-red-500 hover:text-red-700 p-1"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {showAddSkill ? (
+                <div className="p-4 bg-blue-50 rounded-lg space-y-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t("labelSkill")}</label>
+                    {/* Combo: text input for free text + datalist for catalog suggestions */}
+                    <input
+                      list="skill-suggestions"
+                      type="text"
+                      value={newSkillText}
+                      onChange={(e) => handleSkillTextChange(e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 outline-none"
+                      placeholder={t("placeholderSkillInput")}
+                    />
+                    <datalist id="skill-suggestions">
+                      {skillsCatalog.map((skill: any) => (
+                        <option key={skill.id} value={skill.name} />
+                      ))}
+                    </datalist>
+                    {newSkillText && !newSkillId && (
+                      <p className="mt-1 text-xs text-amber-600">
+                        {t("customSkillNote", { name: newSkillText })}
+                      </p>
+                    )}
+                    {newSkillId && (
+                      <p className="mt-1 text-xs text-green-600">
+                        {t("matchedCatalog")}
+                      </p>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">{t("labelLevel")}</label>
+                      <select
+                        value={newSkillLevel}
+                        onChange={(e) => setNewSkillLevel(e.target.value)}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 outline-none"
+                      >
+                        {SKILL_LEVEL_VALUES.map((key) => (
+                          <option key={key} value={key}>{skillLevelLabel(key)}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">{t("labelYearsExpShort")}</label>
+                      <input
+                        type="number"
+                        min="0"
+                        max="50"
+                        value={newSkillYears}
+                        onChange={(e) => setNewSkillYears(parseInt(e.target.value) || 0)}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 outline-none"
+                      />
+                    </div>
+                    <div className="flex items-end pb-1">
+                      <label className="flex items-center gap-2 text-sm text-gray-700">
+                        <input
+                          type="checkbox"
+                          checked={newSkillIsPrimary}
+                          onChange={(e) => setNewSkillIsPrimary(e.target.checked)}
+                          className="w-4 h-4 text-blue-600 border-gray-300 rounded"
+                        />
+                        {t("primarySkill")}
+                      </label>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={handleAddSkill}
+                      disabled={savingSection === "skills" || (!newSkillId && !newSkillText.trim())}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 text-sm"
+                    >
+                      {savingSection === "skills" ? t("adding") : t("addSkill")}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setShowAddSkill(false); setNewSkillText(""); setNewSkillId(""); setNewSkillLevel("INTERMEDIATE"); setNewSkillYears(0); setNewSkillIsPrimary(false); }}
+                      className="px-4 py-2 text-gray-600 hover:text-gray-800 text-sm"
+                    >
+                      {t("cancel")}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setShowAddSkill(true)}
+                  className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 font-medium"
+                >
+                  <Plus className="w-4 h-4" /> {t("addSkill")}
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* ===== Certifications ===== */}
+        <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
+          <button
+            type="button"
+            onClick={() => toggleSection("certifications")}
+            className="w-full flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <Shield className="w-5 h-5 text-blue-600" />
+              <h3 className="text-base font-semibold text-gray-900">{t("sectionCertifications", { count: certifications.length })}</h3>
+            </div>
+            {isOpen("certifications") ? <ChevronUp className="w-5 h-5 text-gray-400" /> : <ChevronDown className="w-5 h-5 text-gray-400" />}
+          </button>
+          {isOpen("certifications") && (
+            <div className="px-6 pb-6 space-y-4 border-t">
+              {certifications.length > 0 && (
+                <div className="space-y-2">
+                  {certifications.map((cert) => (
+                    <div key={cert.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div>
+                        <span className="font-medium text-gray-900">{cert.name}</span>
+                        <span className="text-sm text-gray-500 ml-2">{t("by", { body: cert.issuingBody })}</span>
+                        {cert.isLifetime && <span className="ml-2 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">{t("lifetime")}</span>}
+                      </div>
+                      <button type="button" onClick={() => handleRemoveCertification(cert.id)} className="text-red-500 hover:text-red-700 p-1">
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {showAddCert ? (
+                <div className="p-4 bg-blue-50 rounded-lg space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">{t("labelCertName")}</label>
+                      <input type="text" value={newCert.name} onChange={(e) => setNewCert((prev) => ({ ...prev, name: e.target.value }))} className="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none" placeholder={t("placeholderCertName")} />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">{t("labelIssuingBody")}</label>
+                      <input type="text" value={newCert.issuingBody} onChange={(e) => setNewCert((prev) => ({ ...prev, issuingBody: e.target.value }))} className="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none" placeholder={t("placeholderIssuingBody")} />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t("labelCertNumber")}</label>
+                    <input type="text" value={newCert.certificationNumber} onChange={(e) => setNewCert((prev) => ({ ...prev, certificationNumber: e.target.value }))} className="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none" placeholder={t("placeholderOptional")} />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">{t("labelValidFrom")}</label>
+                      <input type="date" value={newCert.validFrom} onChange={(e) => setNewCert((prev) => ({ ...prev, validFrom: e.target.value }))} className="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">{t("labelValidUntil")}</label>
+                      <input type="date" value={newCert.validUntil} onChange={(e) => setNewCert((prev) => ({ ...prev, validUntil: e.target.value }))} className="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none" />
+                    </div>
+                  </div>
+                  <label className="flex items-center gap-2 text-sm text-gray-700">
+                    <input type="checkbox" checked={newCert.isLifetime} onChange={(e) => setNewCert((prev) => ({ ...prev, isLifetime: e.target.checked }))} className="w-4 h-4 text-blue-600 border-gray-300 rounded" />
+                    {t("lifetimeCert")}
+                  </label>
+                  <div className="flex gap-2">
+                    <button type="button" onClick={handleAddCertification} disabled={savingSection === "certifications" || !newCert.name || !newCert.issuingBody} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 text-sm">
+                      {savingSection === "certifications" ? t("adding") : t("addCertification")}
+                    </button>
+                    <button type="button" onClick={() => { setShowAddCert(false); setNewCert({ name: "", issuingBody: "", certificationNumber: "", validFrom: "", validUntil: "", isLifetime: false }); }} className="px-4 py-2 text-gray-600 hover:text-gray-800 text-sm">
+                      {t("cancel")}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button type="button" onClick={() => setShowAddCert(true)} className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 font-medium">
+                  <Plus className="w-4 h-4" /> {t("addCertification")}
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* ===== Languages ===== */}
+        <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
+          <button
+            type="button"
+            onClick={() => toggleSection("languages")}
+            className="w-full flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <Languages className="w-5 h-5 text-blue-600" />
+              <h3 className="text-base font-semibold text-gray-900">{t("sectionLanguages", { count: languages.length })}</h3>
+            </div>
+            {isOpen("languages") ? <ChevronUp className="w-5 h-5 text-gray-400" /> : <ChevronDown className="w-5 h-5 text-gray-400" />}
+          </button>
+          {isOpen("languages") && (
+            <div className="px-6 pb-6 space-y-4 border-t">
+              {languages.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {languages.map((lang) => (
+                    <div key={lang.id} className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 rounded-lg border border-gray-200">
+                      <span className="font-medium text-gray-900">{lang.language}</span>
+                      <span className="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-700 rounded">{languageLevelLabel(lang.level)}</span>
+                      <button type="button" onClick={() => handleRemoveLanguage(lang.id)} className="text-red-500 hover:text-red-700">
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {showAddLang ? (
+                <div className="p-4 bg-blue-50 rounded-lg space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">{t("labelLanguage")}</label>
+                      <select value={newLang.language} onChange={(e) => setNewLang((prev) => ({ ...prev, language: e.target.value }))} className="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none">
+                        {LANGUAGE_OPTIONS.map((l) => (<option key={l} value={l}>{l}</option>))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">{t("labelLevel")}</label>
+                      <select value={newLang.level} onChange={(e) => setNewLang((prev) => ({ ...prev, level: e.target.value }))} className="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none">
+                        {LANGUAGE_LEVEL_VALUES.map((v) => (<option key={v} value={v}>{languageLevelLabel(v)}</option>))}
+                      </select>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button type="button" onClick={handleAddLanguage} disabled={savingSection === "languages"} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 text-sm">
+                      {savingSection === "languages" ? t("adding") : t("addLanguage")}
+                    </button>
+                    <button type="button" onClick={() => { setShowAddLang(false); setNewLang({ language: "Dutch", level: "B2" }); }} className="px-4 py-2 text-gray-600 hover:text-gray-800 text-sm">
+                      {t("cancel")}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button type="button" onClick={() => setShowAddLang(true)} className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 font-medium">
+                  <Plus className="w-4 h-4" /> {t("addLanguage")}
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* ===== Education ===== */}
+        <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
+          <button
+            type="button"
+            onClick={() => toggleSection("education")}
+            className="w-full flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <GraduationCap className="w-5 h-5 text-blue-600" />
+              <h3 className="text-base font-semibold text-gray-900">{t("sectionEducation", { count: education.length })}</h3>
+            </div>
+            {isOpen("education") ? <ChevronUp className="w-5 h-5 text-gray-400" /> : <ChevronDown className="w-5 h-5 text-gray-400" />}
+          </button>
+          {isOpen("education") && (
+            <div className="px-6 pb-6 space-y-4 border-t">
+              {education.length > 0 && (
+                <div className="space-y-2">
+                  {education.map((edu) => (
+                    <div key={edu.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div>
+                        <span className="font-medium text-gray-900">{edu.qualification}</span>
+                        {edu.institution && <span className="text-sm text-gray-500 ml-2">{t("at", { institution: edu.institution })}</span>}
+                        {edu.yearCompleted && <span className="text-sm text-gray-400 ml-2">({edu.yearCompleted})</span>}
+                      </div>
+                      <button type="button" onClick={() => handleRemoveEducation(edu.id)} className="text-red-500 hover:text-red-700 p-1">
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {showAddEdu ? (
+                <div className="p-4 bg-blue-50 rounded-lg space-y-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t("labelQualification")}</label>
+                    <input type="text" value={newEdu.qualification} onChange={(e) => setNewEdu((prev) => ({ ...prev, qualification: e.target.value }))} className="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none" placeholder={t("placeholderQualification")} />
+                  </div>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">{t("labelInstitution")}</label>
+                      <input type="text" value={newEdu.institution} onChange={(e) => setNewEdu((prev) => ({ ...prev, institution: e.target.value }))} className="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none" placeholder={t("placeholderOptional")} />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">{t("labelCountry")}</label>
+                      <input type="text" value={newEdu.country} onChange={(e) => setNewEdu((prev) => ({ ...prev, country: e.target.value }))} className="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">{t("labelYearCompleted")}</label>
+                      <input type="number" value={newEdu.yearCompleted} onChange={(e) => setNewEdu((prev) => ({ ...prev, yearCompleted: e.target.value }))} className="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none" placeholder={t("placeholderYear")} />
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button type="button" onClick={handleAddEducation} disabled={savingSection === "education" || !newEdu.qualification} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 text-sm">
+                      {savingSection === "education" ? t("adding") : t("addEducation")}
+                    </button>
+                    <button type="button" onClick={() => { setShowAddEdu(false); setNewEdu({ qualification: "", institution: "", country: "NL", yearCompleted: "" }); }} className="px-4 py-2 text-gray-600 hover:text-gray-800 text-sm">
+                      {t("cancel")}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button type="button" onClick={() => setShowAddEdu(true)} className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 font-medium">
+                  <Plus className="w-4 h-4" /> {t("addEducation")}
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* ===== Project Experience ===== */}
+        <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
+          <button
+            type="button"
+            onClick={() => toggleSection("projects")}
+            className="w-full flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <Briefcase className="w-5 h-5 text-blue-600" />
+              <h3 className="text-base font-semibold text-gray-900">{t("sectionProjects", { count: projectExperiences.length })}</h3>
+            </div>
+            {isOpen("projects") ? <ChevronUp className="w-5 h-5 text-gray-400" /> : <ChevronDown className="w-5 h-5 text-gray-400" />}
+          </button>
+          {isOpen("projects") && (
+            <div className="px-6 pb-6 space-y-4 border-t">
+              {projectExperiences.length > 0 && (
+                <div className="space-y-2">
+                  {projectExperiences.map((proj) => (
+                    <div key={proj.id} className="flex items-start justify-between p-3 bg-gray-50 rounded-lg">
+                      <div>
+                        <span className="font-medium text-gray-900">{proj.projectType}</span>
+                        <span className="text-sm text-gray-500 ml-2">{t("inIndustry", { industry: proj.industry })}</span>
+                        {proj.durationMonths && <span className="text-sm text-gray-400 ml-2">{t("months", { count: proj.durationMonths })}</span>}
+                        {proj.description && <p className="text-sm text-gray-600 mt-1">{proj.description}</p>}
+                      </div>
+                      <button type="button" onClick={() => handleRemoveProject(proj.id)} className="text-red-500 hover:text-red-700 p-1 flex-shrink-0">
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {showAddProject ? (
+                <div className="p-4 bg-blue-50 rounded-lg space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">{t("labelProjectType")}</label>
+                      <input type="text" value={newProject.projectType} onChange={(e) => setNewProject((prev) => ({ ...prev, projectType: e.target.value }))} className="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none" placeholder={t("placeholderProjectType")} />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">{t("labelIndustry")}</label>
+                      <input type="text" value={newProject.industry} onChange={(e) => setNewProject((prev) => ({ ...prev, industry: e.target.value }))} className="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none" placeholder={t("placeholderIndustry")} />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">{t("labelDuration")}</label>
+                      <input type="number" value={newProject.durationMonths} onChange={(e) => setNewProject((prev) => ({ ...prev, durationMonths: e.target.value }))} className="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none" placeholder={t("placeholderOptional")} />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t("labelDescription")}</label>
+                    <textarea value={newProject.description} onChange={(e) => setNewProject((prev) => ({ ...prev, description: e.target.value }))} rows={2} className="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none" placeholder={t("placeholderProjectDesc")} />
+                  </div>
+                  <div className="flex gap-2">
+                    <button type="button" onClick={handleAddProject} disabled={savingSection === "projects" || !newProject.projectType || !newProject.industry} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 text-sm">
+                      {savingSection === "projects" ? t("adding") : t("addProject")}
+                    </button>
+                    <button type="button" onClick={() => { setShowAddProject(false); setNewProject({ projectType: "", industry: "", durationMonths: "", description: "" }); }} className="px-4 py-2 text-gray-600 hover:text-gray-800 text-sm">
+                      {t("cancel")}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button type="button" onClick={() => setShowAddProject(true)} className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 font-medium">
+                  <Plus className="w-4 h-4" /> {t("addProjectExperience")}
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* ===== Privacy ===== */}
+        <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
+          <button
+            type="button"
+            onClick={() => toggleSection("privacy")}
+            className="w-full flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <Globe className="w-5 h-5 text-blue-600" />
+              <h3 className="text-base font-semibold text-gray-900">{t("sectionPrivacy")}</h3>
+            </div>
+            {isOpen("privacy") ? <ChevronUp className="w-5 h-5 text-gray-400" /> : <ChevronDown className="w-5 h-5 text-gray-400" />}
+          </button>
+          {isOpen("privacy") && (
+            <div className="px-6 pb-6 space-y-4 border-t">
+              <div className="space-y-3">
+                {(["ALL_VERIFIED", "SELECTED_COMPANIES", "HIDDEN"] as const).map((visibility) => (
+                  <label key={visibility} className="flex items-start gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+                    <input
+                      type="radio"
+                      name="profileVisibility"
+                      value={visibility}
+                      checked={formData.profileVisibility === visibility}
+                      onChange={(e) => updateField("profileVisibility", e.target.value)}
+                      className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-600"
+                    />
+                    <div>
+                      <p className="font-medium text-gray-900">
+                        {visibility === "ALL_VERIFIED" ? t("visibilityAllVerified") :
+                         visibility === "SELECTED_COMPANIES" ? t("visibilitySelected") : t("visibilityHidden")}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        {visibility === "ALL_VERIFIED" ? t("visDescAllVerified") :
+                         visibility === "SELECTED_COMPANIES" ? t("visDescSelected") :
+                         t("visDescHidden")}
+                      </p>
+                    </div>
+                  </label>
+                ))}
+              </div>
+              {formData.profileVisibility === "SELECTED_COMPANIES" && (
+                <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <h4 className="font-medium text-yellow-800 mb-2">{t("manageVisibleCompanies")}</h4>
+                  <p className="text-sm text-yellow-700 mb-3">
+                    {t("manageVisibleDesc")}
+                  </p>
+                  <VisibleCompaniesManager />
+                </div>
+              )}
+              <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                <h4 className="font-medium text-green-800 mb-2">{t("privacyGuarantee")}</h4>
+                <ul className="text-sm text-green-700 space-y-1">
+                  <li>{t("privacy1")}</li>
+                  <li>{t("privacy2")}</li>
+                  <li>{t("privacy3")}</li>
+                </ul>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Save Profile Button */}
+        <button
+          type="button"
+          onClick={handleSaveProfile}
+          disabled={loading}
+          className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+        >
+          <Save className="w-4 h-4" />
+          {loading ? t("saving") : t("saveChanges")}
+        </button>
+      </main>
+    </div>
+  );
+}

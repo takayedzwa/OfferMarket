@@ -1,10 +1,16 @@
-import Link from 'next/link';
+'use client';
+
+import { useTranslations } from 'next-intl';
+import { Link } from '@/i18n/navigation';
 
 /**
  * Shared footer with legal links including DSA Art. 12-compliant
  * "easy access" to illegal content reporting.
  */
 export default function Footer() {
+  const t = useTranslations('nav.footer');
+  const year = new Date().getFullYear();
+
   return (
     <footer className="bg-gray-900 text-gray-400 py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -17,33 +23,31 @@ export default function Footer() {
               </div>
               <span className="text-white font-semibold text-lg">OfferMarket</span>
             </div>
-            <p className="mt-3 text-sm text-gray-500">
-              A reverse talent marketplace where workers have leverage.
-            </p>
+            <p className="mt-3 text-sm text-gray-500">{t('tagline')}</p>
           </div>
 
           {/* Legal */}
           <div>
-            <h3 className="text-white font-medium text-sm mb-3">Legal</h3>
+            <h3 className="text-white font-medium text-sm mb-3">{t('legal')}</h3>
             <ul className="space-y-2 text-sm">
               <li>
                 <Link href="/privacy" className="hover:text-white transition-colors">
-                  Privacy Policy
+                  {t('privacyPolicy')}
                 </Link>
               </li>
               <li>
                 <Link href="/privacy/dashboard" className="hover:text-white transition-colors">
-                  Privacy Dashboard
+                  {t('privacyDashboard')}
                 </Link>
               </li>
               <li>
                 <Link href="/terms" className="hover:text-white transition-colors">
-                  Terms of Service
+                  {t('termsOfService')}
                 </Link>
               </li>
               <li>
                 <Link href="/cookies" className="hover:text-white transition-colors">
-                  Cookie Policy
+                  {t('cookiePolicy')}
                 </Link>
               </li>
             </ul>
@@ -51,32 +55,30 @@ export default function Footer() {
 
           {/* DSA / Reporting */}
           <div>
-            <h3 className="text-white font-medium text-sm mb-3">Report & Complain</h3>
+            <h3 className="text-white font-medium text-sm mb-3">{t('reportComplain')}</h3>
             <ul className="space-y-2 text-sm">
               <li>
                 <Link href="/dsa/report" className="hover:text-white transition-colors font-medium text-red-400">
-                  ⚑ Report Illegal Content
+                  ⚑ {t('reportIllegalContent')}
                 </Link>
               </li>
               <li>
                 <Link href="/dsa/status" className="hover:text-white transition-colors">
-                  Check Report Status
+                  {t('checkReportStatus')}
                 </Link>
               </li>
               <li>
                 <Link href="/dsa/transparency" className="hover:text-white transition-colors">
-                  Transparency Report
+                  {t('transparencyReport')}
                 </Link>
               </li>
             </ul>
-            <p className="mt-3 text-xs text-gray-500">
-              DSA Art. 12 & 16 — Easy access to illegal content reporting
-            </p>
+            <p className="mt-3 text-xs text-gray-500">{t('dsaNote')}</p>
           </div>
 
           {/* Contact */}
           <div>
-            <h3 className="text-white font-medium text-sm mb-3">Contact</h3>
+            <h3 className="text-white font-medium text-sm mb-3">{t('contact')}</h3>
             <ul className="space-y-2 text-sm">
               <li>
                 <a href="mailto:support@offermarket.nl" className="hover:text-white transition-colors">
@@ -90,25 +92,21 @@ export default function Footer() {
               </li>
               <li>
                 <a href="mailto:dpo@offermarket.nl" className="hover:text-white transition-colors">
-                  Data Protection Officer
+                  {t('dataProtectionOfficer')}
                 </a>
               </li>
             </ul>
-            <p className="mt-3 text-xs text-gray-500">
-              OfferMarket B.V. · Netherlands
-            </p>
+            <p className="mt-3 text-xs text-gray-500">{t('companyLine')}</p>
           </div>
         </div>
 
         <div className="mt-8 pt-8 border-t border-gray-800 flex flex-col sm:flex-row justify-between items-center gap-4">
-          <p className="text-xs text-gray-500">
-            © {new Date().getFullYear()} OfferMarket B.V. All rights reserved.
-          </p>
+          <p className="text-xs text-gray-500">{t('copyright', { year })}</p>
           <div className="flex gap-4 text-xs text-gray-500">
-            <Link href="/privacy" className="hover:text-gray-300 transition-colors">Privacy</Link>
-            <Link href="/terms" className="hover:text-gray-300 transition-colors">Terms</Link>
-            <Link href="/cookies" className="hover:text-gray-300 transition-colors">Cookies</Link>
-            <Link href="/dsa/report" className="hover:text-gray-300 transition-colors text-red-400">Report Illegal Content</Link>
+            <Link href="/privacy" className="hover:text-gray-300 transition-colors">{t('privacy')}</Link>
+            <Link href="/terms" className="hover:text-gray-300 transition-colors">{t('terms')}</Link>
+            <Link href="/cookies" className="hover:text-gray-300 transition-colors">{t('cookies')}</Link>
+            <Link href="/dsa/report" className="hover:text-gray-300 transition-colors text-red-400">{t('reportIllegalContent')}</Link>
           </div>
         </div>
       </div>

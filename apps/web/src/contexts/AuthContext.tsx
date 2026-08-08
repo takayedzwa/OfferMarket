@@ -1,9 +1,36 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter, usePathname } from "@/i18n/navigation";
 import { authApi, api } from "../lib/api";
 import { User } from "../lib/types";
+
+/**
+ * Paths that require an authenticated user. AuthContext redirects logged-out
+ * visitors away from these to /login. Everything else (landing, login, register,
+ * forgot/reset-password, workers, dsa, support portal, terms, cookies, public
+ * privacy info) is public and must NOT redirect — otherwise logged-out visitors
+ * get stuck in a redirect loop. This is a denylist (protected prefixes) rather
+ * than a public allowlist so newly added public pages are safe by default.
+ */
+const PROTECTED_PREFIXES = [
+  "/dashboard",
+  "/admin",
+  "/profile",
+  "/conversations",
+  "/privacy/dashboard",
+  "/support/tickets",
+  "/support/users",
+];
+
+function isProtectedPath(pathname: string | null): boolean {
+  if (!pathname) return false;
+  if (PROTECTED_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + "/"))) return true;
+  // Offer create + edit require auth; offer detail/compare are viewable.
+  if (pathname === "/offers/create") return true;
+  if (/^\/offers\/[^/]+\/edit$/.test(pathname)) return true;
+  return false;
+}
 
 /**
  * Decode a JWT payload without a library.
@@ -141,14 +168,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Redirect to appropriate dashboard after auth loads
+  // i18n: initialize the NEXT_LOCALE cookie from the user's server-persisted
+  // preferredLocale — but ONLY when no explicit cookie exists, so a user's
+  // current-session choice (set by the proxy / LanguageSwitcher) is respected.
+  // preferredLocale acts as the cross-device default. The LanguageSwitcher
+  // PATCHes preferredLocale on every switch, keeping it the source of truth.
   useEffect(() => {
-    if (!loading && !user) {
-      // Allow access to public pages
-      const publicPages = ["/", "/login", "/register"];
-      if (!publicPages.some((page) => pathname?.startsWith(page))) {
-        router.push("/login");
-      }
+    if (!user?.preferredLocale || typeof document === "undefined") return;
+    const hasCookie = document.cookie
+      .split("; ")
+      .some((c) => c.startsWith("NEXT_LOCALE="));
+    if (!hasCookie) {
+      document.cookie = `NEXT_LOCALE=${user.preferredLocale}; path=/; max-age=31536000; SameSite=Lax`;
+    }
+  }, [user?.preferredLocale]);
+
+  // Redirect logged-out visitors away from protected pages to /login. Public
+  // pages are never redirected (denylist in isProtectedPath). Uses the
+  // locale-aware router so the redirect lands directly on /<locale>/login
+  // without a proxy redirect hop. `usePathname` is locale-stripped (from
+  // @/i18n/navigation), so checks are written without the /en /nl prefix.
+  useEffect(() => {
+    if (!loading && !user && isProtectedPath(pathname)) {
+      router.replace("/login");
     }
   }, [loading, user, pathname, router]);
 

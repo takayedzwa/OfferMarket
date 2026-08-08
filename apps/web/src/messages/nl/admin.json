@@ -1,0 +1,82 @@
+{
+  "home": {
+    "loading": "Beheerdersdashboard laden...",
+    "fetchError": "Beheerdersdashboard laden mislukt",
+    "goBack": "Terug naar site",
+    "stat": {
+      "totalUsers": "Totaal aantal gebruikers",
+      "workers": "Werkers",
+      "employers": "Werkgevers",
+      "pendingVerifications": "Openstaande verificaties",
+      "activeOffers": "Actieve aanbiedingen",
+      "totalCredits": "Totaal credits"
+    },
+    "action": {
+      "billing": { "label": "Facturatie", "desc": "Facturen en credits beheren" },
+      "settings": { "label": "Instellingen", "desc": "Platformconfiguratie" },
+      "reports": { "label": "Inhoudsmeldingen", "desc": "DSA-inhoudsmeldingen beoordelen" },
+      "auditLogs": { "label": "Auditlogboeken", "desc": "Beheerdersacties bekijken" },
+      "trust": { "label": "Vertrouwen & veiligheid", "desc": "Veiligheidssignalen beheren" },
+      "privacy": { "label": "Privacy", "desc": "Privacyverzoeken en logboeken" },
+      "dsa": { "label": "DSA-meldingen", "desc": "Digital Services Act-meldingen" },
+      "support": { "label": "Support", "desc": "Supporttickets beheren" }
+    },
+    "header": {
+      "title": "Beheerdersconsole",
+      "subtitle": "OfferMarket-beheer",
+      "exit": "Naar site"
+    }
+  },
+  "offers": {
+    "title": "Aanbiedingen",
+    "offersTotal": "{total, plural, one {# aanbieding} other {# aanbiedingen}}",
+    "loading": "Aanbiedingen laden...",
+    "search": "Zoeken",
+    "searchPlaceholder": "Aanbiedingen zoeken op titel, bedrijf of e-mail...",
+    "filter": {
+      "allStatuses": "Alle statussen"
+    },
+    "salaryNotSpecified": "Salaris niet opgegeven",
+    "salaryRange": "{min} - {max}",
+    "salaryFrom": "Vanaf {amount}",
+    "salaryUpTo": "Tot {amount}",
+    "emptyTitle": "Geen aanbiedingen gevonden",
+    "emptyBody": "Geen aanbiedingen voldoen aan de huidige filters.",
+    "viewDetails": "Details bekijken",
+    "viewDetailsBtn": "Details bekijken",
+    "deleteOffer": "Aanbieding verwijderen",
+    "confirmDelete": "Weet je zeker dat je deze aanbieding wilt verwijderen? Deze actie kan niet ongedaan worden gemaakt.",
+    "deleteFailed": "Aanbieding verwijderen mislukt",
+    "previous": "Vorige",
+    "next": "Volgende",
+    "pageOf": "Pagina {page} van {total}",
+    "posted": "Geplaatst {date}",
+    "expires": "Verloopt {date}"
+  },
+  "employers": {
+    "title": "Werkgevers",
+    "total": "{total, plural, one {# werkgever} other {# werkgevers}}",
+    "searchPlaceholder": "Zoeken op bedrijfsnaam of e-mail...",
+    "allVerificationStatus": "Alle verificatiestatussen",
+    "filterPending": "In afwachting",
+    "filterVerified": "Basis geverifieerd",
+    "filterFullyVerified": "Volledig geverifieerd",
+    "filterRejected": "Afgewezen",
+    "search": "Zoeken",
+    "loading": "Werkgevers laden...",
+    "empty": "Geen werkgevers gevonden",
+    "verified": "Geverifieerd",
+    "rejected": "Afgewezen",
+    "pending": "In afwachting",
+    "size": "Grootte: {size}",
+    "joinedDate": "Lid sinds {date}",
+    "actionVerify": "Werkgever verifiëren",
+    "actionReject": "Werkgever afwijzen",
+    "viewDetails": "Details bekijken",
+    "previous": "Vorige",
+    "page": "Pagina {page}",
+    "next": "Volgende",
+    "alertVerifyFailed": "Werkgever verifiëren mislukt",
+    "alertRejectFailed": "Werkgever afwijzen mislukt"
+  }
+}

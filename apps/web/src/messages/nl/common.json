@@ -1,0 +1,75 @@
+{
+  "site": {
+    "title": "OfferMarket - Omgekeerde talentmarktplaats",
+    "description": "Anonieme werkerprofielen ontmoeten gestructureerde werkgeversaanbiedingen"
+  },
+  "languageSwitcher": {
+    "label": "Taal",
+    "en": "English",
+    "nl": "Nederlands"
+  },
+  "user": {
+    "fallbackName": "Gebruiker"
+  },
+  "home": {
+    "hero": {
+      "title": "Een omgekeerde talentmarktplaats",
+      "titleHighlight": " waar werkers de touwtjes in handen hebben",
+      "subtitle": "Maak een anoniem profiel aan. Ontvang gestructureerde aanbiedingen met transparant salaris en secundaire voorwaarden. Accepteer wanneer je klaar bent – jouw identiteit blijft verborgen tot dat moment.",
+      "ctaWorker": "Anoniem profiel aanmaken",
+      "ctaEmployer": "Aannemen als werkgever"
+    },
+    "howItWorks": {
+      "title": "Hoe het werkt",
+      "step1Title": "1. Anoniem profiel aanmaken",
+      "step1Body": "Jouw identiteit blijft verborgen. Werkgevers zien jouw vaardigheden en ervaring, maar niet jouw naam of huidige werkgever.",
+      "step2Title": "2. Ontvang gestructureerde aanbiedingen",
+      "step2Body": "Elke aanbieding bevat een specifiek salaris, complete secundaire voorwaarden en duidelijke contractvoorwaarden. Geen vage berichten toegestaan.",
+      "step3Title": "3. Accepteer & onthul identiteit",
+      "step3Body": "Wanneer je een aanbieding accepteert, wordt jouw identiteit onthuld. Pas dan kan de werkgever direct contact met je opnemen."
+    },
+    "forWorkers": {
+      "title": "Voor werkers",
+      "benefit1": "Volledige anonimiteit totdat je kiest om je te onthullen",
+      "benefit2": "Alle aanbiedingen hebben transparant salaris en secundaire voorwaarden",
+      "benefit3": "Geen spam, geen lege recruiterberichten",
+      "benefit4": "Vergelijk aanbiedingen zij aan zij",
+      "benefit5": "Blokkeer bedrijven die je jouw profiel niet wilt laten zien",
+      "privacyTitle": "Jouw privacy is beschermd",
+      "fieldName": "Naam",
+      "fieldEmail": "E-mail",
+      "fieldPhone": "Telefoon",
+      "fieldCurrentEmployer": "Huidige werkgever",
+      "fieldRegion": "Regio",
+      "fieldSkills": "Vaardigheden",
+      "hidden": "Verborgen",
+      "visible": "Zichtbaar",
+      "regionExample": "Zichtbaar (bijv. regio Rotterdam)"
+    },
+    "forEmployers": {
+      "title": "Voor werkgevers",
+      "offerExampleTitle": "Voorbeeld gestructureerde aanbieding",
+      "offerJobTitle": "Senior elektromonteur",
+      "offerCategory": "Industriële projecten",
+      "salaryRange": "€54.000 - €58.000",
+      "contractLabel": "Contract:",
+      "contractValue": "Vast",
+      "hoursLabel": "Uren:",
+      "hoursValue": "40/week",
+      "vacationLabel": "Vakantie:",
+      "vacationValue": "30 dagen",
+      "pensionLabel": "Pensioen:",
+      "pensionValue": "8%",
+      "benefit1": "Toegang tot passieve kandidaten die niet actief solliciteren",
+      "benefit2": "Val op met transparante, concurrerende aanbiedingen",
+      "benefit3": "Direct contact na acceptatie van de aanbieding",
+      "benefit4": "Geverifieerde KvK-registratie bouwt vertrouwen op"
+    },
+    "cta": {
+      "title": "Klaar om te beginnen?",
+      "subtitle": "Word lid van de omgekeerde marktplaats waar werkers de touwtjes in handen hebben en werkgevers concurreren met echte aanbiedingen.",
+      "workerProfile": "Werkersprofiel aanmaken",
+      "registerEmployer": "Registreren als werkgever"
+    }
+  }
+}

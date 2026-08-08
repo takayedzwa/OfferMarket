@@ -1,0 +1,472 @@
+{
+  "auditLogs": {
+    "title": "Auditlogboeken",
+    "actionsRecorded": "{total, plural, one {# actie geregistreerd} other {# acties geregistreerd}}",
+    "searchPlaceholder": "Zoek op admin-e-mail of doelgebruiker...",
+    "search": "Zoeken",
+    "loading": "Bezig met laden...",
+    "empty": "Geen auditlogboeken gevonden",
+    "system": "Systeem",
+    "targetDefault": "Gebruiker",
+    "targetFormat": "{type}: {id}…",
+    "dash": "-",
+    "previous": "Vorige",
+    "next": "Volgende",
+    "pageOf": "Pagina {page} van {total}",
+    "filter": {
+      "allActionTypes": "Alle actietypes"
+    },
+    "actionType": {
+      "USER_SUSPENDED": "Gebruiker geschorst",
+      "USER_BANNED": "Gebruiker verbannen",
+      "USER_RESTORED": "Gebruiker hersteld",
+      "EMPLOYER_VERIFIED": "Werkgever geverifieerd",
+      "EMPLOYER_REJECTED": "Werkgever afgewezen",
+      "SETTINGS_UPDATED": "Instellingen bijgewerkt",
+      "OFFER_EXTENDED": "Aanbod verlengd",
+      "TICKET_ASSIGNED": "Ticket toegewezen"
+    },
+    "table": {
+      "action": "Actie",
+      "admin": "Admin",
+      "target": "Doel",
+      "details": "Details",
+      "timestamp": "Tijdstip"
+    }
+  },
+  "verifications": {
+    "title": "Verificatiewachtrij",
+    "pendingCount": "{count, plural, one {# open verificatie} other {# open verificaties}}",
+    "loading": "Bezig met laden...",
+    "emptyTitle": "Helemaal bijgewerkt!",
+    "emptyBody": "Er zijn momenteel geen openstaande verificaties.",
+    "pending": "In afwachting",
+    "websiteLabel": "Website:",
+    "industryLabel": "Branche:",
+    "documentsLabel": "Documenten:",
+    "businessLicense": "Zakelijke vergunning",
+    "taxDocument": "Belastingdocument",
+    "documentN": "Document {n}",
+    "registeredOn": "Geregistreerd op {date}",
+    "viewDetails": "Details bekijken",
+    "viewFullCompany": "Volledige bedrijfsgegevens bekijken",
+    "reject": "Afwijzen",
+    "verify": "Verifiëren",
+    "cancel": "Annuleren",
+    "modalTitleVerify": "Werkgever verifiëren",
+    "modalTitleReject": "Werkgever afwijzen",
+    "modalBodyVerify": "Bevestig de verificatie voor {name}.",
+    "modalBodyReject": "Geef een reden op voor het afwijzen van {name}.",
+    "placeholderVerify": "Voeg verificatienotities toe (optioneel)...",
+    "placeholderReject": "Voer afwijzingsreden in...",
+    "alertVerifyFailed": "Werkgever verifiëren mislukt",
+    "alertRejectFailed": "Werkgever afwijzen mislukt"
+  },
+  "trust": {
+    "title": "Vertrouwen & Fraude",
+    "blacklistCount": "{count, plural, one {# entiteit op de zwarte lijst} other {# entiteiten op de zwarte lijst}}",
+    "loading": "Bezig met laden...",
+    "errorFallback": "Vertrouwensgegevens laden mislukt",
+    "backToDashboard": "Terug naar dashboard",
+    "recentTitle": "Recente verdachte activiteit",
+    "empty": "Geen verdachte activiteit geregistreerd",
+    "dash": "-",
+    "stat": {
+      "totalActivities": "Totale activiteiten",
+      "new": "Nieuw",
+      "confirmedFraud": "Bevestigde fraude",
+      "falsePositives": "Onterechte meldingen"
+    },
+    "table": {
+      "activity": "Activiteit",
+      "entity": "Entiteit",
+      "severity": "Ernst",
+      "status": "Status",
+      "risk": "Risico",
+      "detected": "Gedetecteerd"
+    }
+  },
+  "dsa": {
+    "title": "DSA-naleving",
+    "subtitle": "Inhoudsmeldingen & interne klachten",
+    "loading": "Bezig met laden...",
+    "errorFallback": "DSA-gegevens laden mislukt",
+    "backToDashboard": "Terug naar dashboard",
+    "contentReportsTitle": "Inhoudsmeldingen (Art. 16)",
+    "complaintsTitle": "Interne klachten (Art. 20)",
+    "emptyReports": "Geen inhoudsmeldingen",
+    "emptyComplaints": "Geen klachten",
+    "anonymous": "Anoniem",
+    "dash": "-",
+    "table": {
+      "status": "Status",
+      "category": "Categorie",
+      "priority": "Prioriteit",
+      "target": "Doel",
+      "reporter": "Melder",
+      "created": "Aangemaakt",
+      "type": "Type",
+      "complainant": "Klager",
+      "submitted": "Ingediend"
+    }
+  },
+  "support": {
+    "title": "Support",
+    "subtitle": "Support-ticketwachtrij",
+    "loading": "Bezig met laden...",
+    "errorFallback": "Tickets laden mislukt",
+    "backToDashboard": "Terug naar dashboard",
+    "ticketsTitle": "Tickets",
+    "empty": "Geen tickets gevonden",
+    "dash": "-",
+    "stat": {
+      "open": "Open",
+      "inProgress": "In behandeling",
+      "resolvedToday": "Vandaag opgelost"
+    },
+    "filter": {
+      "allStatuses": "Alle statussen",
+      "OPEN": "Open",
+      "IN_PROGRESS": "In behandeling",
+      "PENDING_USER": "Wacht op gebruiker",
+      "RESOLVED": "Opgelost",
+      "CLOSED": "Gesloten"
+    },
+    "table": {
+      "ticket": "Ticket",
+      "subject": "Onderwerp",
+      "user": "Gebruiker",
+      "priority": "Prioriteit",
+      "status": "Status",
+      "created": "Aangemaakt"
+    }
+  },
+  "users": {
+    "title": "Gebruikersbeheer",
+    "totalUsers": "{total, plural, one {# gebruiker in totaal} other {# gebruikers in totaal}}",
+    "addStaffUser": "Medewerker toevoegen",
+    "searchPlaceholder": "Zoek op e-mail of telefoon...",
+    "search": "Zoeken",
+    "loading": "Bezig met laden...",
+    "empty": "Geen gebruikers gevonden",
+    "idPrefix": "ID: {id}",
+    "previous": "Vorige",
+    "next": "Volgende",
+    "page": "Pagina {page}",
+    "actionFailed": "Actie uitvoeren mislukt",
+    "staffErrorFallback": "Medewerker aanmaken mislukt",
+    "filter": {
+      "allRoles": "Alle rollen",
+      "allStatuses": "Alle statussen",
+      "WORKER": "Werknemer",
+      "EMPLOYER": "Werkgever",
+      "ADMIN": "Admin",
+      "SUPPORT": "Support",
+      "ACTIVE": "Actief",
+      "SUSPENDED": "Geschorst",
+      "BANNED": "Verbannen"
+    },
+    "table": {
+      "user": "Gebruiker",
+      "role": "Rol",
+      "status": "Status",
+      "joined": "Lid sinds",
+      "actions": "Acties"
+    },
+    "action": {
+      "suspend": "Schorsen",
+      "ban": "Verbannen",
+      "restore": "Herstellen",
+      "viewDetails": "Details bekijken"
+    },
+    "staffModal": {
+      "title": "Medewerker toevoegen",
+      "body": "Maak een nieuw admin- of support-account aan. De nieuwe gebruiker kan inloggen met dit e-mailadres en wachtwoord.",
+      "firstName": "Voornaam",
+      "lastName": "Achternaam",
+      "email": "E-mail",
+      "phoneOptional": "Telefoon (optioneel)",
+      "password": "Wachtwoord",
+      "role": "Rol",
+      "roleSupport": "Support",
+      "roleAdmin": "Admin",
+      "placeholderFirstName": "Jan",
+      "placeholderLastName": "Jansen",
+      "placeholderEmail": "naam@voorbeeld.com",
+      "placeholderPhone": "+31 6 1234 5678",
+      "placeholderPassword": "Min. 8 tekens, 1 hoofdletter, 1 kleine letter, 1 cijfer",
+      "cancel": "Annuleren",
+      "create": "Gebruiker aanmaken",
+      "creating": "Bezig met aanmaken..."
+    }
+  },
+  "billing": {
+    "loading": "Facturatie laden...",
+    "title": "Facturatiebeheer",
+    "backToAdmin": "← Admin-dashboard",
+    "checkOverdue": "Te late betalingen controleren",
+    "emptyInvoices": "Nog geen facturen",
+    "previous": "Vorige",
+    "next": "Volgende",
+    "pageOf": "Pagina {page} van {total}",
+    "settingsTitle": "Facturatie-instellingen",
+    "saveSettings": "Instellingen opslaan",
+    "settingsSaved": "Instellingen succesvol opgeslagen",
+    "confirmCancel": "Weet u zeker dat u deze factuur wilt annuleren?",
+    "overdueCount": "{count, plural, one {# factuur gemarkeerd als te laat} other {# facturen gemarkeerd als te laat}}",
+    "dash": "—",
+    "stat": {
+      "totalRevenue": "Totale omzet",
+      "paid": "Betaald",
+      "outstanding": "Openstaand",
+      "overdue": "Te laat"
+    },
+    "tab": {
+      "invoices": "Facturen",
+      "settings": "Instellingen"
+    },
+    "filter": {
+      "allStatuses": "Alle statussen",
+      "ISSUED": "Verzonden",
+      "PAID": "Betaald",
+      "OVERDUE": "Te laat",
+      "CANCELLED": "Geannuleerd"
+    },
+    "table": {
+      "invoice": "Factuur",
+      "employer": "Werkgever",
+      "offer": "Vacature",
+      "issued": "Verzonden",
+      "total": "Totaal",
+      "status": "Status",
+      "actions": "Acties"
+    },
+    "action": {
+      "view": "Bekijken",
+      "markPaid": "Markeren als betaald",
+      "cancel": "Annuleren"
+    },
+    "settings": {
+      "introductionFee": "Introductiekosten (€)",
+      "vatRate": "Btw-tarief (%)",
+      "paymentTerms": "Betalingstermijn (dagen)",
+      "bankAccountIban": "Bankrekening IBAN",
+      "bankAccountName": "Naam bankrekening",
+      "invoicePrefix": "Factuurnummer-prefix",
+      "placeholderIban": "NL00BANK0000000000"
+    },
+    "markPaidModal": {
+      "title": "Factuur markeren als betaald",
+      "paymentRef": "Betalingsreferentie (optioneel)",
+      "paymentRefPlaceholder": "Bankoverschrijving-referentie",
+      "notes": "Notities (optioneel)",
+      "confirm": "Betaling bevestigen",
+      "cancel": "Annuleren"
+    }
+  },
+  "reports": {
+    "title": "Inhoudsmoderatie",
+    "subtitle": "DSA Art. 16 — Meld- en actiemechanisme",
+    "reportCount": "{total, plural, one {# melding} other {# meldingen}}",
+    "loading": "Meldingen laden...",
+    "emptyTitle": "Geen meldingen",
+    "emptyBody": "Geen inhoudsmeldingen die overeenkomen met uw filters",
+    "targetLabel": "Doel: {type}",
+    "acknowledged": "✓ Bevestigd",
+    "referredToAuthorities": "⚠ Doorgezet naar autoriteiten",
+    "previous": "Vorige",
+    "next": "Volgende",
+    "pageOf": "Pagina {page} van {total}",
+    "filter": {
+      "allStatuses": "Alle statussen",
+      "allCategories": "Alle categorieën",
+      "RECEIVED": "Ontvangen",
+      "ASSESSMENT": "In behandeling",
+      "ACTION_TAKEN": "Actie ondernomen",
+      "NOTIFIED": "Gemeld",
+      "RESOLVED": "Opgelost",
+      "DISMISSED": "Afgewezen",
+      "ESCALATED": "Geëscaleerd",
+      "FRAUD_SCAM": "Fraude / Oplichting",
+      "HARASSMENT": "Intimidatie",
+      "HATE_SPEECH": "Haatzaaien",
+      "CHILD_SAFETY": "Veiligheid van kinderen",
+      "TERRORISM": "Terrorisme",
+      "PRIVACY_VIOLATION": "Privacy schending",
+      "COPYRIGHT_VIOLATION": "Auteursrecht",
+      "MISLEADING_INFORMATION": "Misleidende info",
+      "IMPERSONATION": "Identiteitsdiefstal",
+      "OTHER": "Anders"
+    },
+    "detail": {
+      "title": "Meldingsdetails",
+      "priority": "Prioriteit: {priority}",
+      "reportDetails": "Meldingsdetails",
+      "category": "Categorie",
+      "target": "Doel",
+      "targetValue": "{type} ({id})",
+      "url": "URL",
+      "typeOfIllegalContent": "Type illegale inhoud",
+      "explanation": "Toelichting",
+      "goodFaithDeclaration": "Goedtrouwverklaring",
+      "goodFaithValue": "✓ In goed vertrouwen ingediend",
+      "timeline": "Tijdlijn",
+      "submitted": "Ingediend",
+      "acknowledged": "Bevestigd",
+      "assessed": "Beoordeeld",
+      "actionTakenAt": "Actie ondernomen op",
+      "resolvedAt": "Opgelost op",
+      "assessment": "Beoordeling",
+      "actionTaken": "Ondernomen actie"
+    },
+    "action": {
+      "assess": "Melding beoordelen",
+      "takeAction": "Actie ondernemen",
+      "escalate": "Doorgeven aan autoriteiten (Art. 18)",
+      "createSor": "Besluitenverklaring aanmaken (Art. 17)"
+    },
+    "actionModal": {
+      "titleAssess": "Melding beoordelen",
+      "titleAction": "Actie ondernemen",
+      "assessment": "Beoordeling",
+      "notes": "Notities",
+      "notesPlaceholder": "Beoordelingsnotities...",
+      "submitAssessment": "Beoordeling indienen",
+      "submitting": "Bezig met indienen...",
+      "cancel": "Annuleren",
+      "action": "Actie",
+      "resolutionNotes": "Oplossingsnotities",
+      "resolutionPlaceholder": "Oplossingsnotities...",
+      "resolve": "Melding oplossen",
+      "assessmentOptions": {
+        "ILLEGAL_CONTENT_FOUND": "Illegale inhoud gevonden",
+        "VIOLATES_TERMS": "Schendt servicevoorwaarden",
+        "NOT_VIOLATION": "Geen schending gevonden",
+        "UNCLEAR_NEEDS_REVIEW": "Onduidelijk — nader onderzoek vereist"
+      },
+      "actionOptions": {
+        "CONTENT_REMOVED": "Inhoud verwijderen",
+        "CONTENT_HIDDEN": "Inhoud verbergen (zichtbaarheidsbeperking)",
+        "ACCOUNT_SUSPENDED": "Account schorsen",
+        "ACCOUNT_BANNED": "Account verbannen",
+        "WARNING_ISSUED": "Waarschuwing geven",
+        "NO_ACTION": "Geen actie",
+        "ESCALATED_TO_AUTHORITIES": "Doorgeven aan autoriteiten",
+        "REFERRED_TO_OUT_OF_COURT": "Doorverwijzen naar buitengerechtelijke geschillenbeslechting"
+      }
+    },
+    "sorModal": {
+      "title": "Besluitenverklaring",
+      "subtitle": "DSA Art. 17",
+      "body": "DSA Art. 17 vereist dat de betreffende gebruiker een duidelijke verklaring ontvangt waarom hun inhoud is beperkt, inclusief het type beperking, feiten en omstandigheden, bron van de beslissing en rechtsmiddelen.",
+      "restrictionType": "Type beperking",
+      "reasons": "Redenen (komma-gescheiden)",
+      "reasonsPlaceholder": "illegale_inhoud, voorwaarden_schending, haatzaaien",
+      "detailedExplanation": "Gedetailleerde toelichting",
+      "explanationPlaceholder": "Leg uit waarom de inhoud is beperkt, inclusief de feiten en omstandigheden...",
+      "legalBasis": "Juridische grondslag (optioneel)",
+      "legalBasisPlaceholder": "bijv. Wetboek van Strafrecht Art. 137c",
+      "create": "Besluitenverklaring aanmaken",
+      "creating": "Bezig met aanmaken...",
+      "cancel": "Annuleren",
+      "restrictionOptions": {
+        "REMOVAL": "Verwijdering",
+        "VISIBILITY_LIMIT": "Zichtbaarheidsbeperking",
+        "GEO_BLOCKING": "Geo-blokkering",
+        "AGE_RESTRICTION": "Leeftijdsbeperking",
+        "ACCOUNT_SUSPENSION": "Accountschorsing",
+        "ACCOUNT_TERMINATION": "Accountbeëindiging"
+      }
+    },
+    "alert": {
+      "unknownError": "Onbekende fout",
+      "assessFailed": "Melding beoordelen mislukt: {message}",
+      "actionFailed": "Actie ondernemen mislukt: {message}",
+      "resolveFailed": "Melding oplossen mislukt: {message}",
+      "escalateFailed": "Doorgeven mislukt: {message}",
+      "escalated": "Melding doorgezet naar autoriteiten (DSA Art. 18)",
+      "sorCreated": "Besluitenverklaring aangemaakt (DSA Art. 17)",
+      "sorFailed": "Mislukt: {message}"
+    }
+  },
+  "privacy": {
+    "title": "AVG / Privacy",
+    "subtitle": "Verzoeken van betrokkenen & meldingen van datalekken",
+    "loading": "Bezig met laden...",
+    "errorFallback": "Privacygegevens laden mislukt",
+    "backToDashboard": "Terug naar dashboard",
+    "dsrTitle": "Verzoeken van betrokkenen",
+    "breachTitle": "Meldingen van datalekken",
+    "emptyDsr": "Geen verzoeken van betrokkenen",
+    "emptyBreaches": "Geen meldingen van datalekken",
+    "dash": "-",
+    "table": {
+      "type": "Type",
+      "user": "Gebruiker",
+      "status": "Status",
+      "due": "Deadline",
+      "submitted": "Ingediend",
+      "title": "Titel",
+      "severity": "Ernst",
+      "categories": "Categorieën",
+      "discovered": "Ontdekt"
+    }
+  },
+  "settings": {
+    "loading": "Bezig met laden...",
+    "title": "Platforminstellingen",
+    "subtitle": "Platformconfiguratie beheren",
+    "save": "Wijzigingen opslaan",
+    "saving": "Bezig met opslaan...",
+    "settingsSaved": "Instellingen succesvol opgeslagen",
+    "settingsSaveFailed": "Instellingen opslaan mislukt",
+    "tab": {
+      "general": "Algemeen",
+      "financial": "Financieel",
+      "verification": "Verificatie",
+      "system": "Systeem"
+    },
+    "general": {
+      "title": "Algemene instellingen",
+      "platformName": "Platformnaam",
+      "platformUrl": "Platform-URL",
+      "supportEmail": "Support-e-mail",
+      "welcomeMessage": "Welkomstbericht",
+      "termsOfServiceUrl": "URL servicevoorwaarden",
+      "privacyPolicyUrl": "URL privacybeleid",
+      "placeholderUrl": "https://offermarket.com"
+    },
+    "financial": {
+      "title": "Financiële instellingen",
+      "defaultCurrency": "Standaardvaluta",
+      "serviceFee": "Servicekosten (%)",
+      "serviceFeeHint": "Percentage dat per transactie wordt geheven",
+      "taxRate": "Belastingtarief (%)",
+      "minWithdrawal": "Minimum opnamebedrag",
+      "maxCredits": "Maximum credits-aankoop",
+      "currencyOptions": {
+        "USD": "USD - Amerikaanse dollar",
+        "EUR": "EUR - Euro",
+        "GBP": "GBP - Britse pond",
+        "CAD": "CAD - Canadese dollar",
+        "AUD": "AUD - Australische dollar"
+      }
+    },
+    "verification": {
+      "title": "Verificatie-instellingen",
+      "emailRequired": "E-mailverificatie vereist",
+      "emailRequiredHint": "Vereis dat gebruikers hun e-mailadres verifiëren",
+      "phoneRequired": "Telefoonverificatie vereist",
+      "phoneRequiredHint": "Vereis dat gebruikers hun telefoonnummer verifiëren",
+      "adminApproval": "Admin-goedkeuring voor werkgevers",
+      "adminApprovalHint": "Vereis admin-goedkeuring voordat werkgevers vacatures kunnen plaatsen"
+    },
+    "system": {
+      "title": "Systeeminstellingen",
+      "maintenanceMode": "Onderhoudsmodus",
+      "maintenanceModeHint": "Zet het platform in onderhoudsmodus",
+      "maintenanceMessage": "Onderhoudsbericht",
+      "maintenanceMessageHint": "Bericht dat aan gebruikers wordt getoond tijdens onderhoud"
+    }
+  }
+}

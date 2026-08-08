@@ -1,0 +1,76 @@
+{
+  "offer_received": {
+    "title": "Nieuw aanbod ontvangen!",
+    "body": "{employerCompanyName} heeft je een aanbod gestuurd voor {jobTitle}"
+  },
+  "offer_accepted": {
+    "title": "🎉 Aanbod geaccepteerd!",
+    "body": "{workerName} heeft je aanbod voor {jobTitle} geaccepteerd. Je kunt nu direct contact opnemen."
+  },
+  "offer_accepted_confirmation": {
+    "title": "Aanbod geaccepteerd",
+    "body": "Je identiteit is gedeeld met {employerCompanyName}. Je kunt ze nu direct berichten sturen."
+  },
+  "offer_rejected": {
+    "title": "Aanbod afgewezen",
+    "body": "De kandidaat heeft je aanbod afgewezen."
+  },
+  "offer_countered": {
+    "title": "Tegenaanbod ontvangen",
+    "body": "De kandidaat heeft een tegenaanbod ingediend voor {jobTitle}"
+  },
+  "offer_withdrawn": {
+    "title": "Aanbod ingetrokken",
+    "body": "De werkgever heeft dit aanbod ingetrokken."
+  },
+  "offer_expiring": {
+    "title": "Aanbod verloopt binnenkort",
+    "body": "Een aanbod voor {jobTitle} verloopt over minder dan 3 dagen. Bekijk het voordat het verloopt."
+  },
+  "message_received": {
+    "title": "Nieuw bericht",
+    "body": "{contentPreview}"
+  },
+  "invoice_created": {
+    "title": "Factuur aangemaakt",
+    "body": "Er is een nieuwe factuur ({invoiceNumber}) aangemaakt voor €{amount}."
+  },
+  "invoice_overdue": {
+    "title": "Factuur achterstallig",
+    "body": "Factuur {invoiceNumber} is {daysOverdue} dagen achterstallig."
+  },
+  "breach": {
+    "notification": {
+      "title": "Melding datalek: {breachTitle}",
+      "body": "Er is een datalek gemeld: \"{breachTitle}\". Ernst: {severity}. Bekijk het privacy-dashboard voor details."
+    }
+  },
+  "support_ticket_updated": {
+    "title": "Je ticket {ticketNumber} is bijgewerkt",
+    "body": "Support heeft je ticket \"{subject}\" gewijzigd naar {statusLabel}."
+  },
+  "support_offer_extended": {
+    "title": "De vervaldatum van je aanbod is verlengd",
+    "title_with_job": "Je aanbod \"{jobTitle}\" is verlengd",
+    "body": "Support heeft de vervaldatum van je aanbod verlengd tot {expiry}.",
+    "body_with_job": "Support heeft de vervaldatum van je aanbod \"{jobTitle}\" verlengd tot {expiry}."
+  },
+  "support_company_unblocked": {
+    "title": "Een geblokkeerd bedrijf is gedeblokkeerd",
+    "body": "Support heeft een bedrijfsblokkade op je account opgeheven. Je kunt weer met die werkgever communiceren."
+  },
+  "ui": {
+    "title": "Meldingen",
+    "markAllRead": "Alles als gelezen markeren",
+    "loading": "Bezig met laden...",
+    "empty": "Nog geen meldingen",
+    "ariaLabel": "Meldingen",
+    "ariaLabelUnread": "Meldingen ({count} ongelezen)"
+  },
+  "timeAgo": {
+    "justNow": "Zojuist",
+    "minutesAgo": "{count}m geleden",
+    "hoursAgo": "{count}u geleden",
+    "daysAgo": "{count}d geleden"
+  }
+}

@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException, BadRequestException, UnauthorizedException, ForbiddenException, Logger } from '@nestjs/common';
+import { ERROR_CODES } from '../../i18n/error-codes';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -110,11 +111,11 @@ export class OffersService {
       });
 
       if (!employer) {
-        throw new NotFoundException('Employer not found');
+        throw new NotFoundException({ code: ERROR_CODES.OFFER_EMPLOYER_NOT_FOUND, message: 'Employer not found' });
       }
 
       if (employer.verificationStatus === 'PENDING' || employer.verificationStatus === 'REJECTED') {
-        throw new ForbiddenException('Employer must be verified before making offers');
+        throw new ForbiddenException({ code: ERROR_CODES.OFFER_EMPLOYER_NOT_VERIFIED, message: 'Employer must be verified before making offers' });
       }
 
       // 2. Verify worker exists and is active
@@ -123,7 +124,7 @@ export class OffersService {
       });
 
       if (!worker || worker.deletedAt) {
-        throw new NotFoundException('Worker not found');
+        throw new NotFoundException({ code: ERROR_CODES.OFFER_WORKER_NOT_FOUND, message: 'Worker not found' });
       }
 
       // 2.5 SECURITY (E-H8): GDPR Article 18 — if the worker has restricted
@@ -149,12 +150,12 @@ export class OffersService {
 
       if (isBlocked) {
         // Silently fail - don't reveal to employer that they're blocked
-        throw new ForbiddenException('Cannot make offer to this worker');
+        throw new ForbiddenException({ code: ERROR_CODES.OFFER_CANNOT_MAKE_OFFER, message: 'Cannot make offer to this worker' });
       }
 
       // 4. Verify worker's profile visibility allows this employer
       if (worker.profileVisibility === 'HIDDEN') {
-        throw new ForbiddenException('Worker profile is not visible');
+        throw new ForbiddenException({ code: ERROR_CODES.OFFER_WORKER_NOT_VISIBLE, message: 'Worker profile is not visible' });
       }
 
       if (worker.profileVisibility === 'SELECTED_COMPANIES') {
@@ -166,7 +167,7 @@ export class OffersService {
           }
         });
         if (!isVisible) {
-          throw new ForbiddenException('Worker profile is not visible to you');
+          throw new ForbiddenException({ code: ERROR_CODES.OFFER_WORKER_NOT_VISIBLE_TO_YOU, message: 'Worker profile is not visible to you' });
         }
       }
 
@@ -183,9 +184,10 @@ export class OffersService {
         },
       });
       if (workerActiveOffers >= MAX_WORKER_ACTIVE_OFFERS) {
-        throw new BadRequestException(
-          'This worker has reached the maximum number of active offers'
-        );
+        throw new BadRequestException({
+          code: ERROR_CODES.OFFER_WORKER_MAX_ACTIVE_OFFERS,
+          message: 'This worker has reached the maximum number of active offers',
+        });
       }
 
       // 5b. Check employer's active offers to this specific worker
@@ -197,9 +199,10 @@ export class OffersService {
         },
       });
       if (employerToWorkerOffers >= MAX_EMPLOYER_TO_WORKER_OFFERS) {
-        throw new BadRequestException(
-          'You already have active offers to this worker. Please withdraw existing offers before creating new ones.'
-        );
+        throw new BadRequestException({
+          code: ERROR_CODES.OFFER_DUPLICATE_TO_WORKER,
+          message: 'You already have active offers to this worker. Please withdraw existing offers before creating new ones.',
+        });
       }
 
       // 6. Generate public ID for offer
@@ -324,7 +327,7 @@ export class OffersService {
     });
 
     if (!worker) {
-      throw new NotFoundException('Worker profile not found');
+      throw new NotFoundException({ code: ERROR_CODES.OFFER_WORKER_PROFILE_NOT_FOUND, message: 'Worker profile not found' });
     }
 
     const offer = await this.prisma.offer.findUnique({
@@ -343,12 +346,12 @@ export class OffersService {
     });
 
     if (!offer) {
-      throw new NotFoundException('Offer not found');
+      throw new NotFoundException({ code: ERROR_CODES.OFFER_NOT_FOUND, message: 'Offer not found' });
     }
 
     // Verify this offer belongs to the worker
     if (offer.workerId !== worker.id) {
-      throw new ForbiddenException('Not authorized to view this offer');
+      throw new ForbiddenException({ code: ERROR_CODES.OFFER_NOT_AUTHORIZED_VIEW, message: 'Not authorized to view this offer' });
     }
 
     // Update viewed timestamp if first time viewing
@@ -383,7 +386,7 @@ export class OffersService {
     });
 
     if (!employer) {
-      throw new NotFoundException('Employer not found');
+      throw new NotFoundException({ code: ERROR_CODES.OFFER_EMPLOYER_NOT_FOUND, message: 'Employer not found' });
     }
 
     const offer = await this.prisma.offer.findUnique({
@@ -398,12 +401,12 @@ export class OffersService {
     });
 
     if (!offer) {
-      throw new NotFoundException('Offer not found');
+      throw new NotFoundException({ code: ERROR_CODES.OFFER_NOT_FOUND, message: 'Offer not found' });
     }
 
     // Verify this offer belongs to the employer
     if (offer.employerId !== employer.id) {
-      throw new ForbiddenException('Not authorized to view this offer');
+      throw new ForbiddenException({ code: ERROR_CODES.OFFER_NOT_AUTHORIZED_VIEW, message: 'Not authorized to view this offer' });
     }
 
     return offer;
@@ -426,7 +429,7 @@ export class OffersService {
       });
 
       if (!employer) {
-        throw new NotFoundException('Employer not found');
+        throw new NotFoundException({ code: ERROR_CODES.OFFER_EMPLOYER_NOT_FOUND, message: 'Employer not found' });
       }
 
       // 2. Get the offer
@@ -436,17 +439,21 @@ export class OffersService {
       });
 
       if (!offer) {
-        throw new NotFoundException('Offer not found');
+        throw new NotFoundException({ code: ERROR_CODES.OFFER_NOT_FOUND, message: 'Offer not found' });
       }
 
       // 3. Verify ownership
       if (offer.employerId !== employer.id) {
-        throw new ForbiddenException('Not authorized to update this offer');
+        throw new ForbiddenException({ code: ERROR_CODES.OFFER_NOT_AUTHORIZED_UPDATE, message: 'Not authorized to update this offer' });
       }
 
       // 4. Check if offer can be updated
       if (offer.status === 'ACCEPTED' || offer.status === 'REJECTED' || offer.status === 'WITHDRAWN') {
-        throw new BadRequestException(`Cannot update offer in ${offer.status} status`);
+        throw new BadRequestException({
+          code: ERROR_CODES.OFFER_CANNOT_UPDATE_STATUS,
+          message: `Cannot update offer in ${offer.status} status`,
+          params: { status: offer.status },
+        });
       }
 
       // 5. Get next version number
@@ -548,7 +555,7 @@ export class OffersService {
       });
 
       if (!employer) {
-        throw new NotFoundException('Employer not found');
+        throw new NotFoundException({ code: ERROR_CODES.OFFER_EMPLOYER_NOT_FOUND, message: 'Employer not found' });
       }
 
       // 2. Get the offer
@@ -561,12 +568,12 @@ export class OffersService {
       });
 
       if (!offer) {
-        throw new NotFoundException('Offer not found');
+        throw new NotFoundException({ code: ERROR_CODES.OFFER_NOT_FOUND, message: 'Offer not found' });
       }
 
       // 3. Verify ownership
       if (offer.employerId !== employer.id) {
-        throw new ForbiddenException('Not authorized to submit this offer');
+        throw new ForbiddenException({ code: ERROR_CODES.OFFER_NOT_AUTHORIZED_SUBMIT, message: 'Not authorized to submit this offer' });
       }
 
       // 4. Check if offer can be submitted. A DRAFT is an initial submission; a
@@ -574,11 +581,15 @@ export class OffersService {
       // (optionally after editing) and sending it back (E-M4: counters are now
       // versioned on the same offer rather than a separate DRAFT offer).
       if (offer.status !== 'DRAFT' && offer.status !== 'COUNTERED') {
-        throw new BadRequestException(`Cannot submit offer in ${offer.status} status`);
+        throw new BadRequestException({
+          code: ERROR_CODES.OFFER_CANNOT_SUBMIT_STATUS,
+          message: `Cannot submit offer in ${offer.status} status`,
+          params: { status: offer.status },
+        });
       }
 
       if (!offer.currentVersion) {
-        throw new BadRequestException('Offer has no version to submit');
+        throw new BadRequestException({ code: ERROR_CODES.OFFER_NO_VERSION_SUBMIT, message: 'Offer has no version to submit' });
       }
 
       // 5. Update offer status to SUBMITTED
@@ -634,7 +645,7 @@ export class OffersService {
       });
 
       if (!worker) {
-        throw new NotFoundException('Worker not found');
+        throw new NotFoundException({ code: ERROR_CODES.OFFER_WORKER_NOT_FOUND, message: 'Worker not found' });
       }
 
       // 2. Acquire row-level lock on the offer to prevent concurrent acceptance.
@@ -662,12 +673,12 @@ export class OffersService {
       });
 
       if (!offer) {
-        throw new NotFoundException('Offer not found');
+        throw new NotFoundException({ code: ERROR_CODES.OFFER_NOT_FOUND, message: 'Offer not found' });
       }
 
       // 3. Verify worker ownership
       if (offer.workerId !== worker.id) {
-        throw new UnauthorizedException('Not authorized to accept this offer');
+        throw new UnauthorizedException({ code: ERROR_CODES.OFFER_NOT_AUTHORIZED_ACCEPT, message: 'Not authorized to accept this offer' });
       }
 
       // 3. Verify offer can be accepted
@@ -675,12 +686,16 @@ export class OffersService {
       // SUBMITTED offer without viewing could be unintentional — the worker
       // hasn't seen the terms yet. Only VIEWED and SHORTLISTED are valid.
       if (offer.status !== 'VIEWED' && offer.status !== 'SHORTLISTED') {
-        throw new BadRequestException(`Offer cannot be accepted in current state: ${offer.status}. Please view the offer first before accepting.`);
+        throw new BadRequestException({
+          code: ERROR_CODES.OFFER_CANNOT_ACCEPT_STATE,
+          message: `Offer cannot be accepted in current state: ${offer.status}. Please view the offer first before accepting.`,
+          params: { status: offer.status },
+        });
       }
 
       // 4. Check offer hasn't expired
       if (offer.expiresAt < new Date()) {
-        throw new BadRequestException('Offer has expired');
+        throw new BadRequestException({ code: ERROR_CODES.OFFER_EXPIRED, message: 'Offer has expired' });
       }
 
       // 5. CRITICAL: Reveal worker identity
@@ -775,7 +790,7 @@ export class OffersService {
     });
 
     if (!worker) {
-      throw new NotFoundException('Worker not found');
+      throw new NotFoundException({ code: ERROR_CODES.OFFER_WORKER_NOT_FOUND, message: 'Worker not found' });
     }
 
     const offer = await this.prisma.offer.findUnique({
@@ -783,15 +798,19 @@ export class OffersService {
     });
 
     if (!offer) {
-      throw new NotFoundException('Offer not found');
+      throw new NotFoundException({ code: ERROR_CODES.OFFER_NOT_FOUND, message: 'Offer not found' });
     }
 
     if (offer.workerId !== worker.id) {
-      throw new UnauthorizedException('Not authorized');
+      throw new UnauthorizedException({ code: ERROR_CODES.OFFER_NOT_AUTHORIZED, message: 'Not authorized' });
     }
 
     if (offer.status === 'ACCEPTED' || offer.status === 'REJECTED' || offer.status === 'EXPIRED') {
-      throw new BadRequestException(`Offer cannot be rejected in current state: ${offer.status}`);
+      throw new BadRequestException({
+        code: ERROR_CODES.OFFER_CANNOT_REJECT_STATE,
+        message: `Offer cannot be rejected in current state: ${offer.status}`,
+        params: { status: offer.status },
+      });
     }
 
     await this.prisma.offer.update({
@@ -809,7 +828,7 @@ export class OffersService {
     });
 
     if (!employer) {
-      throw new NotFoundException('Employer not found');
+      throw new NotFoundException({ code: ERROR_CODES.OFFER_EMPLOYER_NOT_FOUND, message: 'Employer not found' });
     }
 
     this.eventEmitter.emit(NotificationEventType.OFFER_REJECTED, {
@@ -835,7 +854,7 @@ export class OffersService {
     });
 
     if (!worker) {
-      throw new NotFoundException('Worker not found');
+      throw new NotFoundException({ code: ERROR_CODES.OFFER_WORKER_NOT_FOUND, message: 'Worker not found' });
     }
 
     const offer = await this.prisma.offer.findUnique({
@@ -843,11 +862,11 @@ export class OffersService {
     });
 
     if (!offer) {
-      throw new NotFoundException('Offer not found');
+      throw new NotFoundException({ code: ERROR_CODES.OFFER_NOT_FOUND, message: 'Offer not found' });
     }
 
     if (offer.workerId !== worker.id) {
-      throw new UnauthorizedException('Not authorized');
+      throw new UnauthorizedException({ code: ERROR_CODES.OFFER_NOT_AUTHORIZED, message: 'Not authorized' });
     }
 
     await this.prisma.offer.update({
@@ -873,7 +892,7 @@ export class OffersService {
       });
 
       if (!worker) {
-        throw new NotFoundException('Worker not found');
+        throw new NotFoundException({ code: ERROR_CODES.OFFER_WORKER_NOT_FOUND, message: 'Worker not found' });
       }
 
       const offer = await tx.offer.findUnique({
@@ -882,11 +901,11 @@ export class OffersService {
       });
 
       if (!offer) {
-        throw new NotFoundException('Offer not found');
+        throw new NotFoundException({ code: ERROR_CODES.OFFER_NOT_FOUND, message: 'Offer not found' });
       }
 
       if (offer.workerId !== worker.id) {
-        throw new UnauthorizedException('Not authorized');
+        throw new UnauthorizedException({ code: ERROR_CODES.OFFER_NOT_AUTHORIZED, message: 'Not authorized' });
       }
 
       // SECURITY: Only allow countering offers that are in an active state.
@@ -894,14 +913,17 @@ export class OffersService {
       // cannot be countered.
       const allowedStatusesForCounter = ['SUBMITTED', 'VIEWED', 'SHORTLISTED'];
       if (!allowedStatusesForCounter.includes(offer.status)) {
-        throw new BadRequestException(
-          `Offer cannot be countered in current state: ${offer.status}. ` +
-          `Only offers in states ${allowedStatusesForCounter.join(', ')} can be countered.`
-        );
+        throw new BadRequestException({
+          code: ERROR_CODES.OFFER_CANNOT_COUNTER_STATE,
+          message:
+            `Offer cannot be countered in current state: ${offer.status}. ` +
+            `Only offers in states ${allowedStatusesForCounter.join(', ')} can be countered.`,
+          params: { status: offer.status, allowed: allowedStatusesForCounter.join(', ') },
+        });
       }
 
       if (!offer.currentVersion) {
-        throw new BadRequestException('Offer has no version to counter');
+        throw new BadRequestException({ code: ERROR_CODES.OFFER_NO_VERSION_COUNTER, message: 'Offer has no version to counter' });
       }
 
       // Validate counter-offer salary values
@@ -909,10 +931,10 @@ export class OffersService {
       const effectiveSalaryMax = counterOfferDto.salaryMax ?? offer.currentVersion.salaryMax;
 
       if (effectiveSalaryMax < effectiveSalaryMin) {
-        throw new BadRequestException('Maximum salary must be greater than or equal to minimum salary');
+        throw new BadRequestException({ code: ERROR_CODES.OFFER_SALARY_MAX_BELOW_MIN, message: 'Maximum salary must be greater than or equal to minimum salary' });
       }
       if (effectiveSalaryMax - effectiveSalaryMin > 20000) {
-        throw new BadRequestException('Salary range cannot exceed €20,000. Please provide a more specific salary range.');
+        throw new BadRequestException({ code: ERROR_CODES.OFFER_SALARY_RANGE_TOO_WIDE, message: 'Salary range cannot exceed €20,000. Please provide a more specific salary range.' });
       }
 
       // E-M4: The counter-offer is versioned onto the SAME offer record rather
@@ -998,7 +1020,7 @@ export class OffersService {
       });
 
       if (!employer) {
-        throw new NotFoundException('Employer not found');
+        throw new NotFoundException({ code: ERROR_CODES.OFFER_EMPLOYER_NOT_FOUND, message: 'Employer not found' });
       }
 
       this.eventEmitter.emit(NotificationEventType.OFFER_COUNTERED, {
@@ -1034,7 +1056,7 @@ export class OffersService {
     });
 
     if (!employer) {
-      throw new NotFoundException('Employer not found');
+      throw new NotFoundException({ code: ERROR_CODES.OFFER_EMPLOYER_NOT_FOUND, message: 'Employer not found' });
     }
 
     const offer = await this.prisma.offer.findUnique({
@@ -1042,11 +1064,11 @@ export class OffersService {
     });
 
     if (!offer) {
-      throw new NotFoundException('Offer not found');
+      throw new NotFoundException({ code: ERROR_CODES.OFFER_NOT_FOUND, message: 'Offer not found' });
     }
 
     if (offer.employerId !== employer.id) {
-      throw new ForbiddenException('Not authorized to withdraw this offer');
+      throw new ForbiddenException({ code: ERROR_CODES.OFFER_NOT_AUTHORIZED_WITHDRAW, message: 'Not authorized to withdraw this offer' });
     }
 
     // E-C3: A withdrawal is a transition into the terminal WITHDRAWN state.
@@ -1056,10 +1078,13 @@ export class OffersService {
     // and obscuring the offer's real outcome.
     const withdrawableStatuses = ['DRAFT', 'SUBMITTED', 'VIEWED', 'SHORTLISTED', 'COUNTERED'];
     if (!withdrawableStatuses.includes(offer.status)) {
-      throw new BadRequestException(
-        `Cannot withdraw an offer in its current state: ${offer.status}. ` +
-        `Only active offers can be withdrawn.`
-      );
+      throw new BadRequestException({
+        code: ERROR_CODES.OFFER_CANNOT_WITHDRAW_STATE,
+        message:
+          `Cannot withdraw an offer in its current state: ${offer.status}. ` +
+          `Only active offers can be withdrawn.`,
+        params: { status: offer.status },
+      });
     }
 
     await this.prisma.offer.update({
@@ -1077,7 +1102,7 @@ export class OffersService {
     });
 
     if (!worker) {
-      throw new NotFoundException('Worker not found');
+      throw new NotFoundException({ code: ERROR_CODES.OFFER_WORKER_NOT_FOUND, message: 'Worker not found' });
     }
 
     this.eventEmitter.emit(NotificationEventType.OFFER_WITHDRAWN, {
@@ -1137,7 +1162,7 @@ export class OffersService {
     });
 
     if (!employer) {
-      throw new NotFoundException('Employer not found');
+      throw new NotFoundException({ code: ERROR_CODES.OFFER_EMPLOYER_NOT_FOUND, message: 'Employer not found' });
     }
 
     const where: any = { employerId: employer.id };

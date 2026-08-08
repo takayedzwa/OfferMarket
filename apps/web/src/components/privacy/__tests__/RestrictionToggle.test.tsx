@@ -2,6 +2,8 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import RestrictionToggle from '../RestrictionToggle';
+import { NextIntlClientProvider } from 'next-intl';
+import enMessages from '@/messages/en';
 
 // Mock fetch
 const mockFetch = jest.fn();
@@ -21,6 +23,27 @@ Object.defineProperty(window, 'localStorage', { value: localStorageMock });
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
 
+
+// Replicates the original nl-NL date formatting the components used before
+// i18n migration, so existing Dutch-date assertions (e.g. "10 augustus 2026")
+// keep passing. useFormat is fully mocked — provider locale only affects
+// useTranslations text, which stays English.
+jest.mock('@/hooks/useFormat', () => ({
+  useFormat: () => ({
+    currency: (amount: number) => `€${amount}`,
+    date: (iso: string, options?: Intl.DateTimeFormatOptions) =>
+      new Date(iso).toLocaleDateString('nl-NL', options ?? { year: 'numeric', month: 'long', day: 'numeric' }),
+  }),
+}));
+
+// Wraps a node in the provider the components need for useTranslations/useLocale.
+function renderWithIntl(ui: React.ReactElement) {
+  return render(
+    <NextIntlClientProvider locale="en" messages={enMessages}>
+      {ui}
+    </NextIntlClientProvider>,
+  );
+}
 describe('RestrictionToggle', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -41,7 +64,7 @@ describe('RestrictionToggle', () => {
         }),
       });
 
-      render(<RestrictionToggle />);
+      renderWithIntl(<RestrictionToggle />);
 
       await waitFor(() => {
         expect(mockFetch).toHaveBeenCalledWith(
@@ -64,7 +87,7 @@ describe('RestrictionToggle', () => {
         }),
       });
 
-      render(<RestrictionToggle />);
+      renderWithIntl(<RestrictionToggle />);
 
       await waitFor(() => {
         // Toggle should be ON (amber)
@@ -82,7 +105,7 @@ describe('RestrictionToggle', () => {
         }),
       });
 
-      render(<RestrictionToggle />);
+      renderWithIntl(<RestrictionToggle />);
 
       await waitFor(() => {
         const toggle = screen.getByRole('button');
@@ -114,7 +137,7 @@ describe('RestrictionToggle', () => {
         }),
       });
 
-      render(<RestrictionToggle />);
+      renderWithIntl(<RestrictionToggle />);
 
       // Wait for initial load
       await waitFor(() => {
@@ -158,7 +181,7 @@ describe('RestrictionToggle', () => {
         }),
       });
 
-      render(<RestrictionToggle />);
+      renderWithIntl(<RestrictionToggle />);
 
       // Wait for initial load
       await waitFor(() => {
@@ -199,7 +222,7 @@ describe('RestrictionToggle', () => {
         json: async () => ({ message: 'Internal server error' }),
       });
 
-      render(<RestrictionToggle />);
+      renderWithIntl(<RestrictionToggle />);
 
       await waitFor(() => {
         expect(screen.getByText('Processing Restriction Status')).toBeInTheDocument();

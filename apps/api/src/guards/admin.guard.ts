@@ -1,4 +1,5 @@
 import { Injectable, ExecutionContext, ForbiddenException } from '@nestjs/common';
+import { ERROR_CODES } from '../i18n/error-codes';
 import { AuthGuard } from '@nestjs/passport';
 import { UserRole } from '@prisma/client';
 
@@ -16,11 +17,11 @@ export class AdminGuard extends AuthGuard('jwt') {
     const user = request.user;
 
     if (!user) {
-      throw new ForbiddenException('User not authenticated');
+      throw new ForbiddenException({ code: ERROR_CODES.GUARD_NOT_AUTHENTICATED, message: 'User not authenticated' });
     }
 
     if (user.role !== 'ADMIN') {
-      throw new ForbiddenException('Access denied. Admin privileges required.');
+      throw new ForbiddenException({ code: ERROR_CODES.GUARD_ADMIN_REQUIRED, message: 'Access denied. Admin privileges required.' });
     }
 
     return true;

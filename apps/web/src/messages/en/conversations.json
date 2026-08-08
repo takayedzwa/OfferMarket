@@ -1,0 +1,27 @@
+{
+  "list": {
+    "loading": "Loading conversations...",
+    "searchPlaceholder": "Search conversations...",
+    "fallbackEmployer": "Employer",
+    "fallbackWorker": "Worker {id}",
+    "emptyTitle": "No conversations yet",
+    "emptyEmployer": "Start a conversation when you send an offer",
+    "emptyWorker": "Conversations will appear here when employers contact you",
+    "regarding": "Regarding: {jobTitle}",
+    "selectTitle": "Select a conversation",
+    "selectSubtitle": "Choose from your conversations to start messaging",
+    "messagePlaceholder": "Type a message..."
+  },
+  "detail": {
+    "loading": "Loading conversation...",
+    "notFound": "Conversation not found or you don't have access.",
+    "loadFailed": "Failed to load conversation. Please try again.",
+    "back": "Back to conversations",
+    "unknown": "Unknown",
+    "fallbackEmployer": "Employer",
+    "fallbackWorker": "Worker",
+    "regarding": "Regarding: {jobTitle}",
+    "noMessages": "No messages yet. Start the conversation!",
+    "messagePlaceholder": "Type a message..."
+  }
+}

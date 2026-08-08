@@ -1,10 +1,11 @@
-import { Controller, Post, Body, BadRequestException, Get, Request, UseGuards } from '@nestjs/common';
+import { Controller, Post, Body, BadRequestException, Get, Patch, Request, UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
 import { AdminGuard } from '../../guards/admin.guard';
 import { AuthService } from './auth.service';
 import { RegisterWorkerDto, RegisterEmployerDto, RegisterAdminDto, RegisterSupportDto } from './dto/auth.dto';
 import { ForgotPasswordDto, ResetPasswordDto } from './dto/reset-password.dto';
+import { UpdatePreferredLocaleDto } from './dto/preferred-locale.dto';
 
 @Controller('auth')
 // SECURITY (CSRF assessment): authentication is bearer-token based — the
@@ -60,8 +61,23 @@ export class AuthController {
       phoneVerified: user.phoneVerified,
       phone: user.phone,
       firstName: user.firstName,
-      lastName: user.lastName
+      lastName: user.lastName,
+      preferredLocale: user.preferredLocale,
     };
+  }
+
+  // ============================================================================
+  // UPDATE PREFERRED LOCALE (i18n)
+  // ============================================================================
+  // Persist the authenticated user's preferred UI/email locale. The frontend
+  // language switcher calls this so the choice survives across sessions and
+  // drives server-side email rendering. userId is taken from the verified JWT
+  // (not the body) to prevent IDOR.
+
+  @Patch('me/preferred-locale')
+  @UseGuards(JwtAuthGuard)
+  async updatePreferredLocale(@Request() req: any, @Body() dto: UpdatePreferredLocaleDto) {
+    return this.authService.updatePreferredLocale(req.user.id, dto.preferredLocale);
   }
 
   // ============================================================================

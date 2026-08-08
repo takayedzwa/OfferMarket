@@ -88,6 +88,8 @@ export class NotificationsGateway
       category: string | null;
       title: string;
       body: string;
+      /** i18n interpolation params (Prisma Json? value) for client-side rendering. */
+      actionData: unknown;
       actionUrl: string | null;
       createdAt: string;
     },

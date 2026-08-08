@@ -60,12 +60,15 @@ api.interceptors.response.use(
 
       const refreshToken = localStorage.getItem('refreshToken');
       if (!refreshToken) {
-        // No refresh token — redirect to login
+        // No refresh token — clear credentials and reject. We deliberately do
+        // NOT hard-navigate to /login here: this interceptor runs on EVERY 401,
+        // including the `/auth/me` probe AuthProvider fires on mount for
+        // logged-out visitors on public pages (landing/login). Navigating here
+        // caused an infinite reload loop (`/auth/me` 401 -> reload /login ->
+        // `/auth/me` 401 -> ...). Route-level redirect-to-login for protected
+        // pages is owned by AuthContext, which knows the current path.
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
-        if (typeof window !== 'undefined') {
-          window.location.href = '/login';
-        }
         return Promise.reject(error);
       }
 
@@ -85,11 +88,11 @@ api.interceptors.response.use(
         return api(originalRequest);
       } catch (refreshError) {
         processQueue(refreshError, null);
+        // Refresh failed (expired/revoked) — clear credentials and reject.
+        // AuthContext handles the redirect to login for protected pages; do
+        // NOT reload here (see the no-refresh-token branch above).
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
-        if (typeof window !== 'undefined') {
-          window.location.href = '/login';
-        }
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;
@@ -123,6 +126,11 @@ export const authApi = {
   // Refresh the access token using a valid refresh token
   refreshToken: (refreshToken: string) =>
     api.post('/auth/refresh', { refreshToken }),
+
+  // i18n: persist the user's preferred UI/email locale server-side so it
+  // survives across sessions/devices and drives server-side email rendering.
+  updatePreferredLocale: (preferredLocale: string) =>
+    api.patch('/auth/me/preferred-locale', { preferredLocale }),
 
   logout: () => {
     if (typeof window !== 'undefined') {
@@ -660,15 +668,21 @@ export const notificationsApi = {
 // UTILITY FUNCTIONS
 // ============================================================================
 
-export const formatCurrency = (amount: number, currency: string = 'EUR') => {
-  return new Intl.NumberFormat('nl-NL', {
+// Locale-aware formatters. `locale` defaults to the English source-of-truth
+// locale so a bare call never silently renders Dutch; component call sites
+// should prefer the `useFormat()` hook, which passes the active locale from
+// `useLocale()`. Replaces the former hardcoded `'nl-NL'` (which rendered Dutch
+// even for English users).
+export const formatCurrency = (amount: number, currency: string = 'EUR', locale: string = 'en', options?: Intl.NumberFormatOptions) => {
+  return new Intl.NumberFormat(locale, {
     style: 'currency',
     currency,
+    ...options,
   }).format(amount);
 };
 
-export const formatDate = (date: string | Date) => {
-  return new Intl.DateTimeFormat('nl-NL', {
+export const formatDate = (date: string | Date, locale: string = 'en', options?: Intl.DateTimeFormatOptions) => {
+  return new Intl.DateTimeFormat(locale, options ?? {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
@@ -690,17 +704,22 @@ export const getOfferStatusColor = (status: string) => {
   return colors[status] || 'bg-gray-100 text-gray-800';
 };
 
-export const getOfferStatusLabel = (status: string) => {
-  const labels: Record<string, string> = {
-    DRAFT: 'Draft',
-    SUBMITTED: 'Submitted',
-    VIEWED: 'Viewed',
-    SHORTLISTED: 'Shortlisted',
-    ACCEPTED: 'Accepted',
-    REJECTED: 'Rejected',
-    EXPIRED: 'Expired',
-    WITHDRAWN: 'Withdrawn',
-    COUNTERED: 'Countered',
+// Returns a translation key into the `enums.offerStatus` namespace (e.g.
+// `enums.offerStatus.ACCEPTED`) rather than English prose, so the caller can
+// render it with `useTranslations('enums.offerStatus')`. Unknown statuses fall
+// back to the raw status string (no key). `getOfferStatusColor` is kept as-is
+// since colours are not localized.
+export const getOfferStatusLabel = (status: string): string => {
+  const keys: Record<string, string> = {
+    DRAFT: 'DRAFT',
+    SUBMITTED: 'SUBMITTED',
+    VIEWED: 'VIEWED',
+    SHORTLISTED: 'SHORTLISTED',
+    ACCEPTED: 'ACCEPTED',
+    REJECTED: 'REJECTED',
+    EXPIRED: 'EXPIRED',
+    WITHDRAWN: 'WITHDRAWN',
+    COUNTERED: 'COUNTERED',
   };
-  return labels[status] || status;
+  return keys[status] ? `enums.offerStatus.${keys[status]}` : status;
 };

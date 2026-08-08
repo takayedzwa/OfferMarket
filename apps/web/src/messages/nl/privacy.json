@@ -1,0 +1,499 @@
+{
+  "_reviewNote": "PRIVACY/LEGAL CONTENT — requires human/legal review before production (AVG/GDPR)",
+  "overview": {
+    "title": "Privacyverklaring",
+    "lastUpdated": "Laatst bijgewerkt: 11 juli 2026 · Versie 1.0",
+    "dutchTitle": "Privacyverklaring",
+    "companyName": "OfferMarket B.V.",
+    "section1": {
+      "title": "1. Verwerkingsverantwoordelijke",
+      "intro": "De verwerkingsverantwoordelijke voor uw persoonsgegevens is:",
+      "company": "OfferMarket B.V.",
+      "kvk": "KvK: 93075284",
+      "address": "Herengracht 420, 1017 Amsterdam, Nederland",
+      "dpoLabel": "Functionaris voor Gegevensbescherming:",
+      "dpoEmail": "dpo@offermarket.nl",
+      "contactQuestion": "Voor vragen over deze privacyverklaring of uw rechten onder de AVG (Algemene Verordening Gegevensbescherming) kunt u contact opnemen met onze FG via het bovenstaande e-mailadres."
+    },
+    "section2": {
+      "title": "2. Persoonsgegevens die wij verwerken",
+      "intro": "Wij verwerken de volgende categorieën persoonsgegevens:",
+      "tableHeaders": {
+        "category": "Categorie",
+        "examples": "Voorbeelden",
+        "legalBasis": "Grondslag"
+      },
+      "rows": {
+        "identity": {
+          "category": "Identiteitsgegevens",
+          "examples": "Naam, e-mail, telefoonnummer",
+          "legalBasis": "Uitvoering overeenkomst (Art. 6(1)(b))"
+        },
+        "profile": {
+          "category": "Profielgegevens",
+          "examples": "Vaardigheden, ervaring, opleiding, certificeringen",
+          "legalBasis": "Uitvoering overeenkomst (Art. 6(1)(b))"
+        },
+        "special": {
+          "category": "Bijzondere categoriegegevens",
+          "examples": "Werkvergunningsstatus (immigratiegegevens)",
+          "legalBasis": "Expliciete toestemming (Art. 9(2)(a))"
+        },
+        "professional": {
+          "category": "Beroepsgegevens",
+          "examples": "Werkvoorkeuren, salarisverwachtingen, beschikbaarheid",
+          "legalBasis": "Uitvoering overeenkomst (Art. 6(1)(b))"
+        },
+        "communication": {
+          "category": "Communicatiegegevens",
+          "examples": "Berichten tussen gebruikers, meldingen",
+          "legalBasis": "Uitvoering overeenkomst (Art. 6(1)(b))"
+        },
+        "company": {
+          "category": "Bedrijfsgegevens",
+          "examples": "KvK-nummer, bedrijfsnaam, factuurgegevens",
+          "legalBasis": "Wettelijke verplichting (Art. 6(1)(c))"
+        },
+        "verification": {
+          "category": "Verificatiedocumenten",
+          "examples": "Kopieën van identiteitsbewijzen, certificaten, diploma's",
+          "legalBasis": "Wettelijke verplichting (Art. 6(1)(c))"
+        },
+        "financial": {
+          "category": "Financiële gegevens",
+          "examples": "Facturen, betalingsgegevens",
+          "legalBasis": "Wettelijke verplichting (Art. 6(1)(c))"
+        },
+        "technical": {
+          "category": "Technische gegevens",
+          "examples": "IP-adres, browser, apparaatgegevens",
+          "legalBasis": "Gerechtvaardigd belang (Art. 6(1)(f))"
+        },
+        "usage": {
+          "category": "Gebruiksgegevens",
+          "examples": "Paginaweergaven, functiegebruik, zoekgeschiedenis",
+          "legalBasis": "Toestemming (Art. 6(1)(a))"
+        }
+      }
+    },
+    "section3": {
+      "title": "3. Bijzondere categoriegegevens",
+      "important": "⚠️ Belangrijk — AVG Artikel 9",
+      "p1": "Wij verwerken werkvergunningsstatus (EU-burger, houder van een werkvergunning, enz.) die mogelijk de immigratiestatus en daarmee de nationale herkomst kan verraden. Dit vormt bijzondere categoriegegevens onder AVG Artikel 9.",
+      "p2": "Wij verwerken deze gegevens uitsluitend met uw <strong>expliciete toestemming</strong>. U kunt deze toestemming te allen tijde intrekken via uw privacy-instellingen. Als de toestemming wordt ingetrokken, wordt uw werkvergunningsstatus niet aan werkgevers getoond, hoewel een eenvoudige ja/nee-vlag (hasWorkAuthorization) mogelijk nog wel wordt weergegeven.",
+      "p3": "Wij dringen er sterk op aan om geen andere bijzondere categoriegegevens (nationaliteit, geslacht, gezondheidsinformatie, vakbondslidmaatschap) in uw profiel op te nemen. Onze vrije-tekstvelden zijn niet ontworpen voor dit type gegevens, en wij zijn niet bevoegd deze te verwerken."
+    },
+    "section4": {
+      "title": "4. Grondslagen voor verwerking",
+      "intro": "Wij verwerken uw persoonsgegevens op de volgende grondslagen:",
+      "consent": "<strong>Toestemming (Art. 6(1)(a))</strong> — Analytics, marketingcommunicatie, verwerking van werkvergunning, cookiegebruik",
+      "contract": "<strong>Uitvoering overeenkomst (Art. 6(1)(b))</strong> — Het leveren van het platform, het matchen van werknemers met werkgevers, het verwerken van aanbiedingen, berichtgeving",
+      "obligation": "<strong>Wettelijke verplichting (Art. 6(1)(c))</strong> — KvK-verificatie, belastingarchivering (7 jaar), fraudepreventie",
+      "interest": "<strong>Gerechtvaardigd belang (Art. 6(1)(f))</strong> — Beveiliging, platformverbetering, audit-logging, geanonimiseerde analytics"
+    },
+    "section5": {
+      "title": "5. Gegevensdeling en ontvangers",
+      "intro": "Wij delen uw persoonsgegevens met de volgende categorieën ontvangers:",
+      "employers": "<strong>Werkgevers/Werknemers</strong> — Geanonimiseerde profielgegevens tot acceptatie van een aanbod, daarna identiteitsgegevens zoals overeengekomen",
+      "aws": "<strong>Amazon Web Services (AWS)</strong> — Cloudinfrastructuur, bestandsopslag (S3), e-mail (SES)",
+      "stripe": "<strong>Stripe</strong> — Betalingsverwerking en facturatie",
+      "posthog": "<strong>PostHog</strong> — Geanonimiseerde analytics (alleen met uw toestemming)",
+      "twilio": "<strong>Twilio</strong> — SMS-meldingen",
+      "sentry": "<strong>Sentry</strong> — Foutbewaking (minimale persoonsgegevens)",
+      "dpaNote": "Wij hebben Verwerkersovereenkomsten (DPA's) met alle verwerkers. Wij verkopen uw persoonsgegevens niet."
+    },
+    "section6": {
+      "title": "6. Bewaartermijnen",
+      "intro": "Wij bewaren uw persoonsgegevens slechts zolang als noodzakelijk is:",
+      "activeAccounts": "<strong>Actieve accounts</strong> — Tot verwijdering van het account",
+      "invoices": "<strong>Facturen & financiële gegevens</strong> — 7 jaar (Nederlandse belastingverplichting)",
+      "kvk": "<strong>KvK-verificatiegegevens</strong> — 7 jaar na sluiting van het account",
+      "messages": "<strong>Berichten</strong> — 2 jaar na afsluiting van het gesprek",
+      "verification": "<strong>Verificatiedocumenten</strong> — 30 dagen na voltooiing van de verificatie",
+      "consentRecords": "<strong>Toestemmingsregistraties</strong> — 7 jaar na intrekking van de toestemming",
+      "ipAddresses": "<strong>IP-adressen</strong> — 6 maanden",
+      "auditLogs": "<strong>Auditlogs</strong> — 7 jaar (geanonimiseerd na verwijdering van het account)",
+      "analytics": "<strong>Analytics-gegevens (PostHog)</strong> — Tot intrekking van de toestemming"
+    },
+    "section7": {
+      "title": "7. Uw rechten onder de AVG",
+      "intro": "U heeft de volgende rechten met betrekking tot uw persoonsgegevens:",
+      "accessTitle": "Recht op inzage (Art. 15)",
+      "accessBody": "U kunt een kopie opvragen van alle persoonsgegevens die wij over u verwerken.",
+      "accessLink": "Uw gegevens opvragen →",
+      "rectificationTitle": "Recht op rectificatie (Art. 16)",
+      "rectificationBody": "U kunt onjuiste persoonsgegevens corrigeren via uw profielinstellingen of door contact met ons op te nemen.",
+      "erasureTitle": "Recht op vergetelheid (Art. 17)",
+      "erasureBody": "U kunt de verwijdering van uw persoonsgegevens verzoeken. Sommige gegevens moeten wettelijk worden bewaard.",
+      "erasureLink": "Verwijdering verzoeken →",
+      "restrictionTitle": "Recht op beperking (Art. 18)",
+      "restrictionBody": "U kunt verzoeken dat wij de verwerking van uw gegevens beperken tijdens de afhandeling van een geschil.",
+      "restrictionLink": "Verwerking beperken →",
+      "portabilityTitle": "Recht op gegevensoverdraagbaarheid (Art. 20)",
+      "portabilityBody": "U kunt uw gegevens ontvangen in een machineleesbaar formaat (JSON/CSV).",
+      "portabilityLink": "Uw gegevens exporteren →",
+      "objectTitle": "Recht van bezwaar (Art. 21)",
+      "objectBody": "U kunt bezwaar maken tegen verwerking op basis van gerechtvaardigd belang of voor direct marketing.",
+      "withdrawTitle": "Recht om toestemming in te trekken (Art. 7(3))",
+      "withdrawBody": "Wanneer de verwerking op toestemming berust, kunt u deze te allen tijde intrekken.",
+      "withdrawLink": "Toestemmingen beheren →",
+      "exerciseIntro": "Om een van deze rechten uit te oefenen, gebruikt u uw",
+      "privacyDashboardLink": "Privacy-dashboard",
+      "exerciseMid": "of neemt u contact op met onze FG via",
+      "dpoEmail": "dpo@offermarket.nl",
+      "complaintIntro": "Als u niet tevreden bent met onze reactie, heeft u het recht een klacht in te dienen bij de",
+      "apLink": "Autoriteit Persoonsgegevens",
+      "complaintOutro": "(Nederlandse Toezichthouder voor Gegevensbescherming)."
+    },
+    "section8": {
+      "title": "8. Geautomatiseerde besluitvorming en profilering",
+      "p1": "Wij gebruiken geautomatiseerde systemen om werknemers en werkgevers te matchen op basis van vaardigheden, ervaring en voorkeuren. Dit zijn geen beslissingen die juridische gevolgen hebben of u aanzienlijk beïnvloeden. Ons matching-algoritme gebruikt geen bijzondere categoriegegevens (zoals nationaliteit of gezondheidsgegevens) als invoerfactoren.",
+      "p2": "Werknemers kunnen altijd hun profielzichtbaarheid bepalen en welke informatie werkgevers kunnen zien. Ons anonieme profielsysteem zorgt ervoor dat werkgevers u niet kunnen identificeren totdat u een aanbod accepteert."
+    },
+    "section9": {
+      "title": "9. Internationale gegevensoverdrachten",
+      "p1": "Onze primaire infrastructuur wordt gehost binnen de Europese Unie (AWS EU-regio's — Ierland en Frankfurt). Sommige van onze verwerkers opereren echter buiten de EU:",
+      "tableHeaders": {
+        "processor": "Verwerker",
+        "processing": "Verwerking",
+        "country": "Land",
+        "safeguard": "Waarborg"
+      },
+      "rows": {
+        "aws": {
+          "processor": "AWS (Amazon Web Services)",
+          "processing": "Infrastructuur, hosting",
+          "country": "Ierland / Duitsland (EU)",
+          "safeguard": "EU-gehost — geen doorgifte naar derde landen"
+        },
+        "posthog": {
+          "processor": "PostHog",
+          "processing": "Analytics (EU-gehoste instantie)",
+          "country": "Duitsland (EU)",
+          "safeguard": "EU-gehost — geen doorgifte naar derde landen"
+        },
+        "stripe": {
+          "processor": "Stripe",
+          "processing": "Betalingsverwerking",
+          "country": "Verenigde Staten",
+          "safeguard": "SCC's + Stripe Verwerkersovereenkomst; EU-US Data Privacy Framework"
+        },
+        "twilio": {
+          "processor": "Twilio (SendGrid)",
+          "processing": "E-mailaflevering",
+          "country": "Verenigde Staten",
+          "safeguard": "SCC's + Twilio DPA"
+        },
+        "sentry": {
+          "processor": "Sentry",
+          "processing": "Foutbewaking",
+          "country": "Verenigde Staten",
+          "safeguard": "SCC's + Sentry DPA; Verwerkersovereenkomst"
+        }
+      },
+      "sccNote": "Waar gegevens worden overgedragen aan landen buiten de EER die geen passendheidsbesluit hebben, vertrouwen wij op de Standaardcontractbepalingen (SCC's) die door de Europese Commissie zijn goedgekeurd, aangevuld met Verwerkersovereenkomsten die de verplichte Art. 28 AVG-bepalingen bevatten. U kunt een kopie van de relevante SCC's opvragen door contact op te nemen met onze FG."
+    },
+    "section10": {
+      "title": "10. Beveiligingsmaatregelen",
+      "intro": "Wij treffen passende technische en organisatorische maatregelen om uw gegevens te beschermen:",
+      "encryption": "Versleuteling tijdens transport (TLS 1.3) en in rust (AES-256)",
+      "rbac": "Op rollen gebaseerde toegangscontrole voor beheertoegang",
+      "anonymized": "Geanonimiseerde werknemersprofielen tot acceptatie van een aanbod",
+      "audits": "Regelmatige beveiligingsaudits en penetratietests",
+      "breach": "Melding van datalekken binnen 72 uur aan de Nederlandse toezichthouder",
+      "tfa": "Tweestapsverificatie beschikbaar voor alle accounts",
+      "ipHashing": "Hashing van IP-adressen voor analytics"
+    },
+    "section11": {
+      "title": "11. Cookies",
+      "intro": "Voor gedetailleerde informatie over de cookies die wij gebruiken, raadpleegt u ons",
+      "cookiePolicyLink": "Cookiebeleid"
+    },
+    "section12": {
+      "title": "12. Wijzigingen in dit beleid",
+      "body": "Wij kunnen deze privacyverklaring van tijd tot tijd bijwerken. Wij zullen u op de hoogte stellen van belangrijke wijzigingen via e-mail en via een prominente melding op onze website. Wij zullen altijd uw toestemming verkrijgen voor elke nieuwe verwerking die dit vereist."
+    },
+    "section13": {
+      "title": "13. Contact",
+      "intro": "Voor vragen over deze privacyverklaring of uw gegevensbeschermingsrechten:",
+      "dpoLabel": "Functionaris voor Gegevensbescherming:",
+      "dpoValue": "dpo@offermarket.nl",
+      "companyLabel": "OfferMarket B.V.",
+      "address": "Herengracht 420, 1017 Amsterdam, Nederland",
+      "kvkLabel": "KvK:",
+      "kvkValue": "93075284"
+    },
+    "footer": {
+      "copyright": "© {year} OfferMarket B.V. ·",
+      "privacyLink": "Privacyverklaring",
+      "termsLink": "Servicevoorwaarden",
+      "cookiesLink": "Cookiebeleid",
+      "dashboardLink": "Privacy-dashboard",
+      "reportLink": "Meld illegale inhoud"
+    }
+  },
+  "dashboard": {
+    "loading": "Laden...",
+    "title": "Privacy-dashboard",
+    "subtitle": "Beheer uw persoonsgegevens, toestemmingsvoorkeuren en oefen uw AVG-rechten uit. Onder de AVG (Algemene Verordening Gegevensbescherming) heeft u volledige controle over uw gegevens.",
+    "rights": {
+      "accessTitle": "Recht op inzage",
+      "accessRef": "Art. 15 AVG",
+      "accessBody": "Vraag bevestiging en een kopie op van alle persoonsgegevens die wij over u verwerken.",
+      "erasureTitle": "Recht op vergetelheid",
+      "erasureRef": "Art. 17 AVG",
+      "erasureBody": "Verzoek verwijdering van uw persoonsgegevens met een graceperiode van 30 dagen.",
+      "portabilityTitle": "Gegevensoverdraagbaarheid",
+      "portabilityRef": "Art. 20 AVG",
+      "portabilityBody": "Exporteer uw gegevens in een machineleesbaar formaat voor overdracht.",
+      "automatedTitle": "Geautomatiseerde beslissingen",
+      "automatedRef": "Art. 22 AVG",
+      "automatedBody": "Maak bezwaar tegen beslissingen die uitsluitend door geautomatiseerde middelen zijn genomen en verzoek menselijke herziening."
+    },
+    "tabs": {
+      "overview": "Overzicht",
+      "consents": "Toestemmingen",
+      "access": "Inzageverzoek",
+      "export": "Gegevensoverdraagbaarheid",
+      "restriction": "Beperking",
+      "automatedDecision": "Geautomatiseerde beslissingen",
+      "deletion": "Account verwijderen"
+    },
+    "overview": {
+      "dataSummaryTitle": "Uw gegevensoverzicht",
+      "profileFields": "Profielvelden",
+      "offers": "Aanbiedingen",
+      "messages": "Berichten",
+      "activeConsents": "Actieve toestemmingen",
+      "unableToLoad": "Gegevensoverzicht kan niet worden geladen.",
+      "quickActionsTitle": "Snelle acties",
+      "downloadTitle": "Mijn gegevens downloaden",
+      "downloadBody": "Ontvang een kopie van al uw persoonsgegevens",
+      "manageTitle": "Toestemmingen beheren",
+      "manageBody": "Werk uw toestemmingsvoorkeuren bij",
+      "restrictTitle": "Verwerking beperken",
+      "restrictBody": "Beperk hoe uw gegevens worden verwerkt",
+      "policyTitle": "Privacyverklaring",
+      "policyBody": "Lees onze privacyverklaring",
+      "rightsTitle": "Uw rechten onder de AVG",
+      "rightsBody": "Als u vindt dat de verwerking van uw persoonsgegevens in strijd is met de AVG, heeft u het recht een klacht in te dienen bij de Nederlandse Toezichthouder voor Gegevensbescherming (Autoriteit Persoonsgegevens).",
+      "apLink": "Autoriteit Persoonsgegevens →"
+    },
+    "access": {
+      "title": "Recht op inzage (Art. 15 AVG)",
+      "intro": "Onder Artikel 15 van de AVG heeft u het recht om bevestiging te verkrijgen of er persoonsgegevens betreffende u worden verwerkt, en toegang tot die gegevens samen met informatie over de doeleinden, categorieën, ontvangers, bewaartermijnen en uw rechten.",
+      "portabilityNote": "Dit is anders dan Gegevensoverdraagbaarheid (Art. 20), waarmee u uw gegevens in een machineleesbaar formaat kunt ontvangen voor overdracht aan een andere verwerkingsverantwoordelijke. Gebruik dit tabblad om een formeel inzageverzoek in te dienen; gebruik het tabblad “Gegevensoverdraagbaarheid” voor gegevensexport.",
+      "receiveTitle": "Wat u ontvangt",
+      "receive1": "Bevestiging dat uw gegevens worden verwerkt",
+      "receive2": "Een volledige kopie van alle persoonsgegevens die wij over u verwerken",
+      "receive3": "De doeleinden van de verwerking",
+      "receive4": "De betrokken categorieën gegevens",
+      "receive5": "Ontvangers of categorieën ontvangers",
+      "receive6": "Bewaartermijnen of criteria",
+      "receive7": "Informatie over uw rechten (rectificatie, vergetelheid, beperking, bezwaar)",
+      "receive8": "Informatie over de bron van de gegevens (indien niet direct bij u verzameld)",
+      "receive9": "Informatie over geautomatiseerde besluitvorming, inclusief profilering",
+      "submit": "Inzageverzoek indienen",
+      "portabilityInstead": "Ik wil in plaats daarvan Gegevensoverdraagbaarheid →",
+      "responseTime": "Wij reageren binnen 30 dagen op uw verzoek. In complexe gevallen kan dit worden verlengd met nog eens 60 dagen, in welk geval wij u op de hoogte stellen van de vertraging en de redenen.",
+      "submitSuccess": "Uw inzageverzoek is ingediend. Wij reageren binnen 30 dagen zoals vereist door de AVG.",
+      "submitPending": "U heeft mogelijk al een lopend inzageverzoek.",
+      "submitError": "Inzageverzoek kan niet worden ingediend. Probeer het later opnieuw."
+    },
+    "automated": {
+      "title": "Geautomatiseerde besluitvorming (Art. 22 AVG)",
+      "intro": "Onder Artikel 22 van de AVG heeft u het recht niet te worden onderworpen aan een beslissing die uitsluitend op geautomatiseerde verwerking — inclusief profilering — berust die juridische gevolgen voor u heeft of u op vergelijkbare wijze aanzienlijk treft. U kunt bezwaar maken tegen dergelijke beslissingen en menselijke herziening verzoeken.",
+      "examplesTitle": "Voorbeelden van geautomatiseerde beslissingen",
+      "example1": "Geautomatiseerde afwijzing van sollicitaties of aanbiedingen",
+      "example2": "Algoritmische profiel scoring die uw zichtbaarheid voor werkgevers beïnvloedt",
+      "example3": "Geautomatiseerde fraudedetectie die uw account beperkt",
+      "example4": "Geautomatiseerde trust- of risicoscores die uw toegang beperken",
+      "typeLabel": "Type geautomatiseerde beslissing *",
+      "typePlaceholder": "Selecteer een type beslissing...",
+      "typeProfileScoring": "Profielzichtbaarheid/scoring",
+      "typeOfferMatching": "Geautomatiseerde aanbod-matching/afwijzing",
+      "typeTrustRisk": "Trust-/risicoscore die toegang beïnvloedt",
+      "typeAccountRestriction": "Geautomatiseerde accountbeperking",
+      "typeFraudDetection": "Geautomatiseerde fraudedetectie",
+      "typeOther": "Overig",
+      "reasonLabel": "Waarom denkt u dat deze beslissing uitsluitend door geautomatiseerde middelen is genomen? *",
+      "reasonPlaceholder": "Beschrijf de beslissing en waarom u denkt dat deze zonder menselijke tussenkomst is genomen...",
+      "humanReviewLabel": "Ik verzoek menselijke herziening van deze beslissing (aanbevolen)",
+      "submit": "Bezwaar indienen",
+      "alertTypeRequired": "Selecteer een type beslissing.",
+      "alertReasonRequired": "Beschrijf waarom u denkt dat deze beslissing geautomatiseerd was.",
+      "submitSuccess": "Uw bezwaar tegen de geautomatiseerde beslissing is ingediend. {message}",
+      "submitSuccessFallback": "De verwerking van dit type beslissing is opgeschort in afwachting van menselijke herziening.",
+      "submitError": "Uw bezwaar kan niet worden ingediend. Probeer het later opnieuw.",
+      "footer": "Wanneer u dit bezwaar indient, wordt uw verwerking beperkt totdat een mens de beslissing herziet. U wordt binnen 30 dagen gecontacteerd met de uitslag van de herziening."
+    }
+  },
+  "delete": {
+    "back": "← Terug naar Privacy-dashboard",
+    "title": "Uw account verwijderen",
+    "subtitle": "Oefen uw recht op vergetelheid uit onder AVG Artikel 17. Dit verwijdert permanent uw account en persoonsgegevens na een graceperiode van 30 dagen.",
+    "alternativesTitle": "Alternatieve opties:",
+    "restrictTitle": "Verwerking beperken",
+    "restrictBody": "Behoud uw account maar beperk hoe uw gegevens worden gebruikt.",
+    "restrictLink": "Meer informatie",
+    "exportTitle": "Uw gegevens exporteren",
+    "exportBody": "Download een kopie voordat u verwijdert.",
+    "exportLink": "Gegevens exporteren",
+    "hideTitle": "Uw profiel verbergen",
+    "hideBody": "Maak uw profiel onzichtbaar zonder uw account te verwijderen. Beschikbaar in uw profielinstellingen."
+  },
+  "consent": {
+    "back": "← Terug naar Privacy-dashboard",
+    "title": "Toestemmingsbeheer",
+    "subtitle": "Beheer uw toestemmingsvoorkeuren voor elk type gegevensverwerking. Onder de AVG (GDPR) heeft u het recht om te allen tijde toestemming in te trekken.",
+    "noteLabel": "Let op:",
+    "noteBody": "Het intrekken van toestemming voor vereiste verwerking (zoals gegevensverwerking voor de uitvoering van een overeenkomst) kan uw mogelijkheid beperken om bepaalde functies te gebruiken. Toestemming voor bijzondere categoriegegevens (werkvergunning) kan te allen tijde worden ingetrokken zonder de kernfunctionaliteit te beïnvloeden — uw profiel toont dan eenvoudig niet uw werkvergunningsstatus aan werkgevers.",
+    "required": "Vereist",
+    "specialCategory": "Bijzondere categorie",
+    "activeRequired": "Actief (vereist)",
+    "granted": "Verleend op {date}",
+    "withdrawn": "Ingetrokken op {date}",
+    "categories": {
+      "PRIVACY_POLICY": {
+        "label": "Privacybeleid",
+        "description": "Verwerking van uw persoonsgegevens onder ons privacybeleid"
+      },
+      "TERMS_OF_SERVICE": {
+        "label": "Algemene Voorwaarden",
+        "description": "Aanvaarding van onze algemene voorwaarden voor platformgebruik"
+      },
+      "DATA_PROCESSING": {
+        "label": "Gegevensverwerking",
+        "description": "Uw gegevens verwerken om OfferMarket-diensten te leveren"
+      },
+      "COOKIE_ANALYTICS": {
+        "label": "Analytische cookies",
+        "description": "Geanonimiseerde analyses om ons platform te verbeteren (PostHog)"
+      },
+      "COOKIE_MARKETING": {
+        "label": "Marketingcookies",
+        "description": "Gerichte advertenties en marketingcommunicatie"
+      },
+      "EMAIL_NOTIFICATIONS": {
+        "label": "E-mailmeldingen",
+        "description": "Servicegerelateerde e-mails over aanbiedingen en berichten"
+      },
+      "PROFILE_VISIBLE": {
+        "label": "Profielzichtbaarheid",
+        "description": "Werkgevers toestaan uw anonieme profiel te ontdekken"
+      },
+      "MARKETING": {
+        "label": "Marketingcommunicatie",
+        "description": "Promotionele e-mails over nieuwe functies en updates"
+      },
+      "SPECIAL_CATEGORY": {
+        "label": "Werkvergunning",
+        "description": "Verwerking van uw werkvergunningsstatus (immigratiegegevens) — bijzondere categorie onder AVG-artikel 9"
+      },
+      "ID_VERIFICATION": {
+        "label": "Identiteitsverificatie",
+        "description": "Verwerking van identiteitsverificatiedocumenten"
+      },
+      "KVK_PROCESSING": {
+        "label": "KvK-verificatie",
+        "description": "Verwerking van Kamer van Koophandel-registratiegegevens"
+      }
+    },
+    "cardSubtitle": "Beheer uw toestemmingsvoorkeuren. Vereiste toestemmingen kunnen niet worden ingetrokken zolang uw account actief is."
+  },
+  "export": {
+    "back": "← Terug naar Privacy-dashboard",
+    "title": "Gegevensexport",
+    "subtitle": "Oefen uw recht op gegevensoverdraagbaarheid uit onder AVG Artikel 20. Download alle persoonsgegevens die wij over u verwerken in een machineleesbaar formaat.",
+    "includedTitle": "Inbegrepen in uw export:",
+    "item1": "Profielinformatie (naam, e-mail, telefoon)",
+    "item2": "Werknemer-/werkgeversprofielgegevens",
+    "item3": "Vaardigheden, certificeringen, opleiding, werkervaring",
+    "item4": "Verzonden en ontvangen aanbiedingen",
+    "item5": "Berichten (geanonimiseerd voor andere partijen)",
+    "item6": "Meldingen",
+    "item7": "Toestemmingsregistraties",
+    "item8": "Accountactiviteitslogs",
+    "footnote": "Uw export wordt geleverd in JSON-formaat voor maximale overdraagbaarheid. Downloadlinks verlopen na 30 dagen. U kunt op elk moment een nieuwe export aanvragen."
+  },
+  "restriction": {
+    "title": "Verwerkingsbeperking",
+    "subtitle": "Beperk hoe wij uw gegevens verwerken — AVG-artikel 18 (recht op beperking van verwerking).",
+    "warning": "Wanneer de verwerking is beperkt, bewaren wij uw gegevens alleen en verwerken deze niet verder, behalve waar wettelijk vereist. Dit kan uw mogelijkheid om het platform te gebruiken beperken.",
+    "statusLabel": "Status verwerkingsbeperking",
+    "restrictedSince": "Beperkt sinds {date}",
+    "noActive": "Geen actieve beperking",
+    "reasonLabel": "Reden voor beperking (optioneel)",
+    "reasonPlaceholder": "Waarom wilt u de verwerking van uw gegevens beperken?",
+    "updateError": "Bijwerken verwerkingsbeperking mislukt",
+    "genericError": "Er is een fout opgetreden"
+  },
+  "exportCard": {
+    "title": "Gegevensexport",
+    "subtitle": "Download al uw persoonsgegevens — uw recht onder AVG-artikel 20 (gegevensportabiliteit).",
+    "infoBody": "Uw export omvat: profielgegevens, werkgeschiedenis, opleiding, vaardigheden, certificeringen, aanbiedingen, berichten, meldingen, toestemmingsregistraties en auditlogboeken.",
+    "requestBtn": "Gegevensexport aanvragen",
+    "requesting": "Uw gegevensexport wordt aangevraagd...",
+    "processing": "Uw gegevensexport wordt voorbereid. Dit kan enkele minuten duren...",
+    "ready": "Uw gegevensexport is klaar!",
+    "downloadBtn": "Export downloaden (JSON)",
+    "downloadHint": "Downloadlink verloopt over 30 dagen",
+    "errorFallback": "Er is een fout opgetreden. Probeer het opnieuw.",
+    "tryAgain": "Opnieuw proberen",
+    "pendingError": "U heeft al een lopend gegevensexportverzoek. Controleer de status hieronder.",
+    "requestError": "Gegevensexport aanvragen mislukt",
+    "exportFailed": "Export mislukt. Probeer het opnieuw.",
+    "exportTimeout": "Export duurt langer dan verwacht. Probeert u het later opnieuw.",
+    "exportExpired": "De exportlink is verlopen. Vraag een nieuwe export aan.",
+    "statusCheckError": "Exportstatus controleren mislukt.",
+    "genericError": "Er is een fout opgetreden"
+  },
+  "deletionCard": {
+    "title": "Account verwijderen",
+    "subtitle": "Vraag permanente verwijdering van uw account en persoonsgegevens aan — AVG-artikel 17 (recht op vergetelheid).",
+    "warningTitle": "Belangrijk — lees voordat u doorgaat",
+    "warning1": "Uw account en persoonsgegevens worden permanent verwijderd.",
+    "warning2": "U heeft een <strong>genadeperiode van 30 dagen</strong> om dit verzoek te annuleren.",
+    "warning3": "Sommige gegevens moeten wettelijk worden bewaard (facturen 7 jaar, KvK-nummers).",
+    "warning4": "Deze actie kan niet ongedaan worden gemaakt nadat de genadeperiode is verstreken.",
+    "warning5": "Uw anonieme profiel, aanbiedingen en berichten worden geanonimiseerd.",
+    "whatTitle": "Wat gebeurt er met uw gegevens:",
+    "willDeleteTitle": "Wordt verwijderd:",
+    "willDelete": [
+      "E-mailadres",
+      "Telefoonnummer",
+      "Profielgegevens",
+      "Werkgeschiedenis en opleiding",
+      "Vaardigheden en certificeringen",
+      "Berichten",
+      "Meldingen",
+      "Verificatiedocumenten",
+      "Inloggegevens"
+    ],
+    "retainedTitle": "Wettelijk bewaard:",
+    "retained": [
+      "Geanonimiseerde facturen (7 jaar — belastingverplichting)",
+      "KvK-registratienummers (wettelijke verplichting)",
+      "Auditlogboeken (geanonimiseerd, 7 jaar)",
+      "Toestemmingsregistraties (7 jaar na intrekking)"
+    ],
+    "requestBtn": "Accountverwijdering aanvragen",
+    "reasonLabel": "Reden voor verwijdering (optioneel)",
+    "reasonPlaceholder": "Vertel ons waarom u vertrekt (helpt ons verbeteren)...",
+    "confirmBtn": "Ja, verwijder mijn account",
+    "cancelBtn": "Annuleren",
+    "processing": "Uw verwijderingsverzoek wordt verwerkt...",
+    "graceTitle": "Verwijderingsverzoek ingediend",
+    "graceBody": "Uw account wordt permanent verwijderd op <strong>{date}</strong>.",
+    "graceCancelNote": "U kunt dit verzoek annuleren binnen de genadeperiode van 30 dagen.",
+    "cancelDeletionBtn": "Verwijderingsverzoek annuleren",
+    "cancelledTitle": "Verwijdering geannuleerd",
+    "cancelledBody": "Uw account is veilig. Uw gegevens worden niet verwijderd.",
+    "backBtn": "Terug",
+    "errorFallback": "Er is een fout opgetreden. Probeer het opnieuw.",
+    "tryAgain": "Opnieuw proberen",
+    "requestError": "Accountverwijdering aanvragen mislukt",
+    "cancelError": "Verwijdering annuleren mislukt",
+    "genericError": "Er is een fout opgetreden"
+  }
+}

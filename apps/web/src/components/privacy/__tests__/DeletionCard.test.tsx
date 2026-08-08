@@ -2,6 +2,8 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import DeletionCard from '../DeletionCard';
+import { NextIntlClientProvider } from 'next-intl';
+import enMessages from '@/messages/en';
 
 // Mock fetch
 const mockFetch = jest.fn();
@@ -21,6 +23,27 @@ Object.defineProperty(window, 'localStorage', { value: localStorageMock });
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
 
+
+// Replicates the original nl-NL date formatting the components used before
+// i18n migration, so existing Dutch-date assertions (e.g. "10 augustus 2026")
+// keep passing. useFormat is fully mocked — provider locale only affects
+// useTranslations text, which stays English.
+jest.mock('@/hooks/useFormat', () => ({
+  useFormat: () => ({
+    currency: (amount: number) => `€${amount}`,
+    date: (iso: string, options?: Intl.DateTimeFormatOptions) =>
+      new Date(iso).toLocaleDateString('nl-NL', options ?? { year: 'numeric', month: 'long', day: 'numeric' }),
+  }),
+}));
+
+// Wraps a node in the provider the components need for useTranslations/useLocale.
+function renderWithIntl(ui: React.ReactElement) {
+  return render(
+    <NextIntlClientProvider locale="en" messages={enMessages}>
+      {ui}
+    </NextIntlClientProvider>,
+  );
+}
 describe('DeletionCard', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -33,12 +56,12 @@ describe('DeletionCard', () => {
   // ===========================================================================
   describe('deletion request flow', () => {
     it('should show "Request Account Deletion" button in idle state', () => {
-      render(<DeletionCard />);
+      renderWithIntl(<DeletionCard />);
       expect(screen.getByText('Request Account Deletion')).toBeInTheDocument();
     });
 
     it('should show confirmation form after clicking request', () => {
-      render(<DeletionCard />);
+      renderWithIntl(<DeletionCard />);
       fireEvent.click(screen.getByText('Request Account Deletion'));
       expect(screen.getByText('Yes, delete my account')).toBeInTheDocument();
       expect(screen.getByLabelText(/Reason for deletion/i)).toBeInTheDocument();
@@ -63,7 +86,7 @@ describe('DeletionCard', () => {
           }),
         });
 
-      render(<DeletionCard />);
+      renderWithIntl(<DeletionCard />);
       fireEvent.click(screen.getByText('Request Account Deletion'));
 
       const reasonInput = screen.getByLabelText(/Reason for deletion/i);
@@ -101,7 +124,7 @@ describe('DeletionCard', () => {
           }),
         });
 
-      render(<DeletionCard />);
+      renderWithIntl(<DeletionCard />);
       fireEvent.click(screen.getByText('Request Account Deletion'));
       fireEvent.click(screen.getByText('Yes, delete my account'));
 
@@ -143,7 +166,7 @@ describe('DeletionCard', () => {
       // Suppress console.error for this test
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
-      render(<DeletionCard />);
+      renderWithIntl(<DeletionCard />);
       fireEvent.click(screen.getByText('Request Account Deletion'));
       fireEvent.click(screen.getByText('Yes, delete my account'));
 
@@ -177,7 +200,7 @@ describe('DeletionCard', () => {
           }),
         });
 
-      render(<DeletionCard />);
+      renderWithIntl(<DeletionCard />);
       fireEvent.click(screen.getByText('Request Account Deletion'));
       fireEvent.click(screen.getByText('Yes, delete my account'));
 
@@ -219,7 +242,7 @@ describe('DeletionCard', () => {
           }),
         });
 
-      render(<DeletionCard />);
+      renderWithIntl(<DeletionCard />);
       fireEvent.click(screen.getByText('Request Account Deletion'));
       fireEvent.click(screen.getByText('Yes, delete my account'));
 
@@ -235,7 +258,7 @@ describe('DeletionCard', () => {
         json: async () => ({ message: 'You already have a pending deletion request' }),
       });
 
-      render(<DeletionCard />);
+      renderWithIntl(<DeletionCard />);
       fireEvent.click(screen.getByText('Request Account Deletion'));
       fireEvent.click(screen.getByText('Yes, delete my account'));
 
@@ -268,7 +291,7 @@ describe('DeletionCard', () => {
           }),
         });
 
-      render(<DeletionCard />);
+      renderWithIntl(<DeletionCard />);
       fireEvent.click(screen.getByText('Request Account Deletion'));
       fireEvent.click(screen.getByText('Yes, delete my account'));
 
@@ -310,7 +333,7 @@ describe('DeletionCard', () => {
           }),
         });
 
-      render(<DeletionCard />);
+      renderWithIntl(<DeletionCard />);
       fireEvent.click(screen.getByText('Request Account Deletion'));
       fireEvent.click(screen.getByText('Yes, delete my account'));
 

@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
+import { useFormat } from '@/hooks/useFormat';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
 
@@ -20,6 +22,8 @@ interface RestrictionStatus {
 }
 
 export default function RestrictionToggle() {
+  const t = useTranslations('privacy.restriction');
+  const { date } = useFormat();
   const [status, setStatus] = useState<RestrictionStatus>({
     processingRestricted: false,
     processingRestrictedAt: null,
@@ -65,14 +69,14 @@ export default function RestrictionToggle() {
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.message || 'Failed to update processing restriction');
+        throw new Error(data.message || t('updateError'));
       }
 
       const data = await response.json();
       setStatus(data);
       setReason('');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      setError(err instanceof Error ? err.message : t('genericError'));
     } finally {
       setLoading(false);
     }
@@ -81,9 +85,9 @@ export default function RestrictionToggle() {
   return (
     <div className="bg-white shadow rounded-lg">
       <div className="px-6 py-4 border-b border-gray-200">
-        <h3 className="text-lg font-medium text-gray-900">Processing Restriction</h3>
+        <h3 className="text-lg font-medium text-gray-900">{t('title')}</h3>
         <p className="mt-1 text-sm text-gray-500">
-          Restrict how we process your data — GDPR Article 18 (Right to Restriction of Processing).
+          {t('subtitle')}
         </p>
       </div>
 
@@ -97,8 +101,7 @@ export default function RestrictionToggle() {
             </div>
             <div className="ml-3">
               <p className="text-sm text-amber-700">
-                When processing is restricted, we will only store your data and not process it further,
-                except where required by law. This may limit your ability to use the platform.
+                {t('warning')}
               </p>
             </div>
           </div>
@@ -107,13 +110,13 @@ export default function RestrictionToggle() {
         <div className="flex items-center justify-between p-4 border rounded-lg">
           <div>
             <p className="text-sm font-medium text-gray-900">
-              Processing Restriction Status
+              {t('statusLabel')}
             </p>
             {status.processingRestrictedAt && (
               <p className="text-xs text-gray-500 mt-1">
                 {status.processingRestricted
-                  ? `Restricted since ${new Date(status.processingRestrictedAt).toLocaleDateString('nl-NL')}`
-                  : 'No active restriction'}
+                  ? t('restrictedSince', { date: date(status.processingRestrictedAt) })
+                  : t('noActive')}
               </p>
             )}
           </div>
@@ -135,7 +138,7 @@ export default function RestrictionToggle() {
         {!status.processingRestricted && (
           <div>
             <label htmlFor="restriction-reason" className="block text-sm font-medium text-gray-700 mb-1">
-              Reason for restriction (optional)
+              {t('reasonLabel')}
             </label>
             <textarea
               id="restriction-reason"
@@ -143,7 +146,7 @@ export default function RestrictionToggle() {
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm border px-3 py-2"
-              placeholder="Why do you want to restrict processing of your data?"
+              placeholder={t('reasonPlaceholder')}
             />
           </div>
         )}

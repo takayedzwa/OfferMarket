@@ -1,4 +1,5 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { ERROR_CODES } from '../i18n/error-codes';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { PrismaService } from '../prisma/prisma.service';
@@ -21,7 +22,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         where: { jti: payload.jti },
       });
       if (blacklisted) {
-        throw new UnauthorizedException('Token has been revoked');
+        throw new UnauthorizedException({ code: ERROR_CODES.AUTH_TOKEN_REVOKED, message: 'Token has been revoked' });
       }
     }
 
@@ -30,20 +31,20 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
 
     if (!user) {
-      throw new UnauthorizedException('User not found');
+      throw new UnauthorizedException({ code: ERROR_CODES.AUTH_USER_NOT_FOUND, message: 'User not found' });
     }
 
     if (user.deletedAt) {
-      throw new UnauthorizedException('Account has been deleted');
+      throw new UnauthorizedException({ code: ERROR_CODES.AUTH_ACCOUNT_DELETED, message: 'Account has been deleted' });
     }
 
     if (user.status === 'BANNED') {
-      throw new UnauthorizedException('Account has been banned');
+      throw new UnauthorizedException({ code: ERROR_CODES.AUTH_ACCOUNT_BANNED, message: 'Account has been banned' });
     }
 
     // Also reject if user status is DELETED (e.g. worker profile was deleted)
     if (user.status === 'DELETED') {
-      throw new UnauthorizedException('Account has been deleted');
+      throw new UnauthorizedException({ code: ERROR_CODES.AUTH_ACCOUNT_DELETED, message: 'Account has been deleted' });
     }
 
     return {

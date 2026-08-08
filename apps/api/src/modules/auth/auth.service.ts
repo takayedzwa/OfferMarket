@@ -1,4 +1,5 @@
 import { Injectable, BadRequestException, UnauthorizedException, ForbiddenException } from '@nestjs/common';
+import { ERROR_CODES } from '../../i18n/error-codes';
 import { PrismaService } from '../../prisma/prisma.service';
 import { TrustService } from '../trust/trust.service';
 import { MailService } from '../mail/mail.service';
@@ -24,14 +25,14 @@ export class AuthService {
       // Check if email already exists
       const existingByEmail = await tx.user.findUnique({ where: { email } });
       if (existingByEmail) {
-        throw new BadRequestException('Email already registered');
+        throw new BadRequestException({ code: ERROR_CODES.AUTH_EMAIL_ALREADY_REGISTERED, message: 'Email already registered' });
       }
 
       // Check if phone already exists (when provided)
       if (phone) {
         const existingByPhone = await tx.user.findUnique({ where: { phone } });
         if (existingByPhone) {
-          throw new BadRequestException('Phone number already registered');
+          throw new BadRequestException({ code: ERROR_CODES.AUTH_PHONE_ALREADY_REGISTERED, message: 'Phone number already registered' });
         }
       }
 
@@ -54,7 +55,7 @@ export class AuthService {
       // second. Checked inside the transaction so it short-circuits before any
       // account record is created.
       if (isCommonPassword(password)) {
-        throw new BadRequestException('This password is too common and easily guessed. Please choose a stronger password.');
+        throw new BadRequestException({ code: ERROR_CODES.AUTH_PASSWORD_TOO_COMMON, message: 'This password is too common and easily guessed. Please choose a stronger password.' });
       }
 
       // Hash password
@@ -103,14 +104,14 @@ export class AuthService {
     // Verify admin code (should be set via environment variable)
     const validAdminCode = process.env.ADMIN_REGISTRATION_CODE;
     if (!validAdminCode || adminCode !== validAdminCode) {
-      throw new BadRequestException('Invalid admin registration code');
+      throw new BadRequestException({ code: ERROR_CODES.AUTH_INVALID_ADMIN_CODE, message: 'Invalid admin registration code' });
     }
 
     return this.prisma.$transaction(async (tx) => {
       // Check if user already exists
       const existing = await tx.user.findUnique({ where: { email } });
       if (existing) {
-        throw new BadRequestException('Email already registered');
+        throw new BadRequestException({ code: ERROR_CODES.AUTH_EMAIL_ALREADY_REGISTERED, message: 'Email already registered' });
       }
 
       // Reject trivially-guessable passwords that still satisfy the DTO regex
@@ -118,7 +119,7 @@ export class AuthService {
       // second. Checked inside the transaction so it short-circuits before any
       // account record is created.
       if (isCommonPassword(password)) {
-        throw new BadRequestException('This password is too common and easily guessed. Please choose a stronger password.');
+        throw new BadRequestException({ code: ERROR_CODES.AUTH_PASSWORD_TOO_COMMON, message: 'This password is too common and easily guessed. Please choose a stronger password.' });
       }
 
       // Hash password
@@ -166,13 +167,13 @@ export class AuthService {
       });
 
       if (!admin || admin.role !== 'ADMIN') {
-        throw new BadRequestException('Only admins can create support users');
+        throw new BadRequestException({ code: ERROR_CODES.AUTH_ADMIN_ONLY_CREATE_SUPPORT, message: 'Only admins can create support users' });
       }
 
       // Check if user already exists
       const existing = await tx.user.findUnique({ where: { email } });
       if (existing) {
-        throw new BadRequestException('Email already registered');
+        throw new BadRequestException({ code: ERROR_CODES.AUTH_EMAIL_ALREADY_REGISTERED, message: 'Email already registered' });
       }
 
       // Reject trivially-guessable passwords that still satisfy the DTO regex
@@ -180,7 +181,7 @@ export class AuthService {
       // second. Checked inside the transaction so it short-circuits before any
       // account record is created.
       if (isCommonPassword(password)) {
-        throw new BadRequestException('This password is too common and easily guessed. Please choose a stronger password.');
+        throw new BadRequestException({ code: ERROR_CODES.AUTH_PASSWORD_TOO_COMMON, message: 'This password is too common and easily guessed. Please choose a stronger password.' });
       }
 
       // Hash password
@@ -232,14 +233,14 @@ export class AuthService {
       // Check if email already exists
       const existingByEmail = await tx.user.findUnique({ where: { email } });
       if (existingByEmail) {
-        throw new BadRequestException('Email already registered');
+        throw new BadRequestException({ code: ERROR_CODES.AUTH_EMAIL_ALREADY_REGISTERED, message: 'Email already registered' });
       }
 
       // Check if phone already exists
       if (phone) {
         const existingByPhone = await tx.user.findUnique({ where: { phone } });
         if (existingByPhone) {
-          throw new BadRequestException('Phone number already registered');
+          throw new BadRequestException({ code: ERROR_CODES.AUTH_PHONE_ALREADY_REGISTERED, message: 'Phone number already registered' });
         }
       }
 
@@ -248,7 +249,7 @@ export class AuthService {
         where: { kvkNumber: company.kvkNumber }
       });
       if (existingEmployer) {
-        throw new BadRequestException('Company with this KvK number already exists');
+        throw new BadRequestException({ code: ERROR_CODES.AUTH_KVK_ALREADY_EXISTS, message: 'Company with this KvK number already exists' });
       }
 
       // TRUST LAYER: Check for rapid account creation
@@ -270,7 +271,7 @@ export class AuthService {
       // second. Checked inside the transaction so it short-circuits before any
       // account record is created.
       if (isCommonPassword(password)) {
-        throw new BadRequestException('This password is too common and easily guessed. Please choose a stronger password.');
+        throw new BadRequestException({ code: ERROR_CODES.AUTH_PASSWORD_TOO_COMMON, message: 'This password is too common and easily guessed. Please choose a stronger password.' });
       }
 
       // Hash password
@@ -335,7 +336,7 @@ export class AuthService {
       // and rejects the second create with Prisma error P2002. Map it to a
       // clean 400 instead of surfacing as an unhandled 500.
       if (error?.code === 'P2002' && error?.meta?.target?.includes('kvkNumber')) {
-        throw new BadRequestException('Company with this KvK number already exists');
+        throw new BadRequestException({ code: ERROR_CODES.AUTH_KVK_ALREADY_EXISTS, message: 'Company with this KvK number already exists' });
       }
       throw error;
     }
@@ -351,21 +352,21 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new UnauthorizedException('Invalid credentials');
+      throw new UnauthorizedException({ code: ERROR_CODES.AUTH_INVALID_CREDENTIALS, message: 'Invalid credentials' });
     }
 
     if (user.deletedAt) {
-      throw new UnauthorizedException('Account has been deleted');
+      throw new UnauthorizedException({ code: ERROR_CODES.AUTH_ACCOUNT_DELETED, message: 'Account has been deleted' });
     }
 
     if (user.status === 'BANNED') {
-      throw new UnauthorizedException('Account has been banned');
+      throw new UnauthorizedException({ code: ERROR_CODES.AUTH_ACCOUNT_BANNED, message: 'Account has been banned' });
     }
 
     // TRUST LAYER: Check if user is blacklisted
     const isBlacklisted = await this.trustService.isBlacklisted('USER', user.id);
     if (isBlacklisted) {
-      throw new UnauthorizedException('Account has been suspended');
+      throw new UnauthorizedException({ code: ERROR_CODES.AUTH_ACCOUNT_SUSPENDED, message: 'Account has been suspended' });
     }
 
     const passwordValid = await bcrypt.compare(password, user.passwordHash);
@@ -380,7 +381,7 @@ export class AuthService {
         ipAddress,
         userAgent,
       });
-      throw new UnauthorizedException('Invalid credentials');
+      throw new UnauthorizedException({ code: ERROR_CODES.AUTH_INVALID_CREDENTIALS, message: 'Invalid credentials' });
     }
 
     // TRUST LAYER: Check for suspicious login patterns
@@ -462,12 +463,12 @@ export class AuthService {
     // point for a real email/SMS provider.
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { email: true, phone: true },
+      select: { email: true, phone: true, preferredLocale: true },
     });
     if (user) {
       const to = type === 'EMAIL' ? user.email : user.phone;
       if (to) {
-        this.mailService.sendVerificationCode(to, rawCode, type);
+        this.mailService.sendVerificationCode(to, rawCode, type, user.preferredLocale);
       }
     }
 
@@ -483,7 +484,7 @@ export class AuthService {
 
   async verifyEmail(userId: string, code: string) {
     if (!code) {
-      throw new BadRequestException('Verification code is required');
+      throw new BadRequestException({ code: ERROR_CODES.AUTH_VERIFICATION_CODE_REQUIRED, message: 'Verification code is required' });
     }
 
     // Look up the stored verification code for this user
@@ -497,7 +498,7 @@ export class AuthService {
     });
 
     if (!verification) {
-      throw new BadRequestException('No valid verification code found. Please request a new one.');
+      throw new BadRequestException({ code: ERROR_CODES.AUTH_VERIFICATION_CODE_NONE, message: 'No valid verification code found. Please request a new one.' });
     }
 
     // Validate the code using constant-time comparison. crypto.timingSafeEqual
@@ -509,7 +510,7 @@ export class AuthService {
       codeHash.length !== verification.codeHash.length ||
       !crypto.timingSafeEqual(Buffer.from(codeHash), Buffer.from(verification.codeHash))
     ) {
-      throw new BadRequestException('Invalid verification code');
+      throw new BadRequestException({ code: ERROR_CODES.AUTH_VERIFICATION_CODE_INVALID, message: 'Invalid verification code' });
     }
 
     // Mark the code as used
@@ -532,7 +533,7 @@ export class AuthService {
 
   async verifyPhone(userId: string, phone: string, code: string) {
     if (!code) {
-      throw new BadRequestException('Verification code is required');
+      throw new BadRequestException({ code: ERROR_CODES.AUTH_VERIFICATION_CODE_REQUIRED, message: 'Verification code is required' });
     }
 
     // Look up the stored verification code for this user
@@ -546,7 +547,7 @@ export class AuthService {
     });
 
     if (!verification) {
-      throw new BadRequestException('No valid verification code found. Please request a new one.');
+      throw new BadRequestException({ code: ERROR_CODES.AUTH_VERIFICATION_CODE_NONE, message: 'No valid verification code found. Please request a new one.' });
     }
 
     // Validate the code using constant-time comparison (see verifyEmail).
@@ -556,7 +557,7 @@ export class AuthService {
       codeHash.length !== verification.codeHash.length ||
       !crypto.timingSafeEqual(Buffer.from(codeHash), Buffer.from(verification.codeHash))
     ) {
-      throw new BadRequestException('Invalid verification code');
+      throw new BadRequestException({ code: ERROR_CODES.AUTH_VERIFICATION_CODE_INVALID, message: 'Invalid verification code' });
     }
 
     // Mark the code as used
@@ -583,6 +584,20 @@ export class AuthService {
   async getUserById(userId: string) {
     return this.prisma.user.findUnique({
       where: { id: userId }
+    });
+  }
+
+  /**
+   * Update the authenticated user's preferred UI/email locale (i18n).
+   * Persisted so server-side email rendering (nestjs-i18n) and future sessions
+   * use the user's chosen language. The frontend also reads this via /auth/me
+   * to initialize its locale cookie.
+   */
+  async updatePreferredLocale(userId: string, preferredLocale: string) {
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: { preferredLocale },
+      select: { id: true, preferredLocale: true },
     });
   }
 
@@ -656,7 +671,7 @@ export class AuthService {
    */
   async refreshToken(refreshToken: string) {
     if (!refreshToken) {
-      throw new UnauthorizedException('Refresh token is required');
+      throw new UnauthorizedException({ code: ERROR_CODES.AUTH_REFRESH_TOKEN_REQUIRED, message: 'Refresh token is required' });
     }
 
     const refreshSecret = process.env.JWT_REFRESH_SECRET || (process.env.NODE_ENV === 'production' ? (() => { throw new Error('JWT_REFRESH_SECRET environment variable is required in production'); })() : 'dev-refresh-secret-key-not-for-production');
@@ -666,11 +681,11 @@ export class AuthService {
     try {
       payload = jwt.verify(refreshToken, refreshSecret, { algorithms: ['HS256'] }) as any;
     } catch (error) {
-      throw new UnauthorizedException('Invalid or expired refresh token');
+      throw new UnauthorizedException({ code: ERROR_CODES.AUTH_REFRESH_TOKEN_INVALID, message: 'Invalid or expired refresh token' });
     }
 
     if (payload.type !== 'refresh') {
-      throw new UnauthorizedException('Invalid token type');
+      throw new UnauthorizedException({ code: ERROR_CODES.AUTH_TOKEN_TYPE_INVALID, message: 'Invalid token type' });
     }
 
     const userId = payload.sub;
@@ -702,7 +717,7 @@ export class AuthService {
         ipAddress: 'system',
       });
 
-      throw new ForbiddenException('Refresh token has been revoked. Please log in again.');
+      throw new ForbiddenException({ code: ERROR_CODES.AUTH_REFRESH_TOKEN_REVOKED, message: 'Refresh token has been revoked. Please log in again.' });
     }
 
     // SECURITY (E-M2): A refresh token that verifies cryptographically but is NOT
@@ -713,7 +728,7 @@ export class AuthService {
     // tokens whose hash is present and active may rotate. Anything else forces a
     // clean re-login.
     if (!storedToken) {
-      throw new UnauthorizedException('Invalid or expired refresh token');
+      throw new UnauthorizedException({ code: ERROR_CODES.AUTH_REFRESH_TOKEN_INVALID, message: 'Invalid or expired refresh token' });
     }
 
     // Verify user still exists and is active
@@ -722,20 +737,20 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new UnauthorizedException('User not found');
+      throw new UnauthorizedException({ code: ERROR_CODES.AUTH_USER_NOT_FOUND, message: 'User not found' });
     }
 
     if (user.deletedAt) {
-      throw new UnauthorizedException('Account has been deleted');
+      throw new UnauthorizedException({ code: ERROR_CODES.AUTH_ACCOUNT_DELETED, message: 'Account has been deleted' });
     }
 
     if (user.status === 'BANNED') {
-      throw new UnauthorizedException('Account has been banned');
+      throw new UnauthorizedException({ code: ERROR_CODES.AUTH_ACCOUNT_BANNED, message: 'Account has been banned' });
     }
 
     const isBlacklisted = await this.trustService.isBlacklisted('USER', user.id);
     if (isBlacklisted) {
-      throw new UnauthorizedException('Account has been suspended');
+      throw new UnauthorizedException({ code: ERROR_CODES.AUTH_ACCOUNT_SUSPENDED, message: 'Account has been suspended' });
     }
 
     // Step 4: Revoke the old token and issue a new pair in the same family.
@@ -853,7 +868,7 @@ export class AuthService {
     // swap point for a real email provider (AWS SES / SendGrid / SMTP).
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
     const resetUrl = `${frontendUrl}/reset-password?token=${rawToken}`;
-    this.mailService.sendPasswordReset(user.email, resetUrl);
+    this.mailService.sendPasswordReset(user.email, resetUrl, user.preferredLocale);
 
     return {
       message: 'If an account with that email exists, a password reset link has been sent.',
@@ -873,24 +888,24 @@ export class AuthService {
     });
 
     if (!resetToken) {
-      throw new BadRequestException('Invalid or expired reset token');
+      throw new BadRequestException({ code: ERROR_CODES.AUTH_RESET_TOKEN_INVALID, message: 'Invalid or expired reset token' });
     }
 
     // Check if token has expired
     if (new Date() > resetToken.expiresAt) {
       // Clean up expired token
       await this.prisma.passwordResetToken.delete({ where: { id: resetToken.id } });
-      throw new BadRequestException('Reset token has expired. Please request a new one.');
+      throw new BadRequestException({ code: ERROR_CODES.AUTH_RESET_TOKEN_EXPIRED, message: 'Reset token has expired. Please request a new one.' });
     }
 
     // Check if token has already been used (one-time use)
     if (resetToken.usedAt) {
-      throw new BadRequestException('Reset token has already been used. Please request a new one.');
+      throw new BadRequestException({ code: ERROR_CODES.AUTH_RESET_TOKEN_USED, message: 'Reset token has already been used. Please request a new one.' });
     }
 
     // Reject trivially-guessable new passwords (same blocklist as registration).
     if (isCommonPassword(newPassword)) {
-      throw new BadRequestException('This password is too common and easily guessed. Please choose a stronger password.');
+      throw new BadRequestException({ code: ERROR_CODES.AUTH_PASSWORD_TOO_COMMON, message: 'This password is too common and easily guessed. Please choose a stronger password.' });
     }
 
     // Hash the new password

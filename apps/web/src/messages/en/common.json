@@ -1,0 +1,75 @@
+{
+  "site": {
+    "title": "OfferMarket - Reverse Talent Marketplace",
+    "description": "Anonymous worker profiles meet structured employer offers"
+  },
+  "languageSwitcher": {
+    "label": "Language",
+    "en": "English",
+    "nl": "Nederlands"
+  },
+  "user": {
+    "fallbackName": "User"
+  },
+  "home": {
+    "hero": {
+      "title": "A Reverse Talent Marketplace",
+      "titleHighlight": " Where Workers Have Leverage",
+      "subtitle": "Create an anonymous profile. Receive structured offers with transparent salary and benefits. Accept when ready – your identity stays hidden until then.",
+      "ctaWorker": "Create Anonymous Profile",
+      "ctaEmployer": "Hire as Employer"
+    },
+    "howItWorks": {
+      "title": "How It Works",
+      "step1Title": "1. Create Anonymous Profile",
+      "step1Body": "Your identity is hidden. Employers see your skills and experience, but not your name or current employer.",
+      "step2Title": "2. Receive Structured Offers",
+      "step2Body": "Every offer includes specific salary, complete benefits, and clear contract terms. No vague messages allowed.",
+      "step3Title": "3. Accept & Reveal Identity",
+      "step3Body": "When you accept an offer, your identity is revealed. Only then can the employer contact you directly."
+    },
+    "forWorkers": {
+      "title": "For Workers",
+      "benefit1": "Complete anonymity until you choose to reveal",
+      "benefit2": "All offers have transparent salary and benefits",
+      "benefit3": "No spam, no empty recruiter messages",
+      "benefit4": "Compare offers side-by-side",
+      "benefit5": "Block companies you don't want to see your profile",
+      "privacyTitle": "Your Privacy is Protected",
+      "fieldName": "Name",
+      "fieldEmail": "Email",
+      "fieldPhone": "Phone",
+      "fieldCurrentEmployer": "Current Employer",
+      "fieldRegion": "Region",
+      "fieldSkills": "Skills",
+      "hidden": "Hidden",
+      "visible": "Visible",
+      "regionExample": "Visible (e.g., Rotterdam Area)"
+    },
+    "forEmployers": {
+      "title": "For Employers",
+      "offerExampleTitle": "Structured Offer Example",
+      "offerJobTitle": "Senior Electrician",
+      "offerCategory": "Industrial Projects",
+      "salaryRange": "€54,000 - €58,000",
+      "contractLabel": "Contract:",
+      "contractValue": "Permanent",
+      "hoursLabel": "Hours:",
+      "hoursValue": "40/week",
+      "vacationLabel": "Vacation:",
+      "vacationValue": "30 days",
+      "pensionLabel": "Pension:",
+      "pensionValue": "8%",
+      "benefit1": "Access to passive candidates who aren't actively applying",
+      "benefit2": "Stand out with transparent, competitive offers",
+      "benefit3": "Direct contact after offer acceptance",
+      "benefit4": "Verified KvK registration builds trust"
+    },
+    "cta": {
+      "title": "Ready to Get Started?",
+      "subtitle": "Join the reverse marketplace where workers have leverage and employers compete with real offers.",
+      "workerProfile": "Create Worker Profile",
+      "registerEmployer": "Register as Employer"
+    }
+  }
+}

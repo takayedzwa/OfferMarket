@@ -1,0 +1,175 @@
+{
+  "offerStatus": {
+    "DRAFT": "Draft",
+    "SUBMITTED": "Submitted",
+    "VIEWED": "Viewed",
+    "SHORTLISTED": "Shortlisted",
+    "ACCEPTED": "Accepted",
+    "REJECTED": "Rejected",
+    "EXPIRED": "Expired",
+    "WITHDRAWN": "Withdrawn",
+    "COUNTERED": "Countered",
+    "ACTIVE": "Active",
+    "FILLED": "Filled",
+    "PAUSED": "Paused",
+    "DELETED": "Deleted"
+  },
+  "invoiceStatus": {
+    "DRAFT": "Draft",
+    "ISSUED": "Issued",
+    "PAID": "Paid",
+    "OVERDUE": "Overdue",
+    "CANCELLED": "Cancelled",
+    "REFUNDED": "Refunded"
+  },
+  "specialization": {
+    "RESIDENTIAL_INSTALLATIONS": "Residential",
+    "COMMERCIAL_INSTALLATIONS": "Commercial",
+    "INDUSTRIAL_INSTALLATIONS": "Industrial",
+    "MAINTENANCE": "Maintenance",
+    "HIGH_VOLTAGE": "High Voltage",
+    "LOW_VOLTAGE": "Low Voltage",
+    "SOLAR_PV": "Solar PV",
+    "EV_CHARGING": "EV Charging",
+    "CONTROL_PANELS": "Control Panels",
+    "PLC_SYSTEMS": "PLC Systems",
+    "AUTOMATION": "Automation",
+    "BUILDING_MANAGEMENT": "Building Management",
+    "FIRE_ALARM_SYSTEMS": "Fire Alarm Systems",
+    "SECURITY_SYSTEMS": "Security Systems",
+    "DATA_CABLING": "Data Cabling",
+    "MARINE_ELECTRICAL": "Marine Electrical",
+    "RENEWABLE_ENERGY": "Renewable Energy"
+  },
+  "skillLevel": {
+    "BEGINNER": "Beginner",
+    "INTERMEDIATE": "Intermediate",
+    "ADVANCED": "Advanced",
+    "EXPERT": "Expert",
+    "MASTER": "Master"
+  },
+  "languageLevel": {
+    "A1": "A1 - Beginner",
+    "A2": "A2 - Elementary",
+    "B1": "B1 - Intermediate",
+    "B2": "B2 - Upper Intermediate",
+    "C1": "C1 - Advanced",
+    "C2": "C2 - Proficient",
+    "NATIVE": "Native"
+  },
+  "availability": {
+    "IMMEDIATE": "Available Immediately",
+    "ONE_MONTH": "Available in 1 month",
+    "THREE_MONTHS": "Available in 3 months",
+    "SIX_MONTHS": "Available in 6 months",
+    "NOT_AVAILABLE": "Not available"
+  },
+  "workAuth": {
+    "EU_CITIZEN": "EU Citizen",
+    "DUTCH_WORK_PERMIT": "Dutch Work Permit",
+    "HIGHLY_SKILLED_MIGRANT": "Highly Skilled Migrant",
+    "REQUIRES_SPONSORSHIP": "Requires Sponsorship"
+  },
+  "employmentType": {
+    "FULL_TIME": "Full-time",
+    "PART_TIME": "Part-time",
+    "FREELANCE": "Freelance",
+    "CONTRACT": "Contract",
+    "TEMPORARY": "Temporary",
+    "INTERNSHIP": "Internship"
+  },
+  "documentType": {
+    "BUSINESS_REGISTRATION": "Business Registration",
+    "TAX_DOCUMENT": "Tax Document",
+    "BANK_STATEMENT": "Bank Statement",
+    "UTILITY_BILL": "Utility Bill",
+    "ID_CARD": "ID Card",
+    "PASSPORT": "Passport",
+    "CERTIFICATE": "Certificate",
+    "DIPLOMA": "Diploma",
+    "REFERENCE_LETTER": "Reference Letter",
+    "OTHER": "Other"
+  },
+  "badge": {
+    "NEN_3140_CERTIFIED": "NEN 3140 Certified",
+    "VCA_CERTIFIED": "VCA Certified",
+    "NEN_1010_CERTIFIED": "NEN 1010 Certified",
+    "FIRST_AID_CERTIFIED": "First Aid / BHV",
+    "MULTIPLE_CERTIFIED": "Multiple Certifications",
+    "SENIOR_EXPERT": "10+ Years Experience",
+    "EXPERIENCED": "5+ Years Experience",
+    "INDUSTRIAL_SPECIALIST": "Industrial Specialist",
+    "PLC_SPECIALIST": "PLC Specialist",
+    "SOLAR_SPECIALIST": "Solar PV Specialist",
+    "RENEWABLE_SPECIALIST": "Renewable Energy",
+    "AVAILABLE_IMMEDIATELY": "Available Immediately",
+    "DRIVING_LICENCE_B": "Driving Licence B",
+    "OWN_VEHICLE": "Own Vehicle",
+    "DUTCH_B2": "Dutch B2+",
+    "ENGLISH_B2": "English B2+",
+    "EU_CITIZEN": "EU Citizen",
+    "WORK_PERMIT_VALID": "Work Permit Valid",
+    "VERIFIED_CREDENTIALS": "Verified Credentials"
+  },
+  "contentReportCategory": {
+    "ILLEGAL_CONTENT": "Illegal content",
+    "FRAUD_SCAM": "Fraud or scam",
+    "HARASSMENT": "Harassment or bullying",
+    "HATE_SPEECH": "Hate speech",
+    "COPYRIGHT_VIOLATION": "Copyright violation",
+    "PRIVACY_VIOLATION": "Privacy violation (doxxing, unauthorized data)",
+    "MISLEADING_INFORMATION": "Misleading information",
+    "CHILD_SAFETY": "Child safety concern",
+    "TERRORISM": "Terrorism-related content",
+    "DRUGS_WEAPONS": "Illegal products or services (drugs, weapons)",
+    "IMPERSONATION": "Impersonation / fake identity",
+    "SPAM": "Spam",
+    "OTHER": "Other"
+  },
+  "contentReportTarget": {
+    "USER_PROFILE": "User profile",
+    "WORKER_PROFILE": "Worker profile",
+    "EMPLOYER_PROFILE": "Employer profile",
+    "OFFER": "Job offer",
+    "CONVERSATION": "Conversation",
+    "MESSAGE": "Message",
+    "REVIEW": "Review",
+    "OTHER": "Other"
+  },
+  "dsaStatus": {
+    "RECEIVED": {
+      "label": "Received",
+      "description": "Your report has been received and is awaiting review."
+    },
+    "ASSESSMENT": {
+      "label": "Under Assessment",
+      "description": "Your report is being assessed by our team."
+    },
+    "ACTION_TAKEN": {
+      "label": "Action Taken",
+      "description": "Action has been taken on the reported content."
+    },
+    "NOTIFIED": {
+      "label": "Notified",
+      "description": "The affected user has been notified."
+    },
+    "RESOLVED": {
+      "label": "Resolved",
+      "description": "Your report has been resolved."
+    },
+    "DISMISSED": {
+      "label": "Dismissed",
+      "description": "Your report was dismissed after review."
+    },
+    "ESCALATED": {
+      "label": "Escalated",
+      "description": "This report has been escalated to the relevant authorities."
+    }
+  },
+  "dsaPriority": {
+    "LOW": "Low",
+    "MEDIUM": "Medium",
+    "HIGH": "High",
+    "URGENT": "Urgent"
+  }
+}

@@ -34,6 +34,12 @@ model User {
   marketingConsent         Boolean   @default(false)
   analyticsConsent         Boolean   @default(false)
 
+  // i18n: user's preferred UI/email locale. Drives server-side email rendering
+  // (nestjs-i18n) and is sent to the client on /auth/me so the frontend can
+  // initialize its locale cookie. Defaults to "en". Add new locales to the
+  // validation list in the PATCH endpoint + apps/web/src/i18n/routing.ts.
+  preferredLocale          String    @default("en")
+
   // Relations
   conversations1       Conversation[]        @relation("ConversationParticipant1")
   conversations2       Conversation[]        @relation("ConversationParticipant2")

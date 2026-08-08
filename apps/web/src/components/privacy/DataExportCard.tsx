@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
 
@@ -14,6 +15,7 @@ function getAuthHeaders(): Record<string, string> {
 }
 
 export default function DataExportCard() {
+  const t = useTranslations('privacy.exportCard');
   const [exportStatus, setExportStatus] = useState<'idle' | 'requesting' | 'processing' | 'ready' | 'error'>('idle');
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -33,16 +35,16 @@ export default function DataExportCard() {
         const data = await response.json();
         // If there's already a pending export, show a user-friendly message
         if (response.status === 400 && data.message?.includes('pending')) {
-          throw new Error('You already have a pending data export request. Please check the status below.');
+          throw new Error(t('pendingError'));
         }
-        throw new Error(data.message || 'Failed to request data export');
+        throw new Error(data.message || t('requestError'));
       }
 
       setExportStatus('processing');
       pollExportStatus();
     } catch (err) {
       setExportStatus('error');
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      setError(err instanceof Error ? err.message : t('genericError'));
     }
   };
 
@@ -56,7 +58,7 @@ export default function DataExportCard() {
           headers: getAuthHeaders(),
         });
 
-        if (!response.ok) throw new Error('Failed to check export status');
+        if (!response.ok) throw new Error(t('statusCheckError'));
         const data = await response.json();
 
         // API returns an array of export requests — check the most recent one
@@ -77,7 +79,7 @@ export default function DataExportCard() {
 
         if (latest.status === 'FAILED') {
           setExportStatus('error');
-          setError('Export failed. Please try again.');
+          setError(t('exportFailed'));
           return;
         }
 
@@ -87,21 +89,21 @@ export default function DataExportCard() {
             setTimeout(poll, 2000);
           } else {
             setExportStatus('error');
-            setError('Export is taking longer than expected. Please check back later.');
+            setError(t('exportTimeout'));
           }
           return;
         }
 
         // EXPPIRED or other status
         setExportStatus('error');
-        setError('Export link has expired. Please request a new export.');
+        setError(t('exportExpired'));
       } catch {
         attempts++;
         if (attempts < maxAttempts) {
           setTimeout(poll, 3000);
         } else {
           setExportStatus('error');
-          setError('Failed to check export status.');
+          setError(t('statusCheckError'));
         }
       }
     };
@@ -112,9 +114,9 @@ export default function DataExportCard() {
   return (
     <div className="bg-white shadow rounded-lg">
       <div className="px-6 py-4 border-b border-gray-200">
-        <h3 className="text-lg font-medium text-gray-900">Data Export</h3>
+        <h3 className="text-lg font-medium text-gray-900">{t('title')}</h3>
         <p className="mt-1 text-sm text-gray-500">
-          Download all your personal data — your right under GDPR Article 20 (Data Portability).
+          {t('subtitle')}
         </p>
       </div>
 
@@ -129,8 +131,7 @@ export default function DataExportCard() {
               </div>
               <div className="ml-3">
                 <p className="text-sm text-blue-700">
-                  Your export will include: profile data, work history, education, skills, certifications,
-                  offers, messages, notifications, consent records, and audit logs.
+                  {t('infoBody')}
                 </p>
               </div>
             </div>
@@ -144,21 +145,21 @@ export default function DataExportCard() {
               <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
-              Request Data Export
+              {t('requestBtn')}
             </button>
           )}
 
           {exportStatus === 'requesting' && (
             <div className="text-center py-4">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto" />
-              <p className="mt-2 text-sm text-gray-600">Requesting your data export...</p>
+              <p className="mt-2 text-sm text-gray-600">{t('requesting')}</p>
             </div>
           )}
 
           {exportStatus === 'processing' && (
             <div className="text-center py-4">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto" />
-              <p className="mt-2 text-sm text-gray-600">Preparing your data export. This may take a few minutes...</p>
+              <p className="mt-2 text-sm text-gray-600">{t('processing')}</p>
             </div>
           )}
 
@@ -167,27 +168,27 @@ export default function DataExportCard() {
               <svg className="h-12 w-12 text-green-500 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <p className="mt-2 text-sm font-medium text-gray-900">Your data export is ready!</p>
+              <p className="mt-2 text-sm font-medium text-gray-900">{t('ready')}</p>
               <a
                 href={downloadUrl || '#'}
                 className="mt-3 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700"
               >
-                Download Export (JSON)
+                {t('downloadBtn')}
               </a>
-              <p className="mt-2 text-xs text-gray-500">Download link expires in 30 days</p>
+              <p className="mt-2 text-xs text-gray-500">{t('downloadHint')}</p>
             </div>
           )}
 
           {exportStatus === 'error' && (
             <div className="text-center py-4">
               <div className="bg-red-50 border border-red-200 rounded-md p-4">
-                <p className="text-sm text-red-700">{error || 'An error occurred. Please try again.'}</p>
+                <p className="text-sm text-red-700">{error || t('errorFallback')}</p>
               </div>
               <button
                 onClick={requestExport}
                 className="mt-3 px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
               >
-                Try Again
+                {t('tryAgain')}
               </button>
             </div>
           )}

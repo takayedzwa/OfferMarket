@@ -1,0 +1,108 @@
+{
+  "_reviewNote": "LEGAL CONTENT — requires human/legal review before production (DSA Art. 16/20)",
+  "status": {
+    "title": "Status van de melding",
+    "description": "Controleer de status van uw inhoudsmelding met behulp van het referentienummer dat u bij het indienen van uw melding heeft ontvangen.",
+    "contactPrompt": "Als u vragen heeft over uw melding, neem dan contact met ons op via",
+    "newReportLink": "Nieuwe melding indienen →"
+  },
+  "statusDetail": {
+    "title": "Status van de melding",
+    "referenceLabel": "Referentie:",
+    "loading": "Meldingsstatus laden...",
+    "notFoundError": "Melding niet gevonden. Controleer het referentienummer.",
+    "loadError": "Het laden van de meldingsstatus is mislukt.",
+    "genericError": "Er is een fout opgetreden",
+    "tryAnotherLink": "← Probeer een ander referentienummer",
+    "statusHeading": "Status",
+    "categoryLabel": "Categorie",
+    "submittedLabel": "Ingediend",
+    "acknowledgedLabel": "Bevestigd",
+    "actionTakenLabel": "Ondergenomen actie",
+    "resolutionLabel": "Afhandeling",
+    "newReportLink": "Nieuwe melding indienen →",
+    "checkAnotherLink": "Andere melding controleren →",
+    "complaint": {
+      "label": "Klachtmogelijkheden:",
+      "body": "Als u het niet eens bent met deze afhandeling, kunt u binnen 6 maanden een klacht indienen via onze interne klachtenafhandeling (DSA Art. 20)."
+    }
+  },
+  "report": {
+    "title": "Illegale inhoud melden",
+    "intro": "Krachtens de Digital Services Act (DSA, Verordening EU 2022/2065) heeft u het recht ons te wijzen op inhoud die u als illegaal beschouwt. Uw melding wordt verwerkt in overeenstemming met onze notice-and-action-procedure.",
+    "rightsTitle": "Uw rechten onder de DSA",
+    "rightsAnonymous": "U kunt meldingen anoniem indienen door een e-mailadres op te geven voor bevestiging.",
+    "rightsAcknowledgment": "U ontvangt zonder onredelijke vertraging een bevestiging van uw melding (DSA Art. 16(4)).",
+    "rightsDecision": "U wordt geïnformeerd over de beslissing die over uw melding is genomen.",
+    "rightsComplaint": "Als u het niet eens bent met een beslissing, kunt u een klacht indienen via onze interne klachtenafhandeling.",
+    "unfoundedNotice": "DSA Art. 16(3)(d): Het indienen van kennelijk ongegronde meldingen kan leiden tot meldingsbeperkingen onder DSA Art. 23.",
+    "contactLabel": "Contact:"
+  },
+  "form": {
+    "submittedTitle": "Melding ingediend",
+    "submittedBody": "Uw melding is ontvangen en bevestigd. Wij zullen deze zo snel mogelijk beoordelen.",
+    "referenceLabel": "Referentienummer",
+    "saveReference": "Bewaar deze referentie om de status van uw melding te controleren op",
+    "reportStatusLink": "Meldingsstatus",
+    "acknowledgmentNote": "DSA Art. 16(4): U ontvangt zonder onredelijke vertraging een bevestiging.",
+    "close": "Sluiten",
+    "title": "Illegale inhoud melden",
+    "intro": "DSA Art. 16 — Meld inhoud die u als illegaal of in strijd met onze voorwaarden beschouwt. U kunt anoniem melden door alleen uw e-mailadres op te geven.",
+    "targetLabel": "Wat meldt u?",
+    "targetIdLabel": "ID of referentie van de inhoud",
+    "targetIdPlaceholder": "bijv. aanbod-ID, gebruikersnaam",
+    "urlLabel": "URL van de inhoud",
+    "optional": "(optioneel)",
+    "urlPlaceholder": "https://offermarket.nl/...",
+    "categoryLabel": "Categorie van illegale inhoud",
+    "illegalTypeLabel": "Type illegale inhoud",
+    "illegalTypePlaceholder": "bijv. Wetboek van Strafrecht Art. 137c",
+    "explanationLabel": "Gedetailleerde toelichting",
+    "explanationHint": "DSA Art. 16(3): Leg gedetailleerd uit waarom u deze inhoud als illegaal beschouwt.",
+    "explanationPlaceholder": "Beschrijf de inhoud die u meldt en waarom u deze als illegaal beschouwt...",
+    "emailLabel": "Uw e-mailadres",
+    "emailHint": "(voor bevestiging)",
+    "emailPlaceholder": "uw@email.com",
+    "emailNote": "Vereist voor anonieme meldingen. Wij sturen u een bevestiging en updates.",
+    "goodFaithLabel": "Ik verklaar dat deze melding te goeder trouw wordt ingediend en dat de verstrekte informatie naar mijn weten juist is.",
+    "goodFaithNote": "DSA Art. 16(3)(d): Valse of kwaadwillige meldingen kunnen leiden tot meldingsbeperkingen onder DSA Art. 23.",
+    "validation": {
+      "explanationRequired": "Geef een gedetailleerde toelichting waarom deze inhoud illegaal is of in strijd is met onze voorwaarden.",
+      "goodFaithRequired": "U moet bevestigen dat uw melding te goeder trouw wordt ingediend."
+    },
+    "submitError": "Indienen van melding mislukt",
+    "genericError": "Er is een fout opgetreden. Probeer het opnieuw.",
+    "cancel": "Annuleren",
+    "submitting": "Indienen...",
+    "submit": "Melding indienen"
+  },
+  "checker": {
+    "title": "Meldingsstatus controleren",
+    "description": "Voer het referentienummer in dat u bij het indienen van uw melding heeft ontvangen.",
+    "placeholder": "bijv. RPT-ABC123",
+    "checking": "Controleren...",
+    "check": "Controleren",
+    "notFoundError": "Melding niet gevonden. Controleer het referentienummer en probeer het opnieuw.",
+    "checkError": "Het controleren van de meldingsstatus is mislukt. Probeer het later opnieuw.",
+    "genericError": "Er is een fout opgetreden",
+    "detailsHeading": "Meldingsgegevens",
+    "referenceLabel": "Referentie",
+    "categoryLabel": "Categorie",
+    "priorityLabel": "Prioriteit",
+    "submittedLabel": "Ingediend",
+    "acknowledgedLabel": "Bevestigd",
+    "actionLabel": "Actie",
+    "resolutionLabel": "Afhandeling",
+    "complaint": {
+      "label": "Klachtmogelijkheden:",
+      "prefix": "Als u het niet eens bent met deze afhandeling, kunt u een klacht indienen via ons ",
+      "link": "interne klachtenafhandeling",
+      "suffix": " binnen 6 maanden (DSA Art. 20)."
+    }
+  },
+  "button": {
+    "report": "Melden",
+    "reportTitle": "Deze inhoud melden",
+    "close": "Sluiten"
+  }
+}

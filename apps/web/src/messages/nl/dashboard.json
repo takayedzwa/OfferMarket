@@ -1,0 +1,164 @@
+{
+  "employer": {
+    "loading": "Bezig met laden...",
+    "draftBanner": {
+      "title": "Concept bedrijfsprofiel opgeslagen",
+      "description": "Je hebt een onvolledig bedrijfsprofiel. Voltooi het wanneer je klaar bent.",
+      "continue": "Verdergaan met instellen →"
+    },
+    "company": {
+      "kvk": "KvK: {kvk}",
+      "edit": "Bedrijf bewerken →",
+      "verification": {
+        "UNVERIFIED": "ongeverifieerd",
+        "PENDING": "in behandeling",
+        "BASIC_VERIFIED": "basis geverifieerd",
+        "PREMIUM_VERIFIED": "premium geverifieerd"
+      }
+    },
+    "stats": {
+      "draftOffers": "Conceptvoorstellen",
+      "submitted": "Ingediend",
+      "shortlisted": "Geselecteerd",
+      "accepted": "Geaccepteerd"
+    },
+    "actions": {
+      "title": "Snelle acties",
+      "createOffer": "Nieuw voorstel maken",
+      "createOfferDesc": "Stuur een voorstel naar een werknemer",
+      "searchWorkers": "Werknemers zoeken",
+      "searchWorkersDesc": "Vind potentiële kandidaten",
+      "viewAllOffers": "Alle voorstellen bekijken",
+      "viewAllOffersDesc": "Beheer je voorstellen",
+      "messages": "Berichten",
+      "messagesDesc": "Praat met potentiële kandidaten"
+    },
+    "recentOffers": {
+      "title": "Recente voorstellen",
+      "viewAll": "Alles bekijken",
+      "created": "Aangemaakt {date}",
+      "empty": "Nog geen voorstellen gemaakt",
+      "createFirst": "Maak je eerste voorstel",
+      "salaryRange": "{min} - {max}",
+      "workArrangement": {
+        "ONSITE": "Op locatie",
+        "REMOTE": "Op afstand",
+        "HYBRID": "Hybride"
+      }
+    },
+    "billing": {
+      "loading": "Facturen laden...",
+      "title": "Facturen",
+      "subtitle": "Beheer je bemiddelingskosten en facturen",
+      "backToDashboard": "← Terug naar dashboard",
+      "summary": {
+        "unpaid": "Onbetaalde facturen",
+        "outstanding": "Openstaand bedrag",
+        "nextDue": "Volgende vervaldatum"
+      },
+      "tabs": {
+        "all": "Alle",
+        "unpaid": "Onbetaald",
+        "paid": "Betaald"
+      },
+      "empty": {
+        "title": "Nog geen facturen",
+        "description": "Facturen worden aangemaakt wanneer een werknemer je voorstel accepteert."
+      },
+      "table": {
+        "invoice": "Factuur",
+        "offer": "Voorstel",
+        "issued": "Verzonden",
+        "dueDate": "Vervaldatum",
+        "amount": "Bedrag",
+        "status": "Status"
+      },
+      "pagination": {
+        "previous": "Vorige",
+        "next": "Volgende",
+        "pageInfo": "Pagina {page} van {totalPages}"
+      }
+    },
+    "invoiceDetail": {
+      "loading": "Factuur laden...",
+      "notFound": "Factuur niet gevonden",
+      "backToBilling": "Terug naar facturen",
+      "issuedOn": "Verzonden op {date}",
+      "dueDate": "Vervaldatum",
+      "offer": "Voorstel",
+      "paidOn": "Betaald op",
+      "paymentReference": "Betalingsreferentie",
+      "lineItems": {
+        "title": "Regels",
+        "description": "Omschrijving",
+        "qty": "Aantal",
+        "unitPrice": "Stuksprijs",
+        "total": "Totaal"
+      },
+      "subtotal": "Subtotaal",
+      "vat": "BTW ({rate}%)",
+      "total": "Totaal",
+      "payment": {
+        "title": "Betalingsinstructies",
+        "instructions": "Maak {amount} over naar de volgende bankrekening met vermelding van {invoiceNumber}:",
+        "accountHolder": "Rekeninghouder:",
+        "accountHolderValue": "OfferMarket B.V.",
+        "reference": "Referentie:",
+        "dueWithin": "Betaling is uiterlijk {date} verschuldigd."
+      },
+      "notes": "Opmerkingen"
+    }
+  },
+  "worker": {
+    "loading": "Bezig met laden...",
+    "stats": {
+      "pendingOffers": "Openstaande voorstellen",
+      "shortlisted": "Geselecteerd",
+      "accepted": "Geaccepteerd",
+      "conversations": "Gesprekken"
+    },
+    "profile": {
+      "title": "Jouw profiel",
+      "edit": "Bewerken",
+      "create": "Aanmaken",
+      "salaryRange": "{min} – {max}",
+      "salaryFrom": "Vanaf {amount}",
+      "salaryNotSet": "Niet ingesteld",
+      "desiredSalary": "Gewenste salarisrange",
+      "noRegion": "Geen regio ingesteld",
+      "locationPreference": "Locatievoorkeur",
+      "skillsCount": "{count} vaardigheden",
+      "noSkills": "Geen vaardigheden toegevoegd",
+      "skills": "Vaardigheden",
+      "availabilityNotSet": "Niet ingesteld",
+      "availability": "Beschikbaarheid",
+      "visibility": "Profielzichtbaarheid: {visibility}",
+      "visibilityDefault": "anoniem",
+      "empty": "Nog geen profiel aangemaakt",
+      "createProfile": "Profiel aanmaken"
+    },
+    "recentOffers": {
+      "title": "Recente voorstellen",
+      "viewAll": "Alles bekijken",
+      "company": "Bedrijf",
+      "empty": "Nog geen voorstellen",
+      "emptyDesc": "Zodra je je profiel aanmaakt, beginnen werkgevers voorstellen te sturen",
+      "salaryRange": "{min} - {max}",
+      "workArrangement": {
+        "ONSITE": "Op locatie",
+        "REMOTE": "Op afstand",
+        "HYBRID": "Hybride"
+      },
+      "statusLabel": {
+        "SUBMITTED": "Nieuw voorstel",
+        "VIEWED": "Nieuw voorstel",
+        "SHORTLISTED": "Geselecteerd",
+        "ACCEPTED": "Geaccepteerd",
+        "REJECTED": "Afgewezen",
+        "COUNTERED": "Tegenvoorstel verzonden",
+        "WITHDRAWN": "Ingetrokken",
+        "EXPIRED": "Verlopen"
+      }
+    }
+  }
+}

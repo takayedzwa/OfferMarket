@@ -1,0 +1,82 @@
+{
+  "home": {
+    "loading": "Loading dashboard...",
+    "fetchError": "Failed to load admin dashboard",
+    "goBack": "Go Back",
+    "stat": {
+      "totalUsers": "Total Users",
+      "workers": "Workers",
+      "employers": "Employers",
+      "pendingVerifications": "Pending Verifications",
+      "activeOffers": "Active Offers",
+      "totalCredits": "Total Credits"
+    },
+    "action": {
+      "billing": { "label": "Billing", "desc": "Manage invoices and credits" },
+      "settings": { "label": "Settings", "desc": "Platform settings" },
+      "reports": { "label": "Reports", "desc": "Reported content" },
+      "auditLogs": { "label": "Audit Logs", "desc": "View audit trail" },
+      "trust": { "label": "Trust & Fraud", "desc": "Manage safety signals" },
+      "privacy": { "label": "GDPR / Privacy", "desc": "Privacy requests and logs" },
+      "dsa": { "label": "DSA Compliance", "desc": "Digital Services Act reports" },
+      "support": { "label": "Support", "desc": "Manage support tickets" }
+    },
+    "header": {
+      "title": "Admin Console",
+      "subtitle": "Platform Management",
+      "exit": "Exit Admin"
+    }
+  },
+  "offers": {
+    "title": "Offers",
+    "offersTotal": "{total, plural, one {# offer} other {# offers}}",
+    "loading": "Loading offers...",
+    "search": "Search",
+    "searchPlaceholder": "Search offers by title, company, or email...",
+    "filter": {
+      "allStatuses": "All Statuses"
+    },
+    "salaryNotSpecified": "Salary not specified",
+    "salaryRange": "{min} - {max}",
+    "salaryFrom": "From {amount}",
+    "salaryUpTo": "Up to {amount}",
+    "emptyTitle": "No offers found",
+    "emptyBody": "No offers match your current filters.",
+    "viewDetails": "View details",
+    "viewDetailsBtn": "View details",
+    "deleteOffer": "Delete offer",
+    "confirmDelete": "Are you sure you want to delete this offer? This action cannot be undone.",
+    "deleteFailed": "Failed to delete offer",
+    "previous": "Previous",
+    "next": "Next",
+    "pageOf": "Page {page} of {total}",
+    "posted": "Posted {date}",
+    "expires": "Expires {date}"
+  },
+  "employers": {
+    "title": "Employers",
+    "total": "{total, plural, one {# employer} other {# employers}}",
+    "searchPlaceholder": "Search by company name or email...",
+    "allVerificationStatus": "All Verification Statuses",
+    "filterPending": "Pending",
+    "filterVerified": "Basic Verified",
+    "filterFullyVerified": "Fully Verified",
+    "filterRejected": "Rejected",
+    "search": "Search",
+    "loading": "Loading employers...",
+    "empty": "No employers found",
+    "verified": "Verified",
+    "rejected": "Rejected",
+    "pending": "Pending",
+    "size": "Size: {size}",
+    "joinedDate": "Joined {date}",
+    "actionVerify": "Verify employer",
+    "actionReject": "Reject employer",
+    "viewDetails": "View details",
+    "previous": "Previous",
+    "page": "Page {page}",
+    "next": "Next",
+    "alertVerifyFailed": "Failed to verify employer",
+    "alertRejectFailed": "Failed to reject employer"
+  }
+}

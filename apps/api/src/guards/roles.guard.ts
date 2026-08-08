@@ -1,4 +1,5 @@
 import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common';
+import { ERROR_CODES } from '../i18n/error-codes';
 import { Reflector } from '@nestjs/core';
 import { UserRole } from '@prisma/client';
 import { ROLES_KEY } from '../common/decorators/roles.decorator';
@@ -21,11 +22,15 @@ export class RolesGuard implements CanActivate {
     const user = request.user;
 
     if (!user) {
-      throw new ForbiddenException('User not authenticated');
+      throw new ForbiddenException({ code: ERROR_CODES.GUARD_NOT_AUTHENTICATED, message: 'User not authenticated' });
     }
 
     if (!requiredRoles.includes(user.role as UserRole)) {
-      throw new ForbiddenException(`Access denied. Required roles: ${requiredRoles.join(', ')}`);
+      throw new ForbiddenException({
+        code: ERROR_CODES.GUARD_ROLES_REQUIRED,
+        message: `Access denied. Required roles: ${requiredRoles.join(', ')}`,
+        params: { roles: requiredRoles.join(', ') },
+      });
     }
 
     return true;
