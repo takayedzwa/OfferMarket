@@ -52,10 +52,12 @@ async function bootstrap() {
   // Global prefix
   app.setGlobalPrefix('api/v1');
 
-  const port = process.env.PORT || 3001;
-  await app.listen(port);
+  // Bind to 0.0.0.0 so the process is reachable from outside the container
+  // (Fly's proxy needs to reach it). `Number()` avoids passing a string port.
+  const port = Number(process.env.PORT) || 3001;
+  await app.listen(port, '0.0.0.0');
 
-  console.log(`🚀 OfferMarket API running on http://localhost:${port}/api/v1`);
+  console.log(`🚀 OfferMarket API running on port ${port}`);
 }
 
 bootstrap();

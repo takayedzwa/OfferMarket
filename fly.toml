@@ -26,10 +26,22 @@ primary_region = "ams"
 [http_service]
   internal_port = 3001
   force_https = true
-  # Scale-to-zero keeps cost low in testing; raise min_machines_running for prod.
-  auto_stop_machines = true
+  # Testing profile: scale-to-zero keeps the bill down. For production, set
+  # auto_stop_machines = "off" and min_machines_running = 1 — the API is
+  # stateful (Socket.IO) and shouldn't sleep when traffic drops to zero.
+  # (Scaling beyond 1 prod machine requires wiring @socket.io/redis-adapter.)
+  auto_stop_machines = "stop"
   auto_start_machines = true
   min_machines_running = 0
+
+  # Liveness check against the /api/v1/health endpoint. Fly fails the check on
+  # any non-200 / redirect, so the endpoint must return 200 outright.
+  [[http_service.checks]]
+    grace_period = "15s"
+    interval = "30s"
+    timeout = "5s"
+    method = "GET"
+    path = "/api/v1/health"
 
 # Migrations run in an ephemeral container BEFORE each deploy is promoted, so
 # the new code is never live against an old schema. Uses the prisma CLI kept in
