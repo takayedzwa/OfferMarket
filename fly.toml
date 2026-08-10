@@ -1,0 +1,38 @@
+# Fly.io configuration for the OfferMarket API.
+#
+# This file lives at the repo root because the Dockerfile's build context is
+# the monorepo root (it needs the root package.json + lockfile to resolve the
+# npm workspace). Deploy with:
+#
+#   flyctl deploy --config fly.toml --remote-only
+#
+# Required Fly secrets (set once):
+#   flyctl secrets set DATABASE_URL=postgresql://...  (Neon)
+#   flyctl secrets set REDIS_URL=redis://...           (Upstash)
+#   flyctl secrets set FRONTEND_URL=https://offermarket.nl
+#   flyctl secrets set JWT_SECRET=... JWT_REFRESH_SECRET=... ENCRYPTION_KEY=...
+#   flyctl secrets set AWS_ACCESS_KEY_ID=... AWS_SECRET_ACCESS_KEY=... \
+#     AWS_REGION=... SES_FROM_EMAIL=... AWS_S3_BUCKET=... \
+#     STRIPE_SECRET_KEY=... STRIPE_WEBHOOK_SECRET=... STRIPE_PRICE_ID_INTRODUCTION=... \
+#     TWILIO_ACCOUNT_SID=... TWILIO_AUTH_TOKEN=... TWILIO_PHONE_NUMBER=... \
+#     KVK_API_KEY=... SENTRY_DSN=... POSTHOG_API_KEY=...
+
+app = "offermarket-api"
+primary_region = "ams"
+
+[build]
+  dockerfile = "apps/api/Dockerfile"
+
+[http_service]
+  internal_port = 3001
+  force_https = true
+  # Scale-to-zero keeps cost low in testing; raise min_machines_running for prod.
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 0
+
+# Migrations run in an ephemeral container BEFORE each deploy is promoted, so
+# the new code is never live against an old schema. Uses the prisma CLI kept in
+# the image's node_modules (see apps/api/Dockerfile note).
+[deploy]
+  release_command = "npx --no-install prisma migrate deploy"

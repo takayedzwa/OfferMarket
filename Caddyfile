@@ -1,0 +1,26 @@
+# Caddy reverse proxy for the full-stack docker-compose setup.
+#
+# Caddy issues and renews Let's Encrypt TLS certificates automatically for the
+# hostnames below. To enable the public proxy, run with the `proxy` profile:
+#
+#   docker compose -f docker-compose.prod.yml --profile proxy up -d
+#
+# Replace the hostnames with your real domains, then point their DNS A records
+# at this host. For local-only testing, keep the `:80` / `:443` block below and
+# use http://localhost (Caddy will use its internal CA for TLS).
+
+offermarket.nl {
+	encode zstd gzip
+	reverse_proxy web:3000
+}
+
+api.offermarket.nl {
+	encode zstd gzip
+	reverse_proxy api:3001
+}
+
+# Local fallback (no DNS needed) — uncomment to serve everything on localhost.
+# :80 {
+# 	reverse_proxy /api/* api:3001
+# 	reverse_proxy web:3000
+# }

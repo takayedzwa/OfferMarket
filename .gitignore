@@ -15,7 +15,9 @@ out/
 .env.development.local
 .env.test.local
 .env.production.local
-.env*.example
+# Example templates contain no secrets and are intentionally tracked.
+# (Previously `.env*.example` ignored them — that made the templates
+# uncommitable, which defeated their purpose.)
 
 # Logs
 logs/

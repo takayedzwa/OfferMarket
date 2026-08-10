@@ -1,5 +1,11 @@
 generator client {
-  provider = "prisma-client-js"
+  // `native` for local dev (macOS/etc.); the musl/openssl-3 targets for the
+  // alpine Docker image. node:20-alpine ships openssl 3, so the default
+  // openssl-1.1.x engine Prisma generates fails to load at runtime. We pin
+  // both arches so the same image runs on arm64 (Apple Silicon, Fly arm) and
+  // x64 (CI, Fly x64) without rebuilding.
+  provider     = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x", "linux-musl-arm64-openssl-3.0.x"]
 }
 
 datasource db {

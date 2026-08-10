@@ -1,0 +1,111 @@
+# Full OfferMarket stack for local integration testing and single-host deploys.
+#
+# Brings up the entire app with one command:
+#
+#   cp .env.example .env       # then fill in real secrets
+#   docker compose -f docker-compose.prod.yml up --build
+#
+# The existing docker-compose.yml (postgres + redis only) is kept for the
+# host-based `npm run dev` workflow; this file adds the built web + api
+# containers plus a Caddy reverse proxy for automatic HTTPS.
+#
+# Production uses managed services instead (see DEPLOYMENT.md):
+#   web → Vercel, api → Fly.io, Postgres → Neon, Redis → Upstash.
+# This compose mirrors that topology on one machine for testing.
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: offermarket-db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-offermarket}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-offermarket}
+      POSTGRES_DB: ${POSTGRES_DB:-offermarket}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-offermarket}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: offermarket-redis
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: offermarket-api
+    # All SaaS keys (S3, SES, Twilio, Stripe, Sentry, PostHog, KVK…) come from
+    # apps/api/.env (copy apps/api/.env.example). The inline entries below
+    # override that file's localhost DB/Redis URLs with the container hostnames.
+    env_file:
+      - ./apps/api/.env
+    environment:
+      NODE_ENV: production
+      PORT: "3001"
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-offermarket}:${POSTGRES_PASSWORD:-offermarket}@postgres:5432/${POSTGRES_DB:-offermarket}?schema=public
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?JWT_REFRESH_SECRET is required}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:?ENCRYPTION_KEY is required}
+      # Run migrations on boot in this single-instance compose setup.
+      RUN_MIGRATIONS: "1"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "3001:3001"
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        # Inlined into the client bundle at build time (Next.js requirement).
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3001/api/v1}
+    container_name: offermarket-web
+    environment:
+      NODE_ENV: production
+    depends_on:
+      - api
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: offermarket-caddy
+    profiles: ["proxy"]
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - web
+      - api
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  caddy_data:
+  caddy_config:
