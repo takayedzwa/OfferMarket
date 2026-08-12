@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../../prisma/prisma.service';
+import { StorageService } from '../storage/storage.service';
 import {
   VerificationLevel,
   RiskLevel,
@@ -16,6 +17,7 @@ import {
   SubmitEmployerVerificationDto,
   SubmitEmployerDocumentDto,
   ReviewEmployerVerificationDto,
+  ReviewVerificationDocumentDto,
 } from './dto/verification.dto';
 import {
   ReportSuspiciousActivityDto,
@@ -43,7 +45,10 @@ import { CalculateReputationScoreDto, UpdateReputationScoreDto } from './dto/rep
  */
 @Injectable()
 export class TrustService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private storage: StorageService,
+  ) {}
 
   // ============================================================================
   // EMPLOYER VERIFICATION
@@ -154,13 +159,28 @@ export class TrustService {
   }
 
   /**
-   * Submit employer verification document
+   * Submit employer verification document.
+   *
+   * The client must re-submit the server-generated object `key` (returned by
+   * the presign step), not a self-supplied URL. We validate the key belongs to
+   * the acting employer (IDOR guard) and derive the canonical `fileUrl`
+   * server-side. `fileHash` and `mimeType` are required.
    */
   async submitEmployerDocument(
     employerId: string,
     dto: SubmitEmployerDocumentDto,
     userId?: string,
   ) {
+    // IDOR guard: reject keys outside this employer's prefix.
+    this.storage.assertKeyBelongsToEmployer(dto.key, employerId);
+    // Defense in depth: the DTO regex already restricts the MIME type, but
+    // re-check against the service allow-list so a future DTO change can't
+    // widen the surface on its own.
+    if (!this.storage.isAllowedMime(dto.mimeType)) {
+      throw new BadRequestException(`Unsupported file type: ${dto.mimeType}`);
+    }
+    const fileUrl = this.storage.deriveFileUrlFromKey(dto.key);
+
     return this.prisma.$transaction(async (tx) => {
       const verification = await tx.employerVerification.findUnique({
         where: { employerId },
@@ -176,10 +196,12 @@ export class TrustService {
           entityId: employerId,
           documentType: dto.documentType as DocumentType,
           documentSubtype: dto.documentSubtype,
-          fileUrl: dto.fileUrl,
+          fileUrl,
           fileHash: dto.fileHash,
-          mimeType: dto.metadata?.['mimeType'] || 'application/pdf',
-          metadata: dto.metadata,
+          mimeType: dto.mimeType,
+          // Persist the key so retrieval can mint presigned GETs and retention
+          // can delete the object without re-parsing the URL.
+          metadata: { ...(dto.metadata ?? {}), key: dto.key },
         },
       });
 
@@ -272,7 +294,93 @@ export class TrustService {
   }
 
   /**
-   * Get employer verification status
+   * Review a single employer verification document (admin function).
+   *
+   * Sets the document's lifecycle status to VERIFIED (approve) or REVOKED
+   * (reject) and recomputes `EmployerVerification.documentVerified` from
+   * "any VERIFIED document exists for this employer" — robust to revoking the
+   * last verified document. This is the only writer of `documentVerified`, which
+   * the reputation scorer reads (`calculateEmployerVerificationScore`).
+   */
+  async reviewEmployerDocument(
+    employerId: string,
+    documentId: string,
+    dto: ReviewVerificationDocumentDto,
+    adminUserId: string,
+  ) {
+    return this.prisma.$transaction(async (tx) => {
+      const doc = await tx.verificationDocument.findUnique({
+        where: { id: documentId },
+      });
+      if (!doc || doc.entityType !== 'EMPLOYER' || doc.entityId !== employerId) {
+        throw new NotFoundException('Verification document not found');
+      }
+
+      const newStatus: VerificationStatus = dto.isApproved
+        ? VerificationStatus.VERIFIED
+        : VerificationStatus.REVOKED;
+
+      const updated = await tx.verificationDocument.update({
+        where: { id: documentId },
+        data: {
+          status: newStatus,
+          verifiedAt: dto.isApproved ? new Date() : doc.verifiedAt,
+          verifiedBy: dto.isApproved ? adminUserId : doc.verifiedBy,
+          rejectionReason: dto.isApproved ? null : dto.rejectionReason,
+        },
+      });
+
+      // Recompute the documentVerified flag from the current VERIFIED count.
+      const verifiedCount = await tx.verificationDocument.count({
+        where: {
+          entityType: 'EMPLOYER',
+          entityId: employerId,
+          status: VerificationStatus.VERIFIED,
+        },
+      });
+      const nowVerified = verifiedCount > 0;
+      const patch: any = { documentVerified: nowVerified };
+      if (nowVerified) {
+        patch.documentVerifiedAt = new Date();
+        const existing = await tx.employerVerification.findUnique({
+          where: { employerId },
+          select: { verifiedDocuments: true },
+        });
+        const set = new Set(existing?.verifiedDocuments ?? []);
+        set.add(documentId);
+        patch.verifiedDocuments = Array.from(set);
+      }
+
+      await tx.employerVerification.update({
+        where: { employerId },
+        data: patch,
+      });
+
+      // Log the per-document review.
+      await tx.verificationLog.create({
+        data: {
+          entityType: 'EMPLOYER',
+          entityId: employerId,
+          action: 'REVIEWED',
+          previousStatus: doc.status,
+          newStatus,
+          reason: dto.isApproved ? dto.notes : dto.rejectionReason,
+          performedBy: adminUserId,
+          performedById: adminUserId,
+        },
+      });
+
+      return updated;
+    });
+  }
+
+  /**
+   * Get employer verification status.
+   *
+   * Each verification document is returned with a short-lived presigned GET
+   * `downloadUrl` (when storage is configured) instead of a long-lived public
+   * object URL — verification documents are private PII. The raw `fileUrl` is
+   * kept on the row as a fallback. This endpoint is ADMIN/SUPPORT-only.
    */
   async getEmployerVerification(employerId: string) {
     const verification = await this.prisma.employerVerification.findUnique({
@@ -292,7 +400,25 @@ export class TrustService {
       return this.initializeEmployerVerification(employerId);
     }
 
-    return verification;
+    const documents = await Promise.all(
+      verification.verificationDocuments.map(async (doc) => {
+        const key =
+          (doc.metadata as any)?.key ??
+          this.storage.extractKeyFromFileUrlPublic(doc.fileUrl);
+        let downloadUrl: string | null = null;
+        if (key && this.storage.isConfigured()) {
+          try {
+            downloadUrl = await this.storage.createPresignedGet(key);
+          } catch {
+            // Never block the verification view on a single presign failure.
+            downloadUrl = null;
+          }
+        }
+        return { ...doc, downloadUrl };
+      }),
+    );
+
+    return { ...verification, verificationDocuments: documents };
   }
 
 

@@ -200,15 +200,25 @@ export const trustApi = {
   // SECURITY: employerId is the employer's own id (resolved from /employers/me),
   // and the backend re-resolves it from the JWT and rejects path mismatches
   // (IDOR), so a client cannot submit documents on behalf of another employer.
+  // The `key` is the server-generated object key returned by the presign step —
+  // never a self-supplied URL — and the backend validates it belongs to this
+  // employer before persisting.
   submitEmployerDocument: (
     employerId: string,
     data: {
       documentType: string;
-      fileUrl: string;
-      fileHash?: string;
+      key: string;
+      fileHash: string;
+      mimeType: string;
       metadata?: Record<string, any>;
     },
   ) => api.post(`/trust/employers/${employerId}/documents`, data),
+
+  // Employer verification status (ADMIN/SUPPORT only). Each verification
+  // document includes a short-lived presigned `downloadUrl` for private S3
+  // retrieval instead of a long-lived public object URL.
+  getEmployerVerification: (employerId: string) =>
+    api.get(`/trust/employers/${employerId}/verification`),
 };
 
 // ============================================================================
@@ -628,9 +638,11 @@ export const conversationsApi = {
 // ============================================================================
 // UPLOADS API
 // ============================================================================
-// The server issues a short-lived presigned S3 PUT URL. The client uploads the
-// file directly to S3, then submits the returned `fileUrl` (plus a
-// client-computed SHA-256 `fileHash`) to POST /trust/employers/:employerId/documents.
+// The server issues a short-lived presigned S3 POST form (url + fields) with a
+// content-length-range condition that enforces the max file size at S3. The
+// client POSTs the file as multipart/form-data directly to S3, then submits
+// the returned server-generated `key` (plus a client-computed SHA-256
+// `fileHash` and the `mimeType`) to POST /trust/employers/:employerId/documents.
 export const uploadsApi = {
   presignVerificationDocument: (data: { fileName: string; mimeType: string }) =>
     api.post('/uploads/verification-document', data),

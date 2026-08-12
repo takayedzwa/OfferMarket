@@ -4,9 +4,10 @@ import { PrivacyController } from './privacy.controller';
 import { PrivacyService } from './privacy.service';
 import { RetentionService } from './retention.service';
 import { PrismaModule } from '../../prisma/prisma.module';
+import { StorageModule } from '../storage/storage.module';
 
 @Module({
-  imports: [PrismaModule, ScheduleModule.forRoot()],
+  imports: [PrismaModule, ScheduleModule.forRoot(), StorageModule],
   controllers: [PrivacyController],
   providers: [PrivacyService, RetentionService],
   exports: [PrivacyService, RetentionService],

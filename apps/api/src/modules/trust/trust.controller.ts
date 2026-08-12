@@ -24,6 +24,7 @@ import {
   SubmitEmployerVerificationDto,
   SubmitEmployerDocumentDto,
   ReviewEmployerVerificationDto,
+  ReviewVerificationDocumentDto,
 } from './dto/verification.dto';
 import {
   ReportSuspiciousActivityDto,
@@ -136,6 +137,30 @@ export class TrustController {
   ) {
     return this.trustService.reviewEmployerVerification(
       employerId,
+      dto,
+      req.user.id,
+    );
+  }
+
+  /**
+   * POST /trust/employers/:employerId/documents/:documentId/review
+   * Review a single verification document (admin only) — approve or reject it.
+   */
+  // Drives the per-document lifecycle (PENDING → VERIFIED / REVOKED) and is the
+  // only writer of EmployerVerification.documentVerified, which the reputation
+  // scorer reads. ADMIN-only, mirroring the employer-level review endpoint.
+  @Post('employers/:employerId/documents/:documentId/review')
+  @Roles('ADMIN')
+  @Throttle({ short: { ttl: 60000, limit: 20 } })
+  async reviewEmployerDocument(
+    @Param('employerId') employerId: string,
+    @Param('documentId') documentId: string,
+    @Body() dto: ReviewVerificationDocumentDto,
+    @Request() req: any,
+  ) {
+    return this.trustService.reviewEmployerDocument(
+      employerId,
+      documentId,
       dto,
       req.user.id,
     );

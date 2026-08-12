@@ -14,7 +14,8 @@ describe('UploadsController', () => {
       isAllowedMime: ((mime: string) =>
         ['application/pdf', 'image/png', 'image/jpeg', 'image/webp'].includes(mime)) as StorageService['isAllowedMime'],
       createPresignedUpload: jest.fn().mockResolvedValue({
-        uploadUrl: 'https://s3.example/upload',
+        url: 'https://s3.example/post',
+        fields: { key: 'verification/employer-1/uuid-kvk.pdf', 'Content-Type': 'application/pdf' },
         key: 'verification/employer-1/uuid-kvk.pdf',
         fileUrl: 'https://bucket.s3.region.amazonaws.com/verification/employer-1/uuid-kvk.pdf',
         expiresAt: new Date('2026-08-02T13:30:00.000Z'),

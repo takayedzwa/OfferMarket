@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsBoolean, IsEnum, IsObject } from 'class-validator';
+import { IsString, IsOptional, IsBoolean, IsEnum, IsObject, Matches } from 'class-validator';
 import { VerificationLevel, RiskLevel, DocumentType } from '@prisma/client';
 
 // ============================================================================
@@ -36,12 +36,30 @@ export class SubmitEmployerDocumentDto {
   @IsOptional()
   documentSubtype?: string;
 
+  /**
+   * Server-generated object key returned by POST /uploads/verification-document.
+   * The service validates this starts with `verification/{employerId}/` before
+   * persisting — a client must not supply an arbitrary URL or another
+   * employer's prefix.
+   */
   @IsString()
-  fileUrl: string;
+  key: string;
 
+  /** Client-computed SHA-256 of the uploaded file, for integrity tracking. */
   @IsString()
-  @IsOptional()
-  fileHash?: string;
+  fileHash: string;
+
+  /**
+   * MIME type of the uploaded file. The allow-list is enforced here (regex) and
+   * re-checked in the service for defense in depth. Stored on the document row
+   * so the audit trail reflects what was actually uploaded.
+   */
+  @IsString()
+  @Matches(/^(application\/pdf|image\/png|image\/jpeg|image\/webp)$/, {
+    message:
+      'mimeType must be one of: application/pdf, image/png, image/jpeg, image/webp',
+  })
+  mimeType: string;
 
   @IsObject()
   @IsOptional()
@@ -52,6 +70,19 @@ export class ReviewEmployerVerificationDto {
   @IsEnum(VerificationLevel)
   verificationLevel: VerificationLevel;
 
+  @IsBoolean()
+  isApproved: boolean;
+
+  @IsString()
+  @IsOptional()
+  rejectionReason?: string;
+
+  @IsString()
+  @IsOptional()
+  notes?: string;
+}
+
+export class ReviewVerificationDocumentDto {
   @IsBoolean()
   isApproved: boolean;
 

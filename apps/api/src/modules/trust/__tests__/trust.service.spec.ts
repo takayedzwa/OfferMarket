@@ -1,6 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import {
+  BadRequestException,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 import { TrustService } from '../trust.service';
 import { PrismaService } from '../../../prisma/prisma.service';
+import { StorageService } from '../../storage/storage.service';
 import {
   VerificationLevel,
   RiskLevel,
@@ -40,8 +46,11 @@ class MockPrismaService {
 
   verificationDocument = {
     create: jest.fn(),
+    findUnique: jest.fn(),
     findMany: jest.fn(),
     update: jest.fn(),
+    delete: jest.fn(),
+    count: jest.fn(),
   };
 
   verificationLog = {
@@ -136,14 +145,38 @@ class MockPrismaService {
 describe('TrustService', () => {
   let service: TrustService;
   let prisma: MockPrismaService;
+  let storage: Partial<StorageService>;
 
   beforeEach(async () => {
     prisma = new MockPrismaService();
+
+    // Mock StorageService — the trust service uses it for key validation,
+    // fileUrl derivation, and presigned GET URLs.
+    const bucketUrl = 'https://bucket.s3.region.amazonaws.com';
+    storage = {
+      assertKeyBelongsToEmployer: jest.fn((key: string, employerId: string) => {
+        if (!key || !key.startsWith(`verification/${employerId}/`)) {
+          throw new ForbiddenException('Object key does not belong to the acting employer');
+        }
+      }),
+      deriveFileUrlFromKey: jest.fn((key: string) => `${bucketUrl}/${key}`),
+      // Plain arrow + cast mirrors the working uploads.controller.spec pattern;
+      // wrapping a type-guard fn in jest.fn() does not cast cleanly.
+      isAllowedMime: ((mime: string) =>
+        ['application/pdf', 'image/png', 'image/jpeg', 'image/webp'].includes(mime)) as StorageService['isAllowedMime'],
+      isConfigured: jest.fn(() => true),
+      createPresignedGet: jest.fn().mockResolvedValue('https://presigned-get.example/doc.pdf'),
+      extractKeyFromFileUrlPublic: ((url: string) => {
+        const prefix = `${bucketUrl}/`;
+        return url.startsWith(prefix) ? url.slice(prefix.length) : null;
+      }) as StorageService['extractKeyFromFileUrlPublic'],
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         TrustService,
         { provide: PrismaService, useValue: prisma },
+        { provide: StorageService, useValue: storage },
       ],
     }).compile();
 
@@ -398,6 +431,218 @@ describe('TrustService', () => {
         // Assert
         expect(result.verificationLevel).toBe(VerificationLevel.NONE);
         expect(result.riskLevel).toBe(RiskLevel.HIGH);
+      });
+    });
+
+    describe('submitEmployerDocument', () => {
+      const dto = {
+        documentType: DocumentType.BUSINESS_REGISTRATION,
+        key: `verification/${mockEmployerId}/uuid-doc.pdf`,
+        fileHash: 'abc123hash',
+        mimeType: 'application/pdf',
+      };
+
+      it('persists a server-derived fileUrl, required fileHash/mimeType, and metadata.key', async () => {
+        prisma.employerVerification.findUnique.mockResolvedValue({
+          id: 'ver-1',
+          employerId: mockEmployerId,
+        });
+        prisma.verificationDocument.create.mockResolvedValue({ id: 'doc-1' });
+        prisma.verificationLog.create.mockResolvedValue({});
+
+        const result = await service.submitEmployerDocument(
+          mockEmployerId,
+          dto as any,
+          'user-1',
+        );
+
+        expect(storage.assertKeyBelongsToEmployer).toHaveBeenCalledWith(
+          dto.key,
+          mockEmployerId,
+        );
+        const createArg = prisma.verificationDocument.create.mock.calls[0][0].data;
+        expect(createArg.fileUrl).toBe(
+          `https://bucket.s3.region.amazonaws.com/${dto.key}`,
+        );
+        expect(createArg.fileHash).toBe(dto.fileHash);
+        expect(createArg.mimeType).toBe(dto.mimeType);
+        expect(createArg.metadata.key).toBe(dto.key);
+        expect(prisma.verificationLog.create).toHaveBeenCalled();
+        expect(result.id).toBe('doc-1');
+      });
+
+      it('rejects a key that does not belong to the employer (IDOR)', async () => {
+        await expect(
+          service.submitEmployerDocument(
+            mockEmployerId,
+            { ...dto, key: 'verification/other-employer/x.pdf' } as any,
+            'user-1',
+          ),
+        ).rejects.toThrow(ForbiddenException);
+
+        expect(prisma.verificationDocument.create).not.toHaveBeenCalled();
+      });
+
+      it('rejects an unsupported mimeType', async () => {
+        await expect(
+          service.submitEmployerDocument(
+            mockEmployerId,
+            { ...dto, mimeType: 'application/octet-stream' } as any,
+            'user-1',
+          ),
+        ).rejects.toThrow(BadRequestException);
+
+        expect(prisma.verificationDocument.create).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('getEmployerVerification', () => {
+      it('maps each document to a presigned GET downloadUrl', async () => {
+        prisma.employerVerification.findUnique.mockResolvedValue({
+          id: 'ver-1',
+          employerId: mockEmployerId,
+          verificationDocuments: [
+            {
+              id: 'doc-1',
+              fileUrl: 'https://bucket.s3.region.amazonaws.com/verification/emp-123/a.pdf',
+              metadata: { key: 'verification/emp-123/a.pdf' },
+            },
+            {
+              id: 'doc-2',
+              fileUrl: 'https://bucket.s3.region.amazonaws.com/verification/emp-123/b.pdf',
+              metadata: { key: 'verification/emp-123/b.pdf' },
+            },
+          ],
+          verificationLogs: [],
+        });
+
+        const result = await service.getEmployerVerification(mockEmployerId) as any;
+
+        expect(storage.createPresignedGet).toHaveBeenCalledTimes(2);
+        expect(result.verificationDocuments[0].downloadUrl).toBe(
+          'https://presigned-get.example/doc.pdf',
+        );
+      });
+
+      it('returns downloadUrl null when storage is not configured', async () => {
+        (storage.isConfigured as jest.Mock).mockReturnValue(false);
+        prisma.employerVerification.findUnique.mockResolvedValue({
+          id: 'ver-1',
+          employerId: mockEmployerId,
+          verificationDocuments: [
+            {
+              id: 'doc-1',
+              fileUrl: 'https://bucket.s3.region.amazonaws.com/x',
+              metadata: { key: 'verification/emp-123/a.pdf' },
+            },
+          ],
+          verificationLogs: [],
+        });
+
+        const result = await service.getEmployerVerification(mockEmployerId) as any;
+
+        expect(storage.createPresignedGet).not.toHaveBeenCalled();
+        expect(result.verificationDocuments[0].downloadUrl).toBeNull();
+
+        (storage.isConfigured as jest.Mock).mockReturnValue(true);
+      });
+    });
+
+    describe('reviewEmployerDocument', () => {
+      const docId = 'doc-1';
+
+      it('approves a document, sets status VERIFIED, and recomputes documentVerified true', async () => {
+        prisma.verificationDocument.findUnique.mockResolvedValue({
+          id: docId,
+          entityType: 'EMPLOYER',
+          entityId: mockEmployerId,
+          status: VerificationStatus.PENDING,
+          verifiedAt: null,
+          verifiedBy: null,
+        });
+        prisma.verificationDocument.update.mockResolvedValue({
+          id: docId,
+          status: VerificationStatus.VERIFIED,
+        });
+        prisma.verificationDocument.count.mockResolvedValue(1);
+        prisma.employerVerification.findUnique.mockResolvedValue({
+          verifiedDocuments: [],
+        });
+        prisma.employerVerification.update.mockResolvedValue({});
+        prisma.verificationLog.create.mockResolvedValue({});
+
+        const result = await service.reviewEmployerDocument(
+          mockEmployerId,
+          docId,
+          { isApproved: true, notes: 'Looks legit' } as any,
+          'admin-1',
+        );
+
+        expect(result.status).toBe(VerificationStatus.VERIFIED);
+
+        const docUpdate = prisma.verificationDocument.update.mock.calls[0][0].data;
+        expect(docUpdate.status).toBe(VerificationStatus.VERIFIED);
+        expect(docUpdate.verifiedBy).toBe('admin-1');
+
+        const verUpdate = prisma.employerVerification.update.mock.calls[0][0].data;
+        expect(verUpdate.documentVerified).toBe(true);
+        expect(verUpdate.verifiedDocuments).toContain(docId);
+
+        const logData = prisma.verificationLog.create.mock.calls[0][0].data;
+        expect(logData.action).toBe('REVIEWED');
+        expect(logData.newStatus).toBe(VerificationStatus.VERIFIED);
+      });
+
+      it('rejects a document, sets status REVOKED, and recomputes documentVerified false', async () => {
+        prisma.verificationDocument.findUnique.mockResolvedValue({
+          id: docId,
+          entityType: 'EMPLOYER',
+          entityId: mockEmployerId,
+          status: VerificationStatus.VERIFIED,
+          verifiedAt: new Date(),
+          verifiedBy: 'admin-1',
+        });
+        prisma.verificationDocument.update.mockResolvedValue({
+          id: docId,
+          status: VerificationStatus.REVOKED,
+        });
+        prisma.verificationDocument.count.mockResolvedValue(0);
+        prisma.employerVerification.update.mockResolvedValue({});
+        prisma.verificationLog.create.mockResolvedValue({});
+
+        const result = await service.reviewEmployerDocument(
+          mockEmployerId,
+          docId,
+          { isApproved: false, rejectionReason: 'Unclear scan' } as any,
+          'admin-1',
+        );
+
+        expect(result.status).toBe(VerificationStatus.REVOKED);
+
+        const docUpdate = prisma.verificationDocument.update.mock.calls[0][0].data;
+        expect(docUpdate.status).toBe(VerificationStatus.REVOKED);
+        expect(docUpdate.rejectionReason).toBe('Unclear scan');
+
+        const verUpdate = prisma.employerVerification.update.mock.calls[0][0].data;
+        expect(verUpdate.documentVerified).toBe(false);
+      });
+
+      it('404s when the document does not belong to the employer', async () => {
+        prisma.verificationDocument.findUnique.mockResolvedValue({
+          id: docId,
+          entityType: 'EMPLOYER',
+          entityId: 'other-employer',
+          status: VerificationStatus.PENDING,
+        });
+
+        await expect(
+          service.reviewEmployerDocument(
+            mockEmployerId,
+            docId,
+            { isApproved: true } as any,
+            'admin-1',
+          ),
+        ).rejects.toThrow(NotFoundException);
       });
     });
   });
