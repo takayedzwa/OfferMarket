@@ -1,2 +1,0 @@
--- Add unique constraint on phone column (nullable — PostgreSQL allows multiple NULLs in unique columns)
-CREATE UNIQUE INDEX IF NOT EXISTS "User_phone_key" ON "User"("phone") WHERE "phone" IS NOT NULL;

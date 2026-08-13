@@ -7,13 +7,18 @@ import { Reflector } from '@nestjs/core';
 
 describe('TrustController — employer self-service verification', () => {
   let controller: TrustController;
-  let trustService: { submitEmployerVerification: jest.Mock; submitEmployerDocument: jest.Mock };
+  let trustService: {
+    submitEmployerVerification: jest.Mock;
+    submitEmployerDocument: jest.Mock;
+    reviewEmployerDocument: jest.Mock;
+  };
   let prisma: { employer: { findUnique: jest.Mock } };
 
   beforeEach(async () => {
     trustService = {
       submitEmployerVerification: jest.fn().mockResolvedValue({ ok: true }),
       submitEmployerDocument: jest.fn().mockResolvedValue({ ok: true }),
+      reviewEmployerDocument: jest.fn().mockResolvedValue({ ok: true }),
     };
     prisma = {
       employer: { findUnique: jest.fn() },
@@ -72,7 +77,12 @@ describe('TrustController — employer self-service verification', () => {
     // populates req.user.id (no userId field), so performedBy was logged as
     // undefined.
     prisma.employer.findUnique.mockResolvedValue({ id: 'employer-a' });
-    const dto = { documentType: 'BUSINESS_LICENSE', fileUrl: 'https://s3/x.pdf' };
+    const dto = {
+      documentType: 'BUSINESS_LICENSE',
+      key: 'verification/employer-a/uuid-x.pdf',
+      fileHash: 'abc123',
+      mimeType: 'application/pdf',
+    };
 
     await controller.submitEmployerDocument('employer-a', dto as any, {
       user: { id: 'user-from-jwt' },
@@ -82,6 +92,21 @@ describe('TrustController — employer self-service verification', () => {
       'employer-a',
       dto,
       'user-from-jwt',
+    );
+  });
+
+  it('reviewEmployerDocument forwards employerId, documentId, dto, and the admin user id', async () => {
+    const dto = { isApproved: true, notes: 'Looks legit' };
+
+    await controller.reviewEmployerDocument('employer-a', 'doc-1', dto as any, {
+      user: { id: 'admin-from-jwt' },
+    });
+
+    expect(trustService.reviewEmployerDocument).toHaveBeenCalledWith(
+      'employer-a',
+      'doc-1',
+      dto,
+      'admin-from-jwt',
     );
   });
 });

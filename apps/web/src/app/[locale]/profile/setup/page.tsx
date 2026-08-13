@@ -60,6 +60,7 @@ export default function SetupWorkerProfile() {
 
   // Add-form state for skills
   const [newSkillId, setNewSkillId] = useState("");
+  const [newSkillText, setNewSkillText] = useState("");
   const [newSkillLevel, setNewSkillLevel] = useState<string>("INTERMEDIATE");
 
   const [formData, setFormData] = useState({
@@ -69,8 +70,10 @@ export default function SetupWorkerProfile() {
     primaryTrade: "",
     noticePeriodDays: 0,
 
-    // Step 2: Skills (collected locally, sent via separate API after profile creation)
-    skills: [] as { skillId: string; level: string }[],
+    // Step 2: Skills (collected locally, sent via separate API after profile creation).
+    // Each entry is either a catalog skill (skillId) or a custom skill (name);
+    // the backend creates the catalog entry on the fly when `name` is sent.
+    skills: [] as { skillId?: string; name?: string; level: string }[],
 
     // Step 3: Preferences
     postalCode: "",
@@ -167,17 +170,33 @@ export default function SetupWorkerProfile() {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
+  // As the user types a skill, match it against the catalog so an existing
+  // skill is referenced by id (avoiding duplicates in the catalog) while a
+  // non-matching value is sent as a custom `name` for the backend to create.
+  const handleSkillTextChange = (text: string) => {
+    setNewSkillText(text);
+    const match = skillsCatalog.find((s: any) => s.name && s.name.toLowerCase() === text.toLowerCase());
+    setNewSkillId(match ? match.id : "");
+  };
+
   const handleAddSkill = () => {
-    if (!newSkillId) return;
-    // Prevent duplicates
-    if (formData.skills.some((s) => s.skillId === newSkillId)) return;
-    updateField("skills", [...formData.skills, { skillId: newSkillId, level: newSkillLevel }]);
+    const trimmed = newSkillText.trim();
+    if (!newSkillId && !trimmed) return;
+    if (newSkillId) {
+      // Prevent duplicates
+      if (formData.skills.some((s) => s.skillId === newSkillId)) return;
+      updateField("skills", [...formData.skills, { skillId: newSkillId, level: newSkillLevel }]);
+    } else {
+      if (formData.skills.some((s) => s.name?.toLowerCase() === trimmed.toLowerCase())) return;
+      updateField("skills", [...formData.skills, { name: trimmed, level: newSkillLevel }]);
+    }
     setNewSkillId("");
+    setNewSkillText("");
     setNewSkillLevel("INTERMEDIATE");
   };
 
-  const handleRemoveSkill = (skillId: string) => {
-    updateField("skills", formData.skills.filter((s) => s.skillId !== skillId));
+  const handleRemoveSkill = (key: string) => {
+    updateField("skills", formData.skills.filter((s) => (s.skillId || s.name) !== key));
   };
 
   const skillLevelLabel = (level: string) => {
@@ -263,9 +282,12 @@ export default function SetupWorkerProfile() {
       // Send skills via separate API calls (after profile exists)
       for (const skill of formData.skills) {
         try {
-          await workersApi.addSkill({ skillId: skill.skillId, level: skill.level });
+          const payload: { skillId?: string; name?: string; level: string } = { level: skill.level };
+          if (skill.skillId) payload.skillId = skill.skillId;
+          else if (skill.name) payload.name = skill.name;
+          await workersApi.addSkill(payload);
         } catch (e) {
-          console.error("Failed to add skill:", skill.skillId, e);
+          console.error("Failed to add skill:", skill.skillId || skill.name, e);
           // Continue with other skills — don't block profile creation
         }
       }
@@ -386,16 +408,33 @@ export default function SetupWorkerProfile() {
                 <div className="grid grid-cols-2 gap-3 mb-3">
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">{t("labelSkill")}</label>
-                    <select
-                      value={newSkillId}
-                      onChange={(e) => setNewSkillId(e.target.value)}
+                    {/* Combo: free-text input with catalog suggestions via datalist.
+                        The catalog may be empty (e.g. fresh DB), so the user can
+                        type any skill; the backend creates the catalog entry from
+                        `name` when there's no `skillId` match. */}
+                    <input
+                      list="skill-suggestions"
+                      type="text"
+                      value={newSkillText}
+                      onChange={(e) => handleSkillTextChange(e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none text-sm"
-                    >
-                      <option value="">{t("selectSkill")}</option>
+                      placeholder={t("placeholderSkillInput")}
+                    />
+                    <datalist id="skill-suggestions">
                       {skillsCatalog.map((skill: any) => (
-                        <option key={skill.id} value={skill.id}>{skill.name}</option>
+                        <option key={skill.id} value={skill.name} />
                       ))}
-                    </select>
+                    </datalist>
+                    {newSkillText && !newSkillId && (
+                      <p className="mt-1 text-xs text-amber-600">
+                        {t("customSkillNote", { name: newSkillText })}
+                      </p>
+                    )}
+                    {newSkillId && (
+                      <p className="mt-1 text-xs text-green-600">
+                        {t("matchedCatalog")}
+                      </p>
+                    )}
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">{t("labelLevel")}</label>
@@ -413,7 +452,7 @@ export default function SetupWorkerProfile() {
                 <button
                   type="button"
                   onClick={handleAddSkill}
-                  disabled={!newSkillId}
+                  disabled={!newSkillId && !newSkillText.trim()}
                   className="flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Plus className="w-4 h-4" /> {t("addSkill")}
@@ -424,17 +463,17 @@ export default function SetupWorkerProfile() {
               {formData.skills.length > 0 && (
                 <div className="flex flex-wrap gap-2">
                   {formData.skills.map((s) => {
-                    const skillName = skillsCatalog.find((sk: any) => sk.id === s.skillId)?.name || s.skillId;
+                    const skillName = s.name || skillsCatalog.find((sk: any) => sk.id === s.skillId)?.name || s.skillId || s.name;
                     return (
                       <span
-                        key={s.skillId}
+                        key={s.skillId || s.name}
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-100 text-blue-700 rounded-full text-sm"
                       >
                         {skillName}
                         <span className="text-xs text-blue-500">({skillLevelLabel(s.level)})</span>
                         <button
                           type="button"
-                          onClick={() => handleRemoveSkill(s.skillId)}
+                          onClick={() => handleRemoveSkill(s.skillId || s.name || "")}
                           className="text-blue-400 hover:text-blue-700"
                         >
                           <X className="w-3.5 h-3.5" />

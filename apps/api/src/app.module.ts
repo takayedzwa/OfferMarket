@@ -19,6 +19,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 import { PrivacyModule } from './modules/privacy/privacy.module';
 import { DsaModule } from './modules/dsa/dsa.module';
 import { UploadsModule } from './modules/uploads/uploads.module';
+import { HealthModule } from './modules/health/health.module';
 import { CustomThrottlerGuard } from './guards/throttler-guard';
 import { ProcessingRestrictionGuard } from './guards/processing-restriction.guard';
 
@@ -46,6 +47,9 @@ import { ProcessingRestrictionGuard } from './guards/processing-restriction.guar
       newListener: false,
       maxListeners: 10,
     }),
+    // Liveness probe — no dependencies, registered first so it stays up
+    // regardless of feature-module health (see health.controller.ts).
+    HealthModule,
     PrismaModule,
     AuthModule,
     WorkersModule,

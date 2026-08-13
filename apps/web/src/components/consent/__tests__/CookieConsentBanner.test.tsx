@@ -345,16 +345,16 @@ describe('CookieConsentBanner', () => {
       expect(rejectButton.className).toContain('font-semibold');
     });
 
-    it('should render "Reject Optional" with border-gray-400 for equal visual weight', () => {
+    it('should render "Reject Optional" with border-gray-900 for equal visual weight', () => {
       render(<CookieConsentBanner />);
       const rejectButton = screen.getByText('Reject Optional');
-      expect(rejectButton.className).toContain('border-gray-400');
+      expect(rejectButton.className).toContain('border-gray-900');
     });
 
-    it('should render "Reject Optional" with text-gray-800 for readability', () => {
+    it('should render "Reject Optional" with text-gray-900 for readability', () => {
       render(<CookieConsentBanner />);
       const rejectButton = screen.getByText('Reject Optional');
-      expect(rejectButton.className).toContain('text-gray-800');
+      expect(rejectButton.className).toContain('text-gray-900');
     });
 
     it('should render both "Accept All" and "Reject Optional" in summary view', () => {
@@ -376,68 +376,59 @@ describe('CookieConsentBanner', () => {
   });
 
   // ===========================================================================
-  // PostHog Opt-in/Opt-out on Consent Save
+  // consent:change event on save — PostHogProvider listens for this
   // ===========================================================================
-  describe('PostHog opt-in/opt-out on save', () => {
-    it('should call posthog.opt_in_capturing when analytics consent is granted', () => {
-      const mockOptIn = jest.fn();
-      const mockOptOut = jest.fn();
-      (window as any).posthog = {
-        opt_in_capturing: mockOptIn,
-        opt_out_capturing: mockOptOut,
-      };
+  describe('consent:change event on save', () => {
+    it('should dispatch consent:change with analytics:true when analytics consent is granted', () => {
+      const handler = jest.fn();
+      window.addEventListener('consent:change', handler);
 
       render(<CookieConsentBanner />);
       fireEvent.click(screen.getByText('Accept All'));
 
-      expect(mockOptIn).toHaveBeenCalled();
-      expect(mockOptOut).not.toHaveBeenCalled();
+      expect(handler).toHaveBeenCalled();
+      const event = handler.mock.calls[0][0] as CustomEvent;
+      expect(event.detail).toEqual(expect.objectContaining({ analytics: true }));
 
-      delete (window as any).posthog;
+      window.removeEventListener('consent:change', handler);
     });
 
-    it('should call posthog.opt_out_capturing when analytics consent is rejected', () => {
-      const mockOptIn = jest.fn();
-      const mockOptOut = jest.fn();
-      (window as any).posthog = {
-        opt_in_capturing: mockOptIn,
-        opt_out_capturing: mockOptOut,
-      };
+    it('should dispatch consent:change with analytics:false when analytics consent is rejected', () => {
+      const handler = jest.fn();
+      window.addEventListener('consent:change', handler);
 
       render(<CookieConsentBanner />);
       fireEvent.click(screen.getByText('Reject Optional'));
 
-      // Reject Optional rejects analytics, so PostHog should be opted out
-      expect(mockOptOut).toHaveBeenCalled();
-      expect(mockOptIn).not.toHaveBeenCalled();
+      expect(handler).toHaveBeenCalled();
+      const event = handler.mock.calls[0][0] as CustomEvent;
+      // Reject Optional rejects analytics, so the event must carry analytics:false
+      expect(event.detail).toEqual(expect.objectContaining({ analytics: false }));
 
-      delete (window as any).posthog;
+      window.removeEventListener('consent:change', handler);
     });
 
-    it('should not crash if posthog is not available on window', () => {
-      delete (window as any).posthog;
-
+    it('should not crash when no consent:change listener is registered', () => {
       render(<CookieConsentBanner />);
-      // Should not throw when clicking Accept All without posthog
+      // No listener — dispatching the event must still be safe
       expect(() => fireEvent.click(screen.getByText('Accept All'))).not.toThrow();
     });
 
-    it('should opt out PostHog when customizing with analytics unchecked', () => {
-      const mockOptIn = jest.fn();
-      const mockOptOut = jest.fn();
-      (window as any).posthog = {
-        opt_in_capturing: mockOptIn,
-        opt_out_capturing: mockOptOut,
-      };
+    it('should dispatch consent:change with analytics:false when customizing with analytics unchecked', () => {
+      const handler = jest.fn();
+      window.addEventListener('consent:change', handler);
 
       render(<CookieConsentBanner />);
       fireEvent.click(screen.getByText('Customize'));
-      // Analytics is unchecked by default in customize view, so saving without it should opt out
+      // Analytics is unchecked by default in customize view, so saving without
+      // it should dispatch analytics:false
       fireEvent.click(screen.getByText('Save Preferences'));
 
-      expect(mockOptOut).toHaveBeenCalled();
+      expect(handler).toHaveBeenCalled();
+      const event = handler.mock.calls[0][0] as CustomEvent;
+      expect(event.detail).toEqual(expect.objectContaining({ analytics: false }));
 
-      delete (window as any).posthog;
+      window.removeEventListener('consent:change', handler);
     });
   });
 

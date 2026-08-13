@@ -1,20 +1,21 @@
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import PostHogProvider from '../PostHogProvider';
 
-// Mock posthog-js module — since it's dynamically imported and may not be installed,
-// we mock it at the module level.
+// Mock posthog-js — the provider dynamically imports it. The provider uses
+// `init`, `capture`, and `shutdown` (NOT opt_in_capturing/capture_pageview):
+// it is fully consent-gated and initialises directly once consent is granted.
 const mockInit = jest.fn();
-const mockOptIn = jest.fn();
-const mockCapturePageview = jest.fn();
+const mockCapture = jest.fn();
+const mockShutdown = jest.fn();
 
 jest.mock('posthog-js', () => ({
   __esModule: true,
   default: {
     init: mockInit,
-    opt_in_capturing: mockOptIn,
-    capture_pageview: mockCapturePageview,
+    capture: mockCapture,
+    shutdown: mockShutdown,
   },
 }));
 
@@ -31,6 +32,14 @@ const localStorageMock = (() => {
   };
 })();
 Object.defineProperty(window, 'localStorage', { value: localStorageMock });
+
+function grantAnalyticsConsent() {
+  localStorageMock.setItem('offermarket_cookie_consent', JSON.stringify({
+    version: '1.0',
+    consent: { functional: true, analytics: true, marketing: false },
+    timestamp: '2026-07-11T12:00:00.000Z',
+  }));
+}
 
 describe('PostHogProvider', () => {
   const originalEnv = process.env;
@@ -51,16 +60,28 @@ describe('PostHogProvider', () => {
   describe('consent-gated initialization', () => {
     it('should NOT initialize PostHog when NEXT_PUBLIC_POSTHOG_KEY is not set', async () => {
       delete process.env.NEXT_PUBLIC_POSTHOG_KEY;
+      grantAnalyticsConsent();
 
       render(<PostHogProvider>children</PostHogProvider>);
 
-      // Wait for dynamic import to resolve (or not)
       await new Promise(resolve => setTimeout(resolve, 100));
       expect(mockInit).not.toHaveBeenCalled();
     });
 
-    it('should initialize PostHog with opt_out_capturing_by_default: true', async () => {
+    it('should NOT initialize PostHog when analytics consent has not been granted', async () => {
       process.env.NEXT_PUBLIC_POSTHOG_KEY = 'phk_test_key';
+      // No consent in localStorage.
+
+      render(<PostHogProvider>children</PostHogProvider>);
+
+      await new Promise(resolve => setTimeout(resolve, 100));
+      expect(mockInit).not.toHaveBeenCalled();
+      expect(mockCapture).not.toHaveBeenCalled();
+    });
+
+    it('should initialize PostHog with opt_out_capturing_by_default: false once consent is granted', async () => {
+      process.env.NEXT_PUBLIC_POSTHOG_KEY = 'phk_test_key';
+      grantAnalyticsConsent();
 
       render(<PostHogProvider>children</PostHogProvider>);
 
@@ -68,14 +89,15 @@ describe('PostHogProvider', () => {
         expect(mockInit).toHaveBeenCalledWith(
           'phk_test_key',
           expect.objectContaining({
-            opt_out_capturing_by_default: true,
+            opt_out_capturing_by_default: false,
           }),
         );
       });
     });
 
-    it('should disable autocapture and session recording by default', async () => {
+    it('should enable pageview capture and session recording once consent is granted', async () => {
       process.env.NEXT_PUBLIC_POSTHOG_KEY = 'phk_test_key';
+      grantAnalyticsConsent();
 
       render(<PostHogProvider>children</PostHogProvider>);
 
@@ -83,9 +105,8 @@ describe('PostHogProvider', () => {
         expect(mockInit).toHaveBeenCalledWith(
           'phk_test_key',
           expect.objectContaining({
-            disable_session_recording: true,
-            capture_pageview: false,
-            autocapture: false,
+            capture_pageview: true,
+            disable_session_recording: false,
           }),
         );
       });
@@ -93,6 +114,8 @@ describe('PostHogProvider', () => {
 
     it('should use eu.posthog.com as default API host', async () => {
       process.env.NEXT_PUBLIC_POSTHOG_KEY = 'phk_test_key';
+      delete process.env.NEXT_PUBLIC_POSTHOG_HOST;
+      grantAnalyticsConsent();
 
       render(<PostHogProvider>children</PostHogProvider>);
 
@@ -109,6 +132,7 @@ describe('PostHogProvider', () => {
     it('should use NEXT_PUBLIC_POSTHOG_HOST when set', async () => {
       process.env.NEXT_PUBLIC_POSTHOG_KEY = 'phk_test_key';
       process.env.NEXT_PUBLIC_POSTHOG_HOST = 'https://custom.posthog.com';
+      grantAnalyticsConsent();
 
       render(<PostHogProvider>children</PostHogProvider>);
 
@@ -122,43 +146,35 @@ describe('PostHogProvider', () => {
       });
     });
 
-    it('should use localStorage persistence', async () => {
+    it('should capture the initial $pageview after init', async () => {
       process.env.NEXT_PUBLIC_POSTHOG_KEY = 'phk_test_key';
+      grantAnalyticsConsent();
 
       render(<PostHogProvider>children</PostHogProvider>);
 
       await waitFor(() => {
-        expect(mockInit).toHaveBeenCalledWith(
-          'phk_test_key',
-          expect.objectContaining({
-            persistence: 'localStorage',
-          }),
-        );
+        expect(mockCapture).toHaveBeenCalledWith('$pageview');
       });
     });
   });
 
   // ===========================================================================
-  // Analytics consent opt-in from localStorage
+  // Analytics consent from localStorage on mount
   // ===========================================================================
   describe('existing analytics consent', () => {
-    it('should opt in to PostHog when analytics consent was previously granted', async () => {
+    it('should initialize PostHog when analytics consent was previously granted', async () => {
       process.env.NEXT_PUBLIC_POSTHOG_KEY = 'phk_test_key';
-      localStorageMock.setItem('offermarket_cookie_consent', JSON.stringify({
-        version: '1.0',
-        consent: { functional: true, analytics: true, marketing: false },
-        timestamp: '2026-07-11T12:00:00.000Z',
-      }));
+      grantAnalyticsConsent();
 
       render(<PostHogProvider>children</PostHogProvider>);
 
       await waitFor(() => {
-        expect(mockOptIn).toHaveBeenCalled();
-        expect(mockCapturePageview).toHaveBeenCalled();
+        expect(mockInit).toHaveBeenCalled();
+        expect(mockCapture).toHaveBeenCalledWith('$pageview');
       });
     });
 
-    it('should NOT opt in when analytics consent is not granted', async () => {
+    it('should NOT initialize when analytics consent is not granted', async () => {
       process.env.NEXT_PUBLIC_POSTHOG_KEY = 'phk_test_key';
       localStorageMock.setItem('offermarket_cookie_consent', JSON.stringify({
         version: '1.0',
@@ -168,27 +184,18 @@ describe('PostHogProvider', () => {
 
       render(<PostHogProvider>children</PostHogProvider>);
 
-      await waitFor(() => {
-        expect(mockInit).toHaveBeenCalled();
-      });
-
-      // Give a small window for the opt-in check to run
       await new Promise(resolve => setTimeout(resolve, 100));
-      expect(mockOptIn).not.toHaveBeenCalled();
+      expect(mockInit).not.toHaveBeenCalled();
     });
 
-    it('should NOT opt in when localStorage has no consent data', async () => {
+    it('should NOT initialize when localStorage has no consent data', async () => {
       process.env.NEXT_PUBLIC_POSTHOG_KEY = 'phk_test_key';
       // localStorageMock is empty
 
       render(<PostHogProvider>children</PostHogProvider>);
 
-      await waitFor(() => {
-        expect(mockInit).toHaveBeenCalled();
-      });
-
       await new Promise(resolve => setTimeout(resolve, 100));
-      expect(mockOptIn).not.toHaveBeenCalled();
+      expect(mockInit).not.toHaveBeenCalled();
     });
 
     it('should NOT crash when localStorage has invalid JSON consent data', async () => {
@@ -197,13 +204,56 @@ describe('PostHogProvider', () => {
 
       render(<PostHogProvider>children</PostHogProvider>);
 
+      // Should not throw, should not initialize
+      await new Promise(resolve => setTimeout(resolve, 100));
+      expect(mockInit).not.toHaveBeenCalled();
+    });
+  });
+
+  // ===========================================================================
+  // consent:change event — live opt-in / opt-out
+  // ===========================================================================
+  describe('consent:change event', () => {
+    it('should initialize PostHog when a consent:change event grants analytics', async () => {
+      process.env.NEXT_PUBLIC_POSTHOG_KEY = 'phk_test_key';
+      // No consent on mount — provider must NOT init yet.
+      render(<PostHogProvider>children</PostHogProvider>);
+
+      await new Promise(resolve => setTimeout(resolve, 100));
+      expect(mockInit).not.toHaveBeenCalled();
+
+      // CookieConsentBanner dispatches this event on save.
+      act(() => {
+        window.dispatchEvent(new CustomEvent('consent:change', {
+          detail: { analytics: true, marketing: false },
+        }));
+      });
+
+      await waitFor(() => {
+        expect(mockInit).toHaveBeenCalled();
+        expect(mockCapture).toHaveBeenCalledWith('$pageview');
+      });
+    });
+
+    it('should shut down PostHog when a consent:change event withdraws analytics', async () => {
+      process.env.NEXT_PUBLIC_POSTHOG_KEY = 'phk_test_key';
+      grantAnalyticsConsent();
+
+      render(<PostHogProvider>children</PostHogProvider>);
+
       await waitFor(() => {
         expect(mockInit).toHaveBeenCalled();
       });
 
-      // Should not throw, should not opt in
-      await new Promise(resolve => setTimeout(resolve, 100));
-      expect(mockOptIn).not.toHaveBeenCalled();
+      act(() => {
+        window.dispatchEvent(new CustomEvent('consent:change', {
+          detail: { analytics: false, marketing: false },
+        }));
+      });
+
+      await waitFor(() => {
+        expect(mockShutdown).toHaveBeenCalled();
+      });
     });
   });
 

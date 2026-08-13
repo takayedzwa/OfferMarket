@@ -1,9 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
-
-const POSTHOG_KEY = process.env.NEXT_PUBLIC_POSTHOG_KEY || '';
-const POSTHOG_HOST = process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://eu.posthog.com';
+import { useEffect, useRef } from 'react';
 
 /**
  * PostHogProvider
@@ -18,10 +15,18 @@ const POSTHOG_HOST = process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://eu.posthog
  * - Listens for 'consent:change' events dispatched by CookieConsentBanner
  */
 export default function PostHogProvider({ children }: { children: React.ReactNode }) {
-  const [initialized, setInitialized] = useState(false);
   const posthogRef = useRef<any>(null);
+  // Ref guard prevents double-init without retriggering the effect (which
+  // would cause an init -> shutdown -> init loop via state in the dep array).
+  const initializedRef = useRef(false);
 
   useEffect(() => {
+    // Read env inside the effect so tests can set NEXT_PUBLIC_POSTHOG_KEY
+    // per-case; in production Next.js inlines these NEXT_PUBLIC_* values at
+    // build time, so this is equivalent to a module-level constant.
+    const POSTHOG_KEY = process.env.NEXT_PUBLIC_POSTHOG_KEY || '';
+    const POSTHOG_HOST = process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://eu.posthog.com';
+
     if (!POSTHOG_KEY || typeof window === 'undefined') return;
 
     // Check initial consent state from localStorage
@@ -37,7 +42,8 @@ export default function PostHogProvider({ children }: { children: React.ReactNod
     };
 
     const initPostHog = async () => {
-      if (initialized || !POSTHOG_KEY) return;
+      if (initializedRef.current || !POSTHOG_KEY) return;
+      initializedRef.current = true;
       const posthog = (await import('posthog-js')).default;
       posthog.init(POSTHOG_KEY, {
         api_host: POSTHOG_HOST,
@@ -48,14 +54,13 @@ export default function PostHogProvider({ children }: { children: React.ReactNod
       });
       posthog.capture('$pageview');
       posthogRef.current = posthog;
-      setInitialized(true);
     };
 
     const shutdownPostHog = () => {
       if (posthogRef.current) {
         posthogRef.current.shutdown();
         posthogRef.current = null;
-        setInitialized(false);
+        initializedRef.current = false;
       }
     };
 
@@ -92,7 +97,7 @@ export default function PostHogProvider({ children }: { children: React.ReactNod
       window.removeEventListener('storage', handleStorageChange);
       shutdownPostHog();
     };
-  }, [initialized]);
+  }, []);
 
   return <>{children}</>;
 }

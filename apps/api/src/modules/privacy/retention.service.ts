@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../../prisma/prisma.service';
+import { StorageService } from '../storage/storage.service';
 import { BreachStatus, BreachSeverity, ConsentStatus, DeletionStatus, Prisma } from '@prisma/client';
 import { NotificationEventType } from '../notifications/notification.types';
 
@@ -19,6 +20,7 @@ export class RetentionService {
   constructor(
     private prisma: PrismaService,
     private eventEmitter: EventEmitter2,
+    private storage: StorageService,
   ) {}
 
   // ============================================================================
@@ -314,23 +316,53 @@ export class RetentionService {
   // ============================================================================
   // VERIFICATION DOCUMENT PURGE
   // ============================================================================
+  // Purges verification documents (and their S3 objects) that have been in a
+  // terminal state (VERIFIED or REVOKED) for more than 30 days. PENDING docs
+  // are never purged. Both the S3 object and the DB row are removed so the
+  // underlying PII does not persist indefinitely (GDPR retention). The S3
+  // object is deleted first, per row; if the S3 delete fails transiently the DB
+  // row is still removed (safer than leaking the row), with a warning logged.
 
   /**
-   * Purge verification documents that are older than 30 days after verification.
+   * Purge verification documents that are older than 30 days after a terminal
+   * review, including their S3 objects.
    */
   async purgeOldVerificationDocuments(): Promise<number> {
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    const result = await this.prisma.verificationDocument.deleteMany({
+    const docs = await this.prisma.verificationDocument.findMany({
       where: {
-        status: 'VERIFIED',
-        verifiedAt: { lt: thirtyDaysAgo },
+        status: { in: ['VERIFIED', 'REVOKED'] },
+        OR: [
+          { verifiedAt: { lt: thirtyDaysAgo } },
+          { verifiedAt: null, updatedAt: { lt: thirtyDaysAgo } },
+        ],
       },
+      select: { id: true, fileUrl: true, metadata: true },
+      take: 500,
     });
 
-    this.logger.log(`Purged ${result.count} old verification documents`);
-    return result.count;
+    let purged = 0;
+    for (const doc of docs) {
+      const key =
+        (doc.metadata as any)?.key ??
+        this.storage.extractKeyFromFileUrlPublic(doc.fileUrl);
+      if (key) {
+        try {
+          await this.storage.deleteObject(key);
+        } catch (err) {
+          // deleteObject already swallows most errors; this guards the purge
+          // loop so one bad row doesn't abort the whole batch.
+          this.logger.warn(`S3 delete failed for ${key}: ${(err as Error).message}`);
+        }
+      }
+      await this.prisma.verificationDocument.delete({ where: { id: doc.id } });
+      purged++;
+    }
+
+    this.logger.log(`Purged ${purged} old verification documents (DB + S3)`);
+    return purged;
   }
 
   // ============================================================================

@@ -110,11 +110,13 @@ export default function ProfilePage() {
   // EMPLOYER VERIFICATION DOCUMENT UPLOAD
   // ----------------------------------------------------------------------------
   // Flow: presign via /uploads/verification-document (employer resolved from
-  // JWT server-side) → PUT file directly to S3 → compute SHA-256 via Web Crypto
-  // → submit {documentType, fileUrl, fileHash, metadata.mimeType} to
+  // JWT server-side) → POST the file as multipart/form-data directly to S3
+  // (presigned POST, size-enforced at S3) → compute SHA-256 via Web Crypto →
+  // submit {documentType, key, fileHash, mimeType} to
   // /trust/employers/:employerId/documents (employerId is the acting
-  // employer's own id; the backend re-resolves it from the JWT and rejects
-  // path-param mismatches, preventing IDOR).
+  // employer's own id; the backend re-resolves it from the JWT, validates the
+  // `key` belongs to this employer, and rejects path-param mismatches, preventing
+  // IDOR).
   // ============================================================================
   async function handleUploadDocument() {
     if (!employer || !docFile) return;
@@ -130,21 +132,25 @@ export default function ProfilePage() {
         throw new Error(t("errTooLarge"));
       }
 
-      // 1. Request a presigned PUT URL from the backend.
+      // 1. Request a presigned POST form (url + fields) from the backend.
       const presignRes = await uploadsApi.presignVerificationDocument({
         fileName: docFile.name,
         mimeType: docFile.type,
       });
-      const { uploadUrl, fileUrl } = presignRes.data;
+      const { url, fields, key } = presignRes.data;
 
-      // 2. Upload the raw file bytes directly to S3.
-      const putRes = await fetch(uploadUrl, {
-        method: "PUT",
-        headers: { "Content-Type": docFile.type },
-        body: docFile,
-      });
-      if (!putRes.ok) {
-        throw new Error(t("errUploadFailed", { status: putRes.status }));
+      // 2. Upload the file directly to S3 as multipart/form-data. The `file`
+      // field must be appended last. Do NOT set Content-Type manually — the
+      // browser sets the multipart boundary, and a manual header breaks the
+      // presigned POST.
+      const formData = new FormData();
+      Object.entries(fields).forEach(([name, value]) =>
+        formData.append(name, value as string),
+      );
+      formData.append("file", docFile);
+      const postRes = await fetch(url, { method: "POST", body: formData });
+      if (!postRes.ok) {
+        throw new Error(t("errUploadFailed", { status: postRes.status }));
       }
 
       // 3. Compute a SHA-256 hash of the file for integrity tracking.
@@ -155,12 +161,14 @@ export default function ProfilePage() {
         .join("");
 
       // 4. Submit the document reference to the trust service. The employer's
-      // own id is used; the backend re-verifies ownership from the JWT.
+      // own id is used; the backend re-verifies ownership from the JWT and
+      // validates the server-generated `key` belongs to this employer.
       await trustApi.submitEmployerDocument(employer.id, {
         documentType: docType,
-        fileUrl,
+        key,
         fileHash,
-        metadata: { mimeType: docFile.type, fileName: docFile.name },
+        mimeType: docFile.type,
+        metadata: { fileName: docFile.name },
       });
 
       setUploadSuccess(t("docSubmitted"));

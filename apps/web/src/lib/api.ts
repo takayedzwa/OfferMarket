@@ -44,7 +44,19 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    // A 401 from the auth endpoints themselves (login, register, refresh,
+    // forgot/reset-password) means "bad credentials" or "invalid token" — not
+    // "the access token expired." Retrying those via the refresh flow is wrong
+    // (it would loop /auth/refresh 401 -> /auth/refresh -> ... and never surface
+    // the real error to the caller). Reject them directly.
+    const isAuthEndpoint =
+      originalRequest?.url?.startsWith('/auth/login') ||
+      originalRequest?.url?.startsWith('/auth/register') ||
+      originalRequest?.url?.startsWith('/auth/refresh') ||
+      originalRequest?.url?.startsWith('/auth/forgot-password') ||
+      originalRequest?.url?.startsWith('/auth/reset-password');
+
+    if (error.response?.status === 401 && !originalRequest._retry && !isAuthEndpoint) {
       if (isRefreshing) {
         // Queue this request until the refresh completes
         return new Promise((resolve, reject) => {
@@ -69,6 +81,11 @@ api.interceptors.response.use(
         // pages is owned by AuthContext, which knows the current path.
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
+        // Reset the refresh lock — without this, the early return left
+        // isRefreshing stuck true, so every subsequent 401 on the page was
+        // pushed onto failedQueue and hung forever (the queue is only drained
+        // when a refresh completes, which never happens with no refresh token).
+        isRefreshing = false;
         return Promise.reject(error);
       }
 
@@ -200,15 +217,25 @@ export const trustApi = {
   // SECURITY: employerId is the employer's own id (resolved from /employers/me),
   // and the backend re-resolves it from the JWT and rejects path mismatches
   // (IDOR), so a client cannot submit documents on behalf of another employer.
+  // The `key` is the server-generated object key returned by the presign step —
+  // never a self-supplied URL — and the backend validates it belongs to this
+  // employer before persisting.
   submitEmployerDocument: (
     employerId: string,
     data: {
       documentType: string;
-      fileUrl: string;
-      fileHash?: string;
+      key: string;
+      fileHash: string;
+      mimeType: string;
       metadata?: Record<string, any>;
     },
   ) => api.post(`/trust/employers/${employerId}/documents`, data),
+
+  // Employer verification status (ADMIN/SUPPORT only). Each verification
+  // document includes a short-lived presigned `downloadUrl` for private S3
+  // retrieval instead of a long-lived public object URL.
+  getEmployerVerification: (employerId: string) =>
+    api.get(`/trust/employers/${employerId}/verification`),
 };
 
 // ============================================================================
@@ -628,9 +655,11 @@ export const conversationsApi = {
 // ============================================================================
 // UPLOADS API
 // ============================================================================
-// The server issues a short-lived presigned S3 PUT URL. The client uploads the
-// file directly to S3, then submits the returned `fileUrl` (plus a
-// client-computed SHA-256 `fileHash`) to POST /trust/employers/:employerId/documents.
+// The server issues a short-lived presigned S3 POST form (url + fields) with a
+// content-length-range condition that enforces the max file size at S3. The
+// client POSTs the file as multipart/form-data directly to S3, then submits
+// the returned server-generated `key` (plus a client-computed SHA-256
+// `fileHash` and the `mimeType`) to POST /trust/employers/:employerId/documents.
 export const uploadsApi = {
   presignVerificationDocument: (data: { fileName: string; mimeType: string }) =>
     api.post('/uploads/verification-document', data),
