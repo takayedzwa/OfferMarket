@@ -44,7 +44,19 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    // A 401 from the auth endpoints themselves (login, register, refresh,
+    // forgot/reset-password) means "bad credentials" or "invalid token" — not
+    // "the access token expired." Retrying those via the refresh flow is wrong
+    // (it would loop /auth/refresh 401 -> /auth/refresh -> ... and never surface
+    // the real error to the caller). Reject them directly.
+    const isAuthEndpoint =
+      originalRequest?.url?.startsWith('/auth/login') ||
+      originalRequest?.url?.startsWith('/auth/register') ||
+      originalRequest?.url?.startsWith('/auth/refresh') ||
+      originalRequest?.url?.startsWith('/auth/forgot-password') ||
+      originalRequest?.url?.startsWith('/auth/reset-password');
+
+    if (error.response?.status === 401 && !originalRequest._retry && !isAuthEndpoint) {
       if (isRefreshing) {
         // Queue this request until the refresh completes
         return new Promise((resolve, reject) => {
@@ -69,6 +81,11 @@ api.interceptors.response.use(
         // pages is owned by AuthContext, which knows the current path.
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
+        // Reset the refresh lock — without this, the early return left
+        // isRefreshing stuck true, so every subsequent 401 on the page was
+        // pushed onto failedQueue and hung forever (the queue is only drained
+        // when a refresh completes, which never happens with no refresh token).
+        isRefreshing = false;
         return Promise.reject(error);
       }
 

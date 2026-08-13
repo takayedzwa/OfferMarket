@@ -1,4 +1,5 @@
 import { Injectable, BadRequestException, UnauthorizedException, ForbiddenException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { ERROR_CODES } from '../../i18n/error-codes';
 import { PrismaService } from '../../prisma/prisma.service';
 import { TrustService } from '../trust/trust.service';
@@ -77,8 +78,11 @@ export class AuthService {
       // Generate JWT
       const tokens = this.generateTokens(user.id, user.role);
 
-      // Store refresh token for rotation tracking
-      await this.storeRefreshToken(user.id, tokens.refreshToken);
+      // Store refresh token for rotation tracking. Must run on `tx` (not
+      // this.prisma) so the FK to the just-created — and still uncommitted —
+      // user row resolves on the same connection; otherwise the insert hits a
+      // foreign-key violation and rolls the whole registration back.
+      await this.storeRefreshToken(user.id, tokens.refreshToken, undefined, tx);
 
       return {
         user: {
@@ -620,7 +624,13 @@ export class AuthService {
     const refreshToken = jwt.sign(
       { sub: userId, type: 'refresh' },
       process.env.JWT_REFRESH_SECRET || (process.env.NODE_ENV === 'production' ? (() => { throw new Error('JWT_REFRESH_SECRET environment variable is required in production'); })() : 'dev-refresh-secret-key-not-for-production'),
-      { expiresIn: '7d', algorithm: 'HS256' }
+      // A unique jti makes every refresh token (and therefore its stored
+      // tokenHash) unique even when two tokens are issued for the same user
+      // within the same second. Without it, jwt.sign is deterministic per
+      // (payload, secret, second), so a register-then-login in the same second
+      // produced an identical token and violated the tokenHash unique
+      // constraint on the second insert.
+      { expiresIn: '7d', algorithm: 'HS256', jwtid: crypto.randomUUID() }
     );
 
     return {
@@ -634,10 +644,16 @@ export class AuthService {
    * Store a refresh token hash for rotation tracking.
    * Called after generating tokens on login and registration.
    */
-  private async storeRefreshToken(userId: string, refreshToken: string, familyId?: string) {
+  private async storeRefreshToken(
+    userId: string,
+    refreshToken: string,
+    familyId?: string,
+    tx?: Prisma.TransactionClient,
+  ) {
     const tokenHash = this.hashToken(refreshToken);
     const fid = familyId || crypto.randomUUID();
-    await this.prisma.refreshToken.create({
+    const client = tx ?? this.prisma;
+    await client.refreshToken.create({
       data: {
         userId,
         tokenHash,

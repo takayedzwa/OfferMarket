@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException } from '@nestjs/common';
+import * as bcrypt from 'bcrypt';
 import { AuthService } from '../auth.service';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { TrustService } from '../../trust/trust.service';
@@ -13,13 +14,19 @@ import { MailService } from '../../mail/mail.service';
  */
 class MockPrismaService {
   // Top-level models (used outside transactions)
-  user = { findUnique: jest.fn(), create: jest.fn() };
+  user = { findUnique: jest.fn(), create: jest.fn(), update: jest.fn().mockResolvedValue(undefined) };
   verificationCode = { deleteMany: jest.fn(), create: jest.fn() };
+  // Top-level refreshToken — used by login (user already persisted). MUST NOT
+  // be touched from inside a registration transaction (the user row is not
+  // committed yet, so an insert here would violate RefreshToken_userId_fkey).
+  refreshToken = { create: jest.fn().mockResolvedValue(undefined) };
 
-  // Transaction delegate — passes a mock tx with its own user model.
+  // Transaction delegate — passes a mock tx with its own user + refreshToken
+  // models.
   $transaction = jest.fn(async (fn: (tx: any) => Promise<any>) => {
     const tx = {
       user: { findUnique: jest.fn().mockResolvedValue(null), create: jest.fn() },
+      refreshToken: { create: jest.fn().mockResolvedValue(undefined) },
     };
     return fn(tx);
   });
@@ -42,7 +49,12 @@ describe('AuthService', () => {
       providers: [
         AuthService,
         { provide: PrismaService, useValue: prisma },
-        { provide: TrustService, useValue: { detectRapidAccountCreation: jest.fn() } },
+        { provide: TrustService, useValue: {
+          detectRapidAccountCreation: jest.fn(),
+          isBlacklisted: jest.fn().mockResolvedValue(false),
+          checkSuspiciousLogin: jest.fn().mockResolvedValue({ riskScore: 0, isSuspicious: false }),
+          reportSuspiciousActivity: jest.fn().mockResolvedValue(undefined),
+        } },
         { provide: MailService, useValue: mailService },
       ],
     }).compile();
@@ -70,6 +82,99 @@ describe('AuthService', () => {
       // The rejection happens inside the transaction (after the email-exists
       // lookup), so $transaction was entered but no user.create occurred.
       expect(prisma.$transaction).toHaveBeenCalled();
+    });
+  });
+
+  // =========================================================================
+  // registerWorker — refresh-token storage must run on the transaction client.
+  // Regression: storeRefreshToken previously used the standalone PrismaClient
+  // (`this.prisma`) while the user row was created inside `$transaction` and
+  // not yet committed. The refreshToken insert referenced an uncommitted user
+  // id, violating RefreshToken_userId_fkey, which rolled the whole registration
+  // back and surfaced as a 500.
+  // =========================================================================
+  describe('registerWorker — refresh token stored on the transaction', () => {
+    it('creates the refresh token via tx (not the standalone prisma client)', async () => {
+      const tx = {
+        user: {
+          findUnique: jest.fn().mockResolvedValue(null),
+          create: jest.fn().mockResolvedValue({
+            id: 'user-new',
+            email: 'new@test.com',
+            role: 'WORKER',
+            emailVerified: false,
+          }),
+        },
+        refreshToken: { create: jest.fn().mockResolvedValue(undefined) },
+      };
+      prisma.$transaction.mockImplementation(async (fn: (tx: any) => Promise<any>) => fn(tx));
+
+      const result = await service.registerWorker('new@test.com', 'C0rrect-Horse-Battery!9q');
+
+      // A refresh token row was created on the transaction client…
+      expect(tx.refreshToken.create).toHaveBeenCalledTimes(1);
+      expect(tx.refreshToken.create).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ userId: 'user-new' }) }),
+      );
+      // …and NOT on the standalone prisma client (which would hit a FK
+      // violation because the user row is uncommitted on that connection).
+      expect(prisma.refreshToken.create).not.toHaveBeenCalled();
+
+      // The caller still receives the generated token pair.
+      expect(result.tokens.accessToken).toEqual(expect.any(String));
+      expect(result.tokens.refreshToken).toEqual(expect.any(String));
+    });
+  });
+
+  // =========================================================================
+  // registerWorker then login in the same second: the refresh-token JWT must
+  // carry a unique jti so two consecutive generateTokens calls produce
+  // distinct tokens (and therefore distinct tokenHash values). Without jti,
+  // jwt.sign is deterministic per (payload, secret, second), so a registration
+  // immediately followed by a login issued an identical refresh token and the
+  // second storeRefreshToken insert violated the tokenHash unique constraint
+  // (500).
+  // =========================================================================
+  describe('registerWorker + login — refresh token uniqueness', () => {
+    it('issues distinct refresh-token hashes across registration and login in the same second', async () => {
+      const email = 'uniq@test.com';
+      const password = 'C0rrect-Horse-Battery!9q';
+      const passwordHash = await bcrypt.hash(password, 10);
+
+      // Registration inside a transaction.
+      const tx = {
+        user: {
+          findUnique: jest.fn().mockResolvedValue(null),
+          create: jest.fn().mockResolvedValue({
+            id: 'user-uniq',
+            email,
+            role: 'WORKER',
+            emailVerified: false,
+          }),
+        },
+        refreshToken: { create: jest.fn().mockResolvedValue(undefined) },
+      };
+      prisma.$transaction.mockImplementation(async (fn: (tx: any) => Promise<any>) => fn(tx));
+      await service.registerWorker(email, password);
+
+      // Login immediately after (same wall-clock second, no ipAddress so the
+      // trust/suspicious-login checks are skipped).
+      prisma.user.findUnique.mockResolvedValue({
+        id: 'user-uniq',
+        email,
+        role: 'WORKER',
+        emailVerified: false,
+        passwordHash,
+        deletedAt: null,
+        status: 'ACTIVE',
+      });
+      await service.login(email, password);
+
+      // The two stored refresh-token hashes MUST differ — otherwise a same-
+      // second register+login collides on the tokenHash unique constraint.
+      const regHash = tx.refreshToken.create.mock.calls[0][0].data.tokenHash;
+      const loginHash = prisma.refreshToken.create.mock.calls[0][0].data.tokenHash;
+      expect(regHash).not.toBe(loginHash);
     });
   });
 

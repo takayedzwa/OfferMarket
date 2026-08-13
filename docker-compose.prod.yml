@@ -57,6 +57,12 @@ services:
       PORT: "3001"
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
       DATABASE_URL: postgresql://${POSTGRES_USER:-offermarket}:${POSTGRES_PASSWORD:-offermarket}@postgres:5432/${POSTGRES_DB:-offermarket}?schema=public
+      # Prisma runs migrations via `directUrl` (see prisma/schema.prisma). The
+      # .env default points at localhost, which is unreachable inside the
+      # container, so override it to the compose postgres hostname — same as
+      # DATABASE_URL in this single-instance setup. (On Fly, DIRECT_URL is the
+      # un-pooled direct connection and DATABASE_URL the pgBouncer pool.)
+      DIRECT_URL: postgresql://${POSTGRES_USER:-offermarket}:${POSTGRES_PASSWORD:-offermarket}@postgres:5432/${POSTGRES_DB:-offermarket}?schema=public
       REDIS_URL: redis://redis:6379
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?JWT_REFRESH_SECRET is required}
