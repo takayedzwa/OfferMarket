@@ -18,6 +18,30 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
+## Local development (domain-based i18n)
+
+Locale is determined by the **domain**, not a URL prefix (`/en`, `/nl` are not
+used). In production `offermarket.eu` → English and `offermarket.nl` → Dutch.
+Locally, two subdomains stand in for those domains (configured in
+`src/i18n/routing.ts`):
+
+| URL                                    | Locale  |
+| -------------------------------------- | ------- |
+| `http://offermarket.localhost:3000`    | English |
+| `http://offermarket-nl.localhost:3000` | Dutch   |
+
+The `*.localhost` suffix resolves to `127.0.0.1` automatically on **macOS**, so
+no extra setup is needed. On **Linux**, add these entries to `/etc/hosts`:
+
+```
+127.0.0.1 offermarket.localhost
+127.0.0.1 offermarket-nl.localhost
+```
+
+The `LanguageSwitcher` navigates between these domains, preserving the current
+path. `http://localhost:3000` itself still works but always renders the default
+locale (English) — use the subdomains above to exercise both locales.
+
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
 ## Learn More
