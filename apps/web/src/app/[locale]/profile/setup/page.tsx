@@ -338,19 +338,6 @@ export default function SetupWorkerProfile() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                {t("labelPrimaryTrade")}
-              </label>
-              <input
-                type="text"
-                value={formData.primaryTrade}
-                onChange={(e) => updateField("primaryTrade", e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
-                placeholder={t("placeholderPrimaryTrade")}
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
                 {t("labelNoticePeriod")}
               </label>
               <input
