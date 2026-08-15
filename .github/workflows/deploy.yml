@@ -6,7 +6,11 @@ name: Deploy
 # vars, and every push to main ships).
 #
 # Required GitHub secrets:
-#   FLY_API_TOKEN   — `flyctl auth token` (API deploy + migrations)
+#   FLY_API_TOKEN   — a scoped deploy token: `fly tokens create deploy -a offermarket-api`
+#                     Do NOT use `flyctl auth token` — it's deprecated, returns your full
+#                     personal token (overprivileged for CI), and is prone to printing a
+#                     malformed value (duplicated prefix / extra chars) that breaks the
+#                     secret. A deploy token can only deploy this app + run its migrations.
 #   VERCEL_TOKEN    — optional, only if you later switch web deploys to CI
 #
 # Run tests still happen on PRs via .github/workflows/pr-tests.yml.
@@ -42,6 +46,8 @@ jobs:
         working-directory: ./apps/api
         run: npm test
 
+      # TODO: drop `continue-on-error` once the web test suite is reliable —
+      # until then a broken web test silently passes the deploy gate.
       - name: Run web tests
         working-directory: ./apps/web
         run: npm test
@@ -56,14 +62,21 @@ jobs:
 
       # Fly builds the image on its own remote builder from the repo root,
       # so no local Docker build/login is needed.
+      #
+      # Pinned to a release tag (not @master) so a bad push upstream can't
+      # change our deploy behavior. Bump deliberately.
       - name: Deploy API to Fly.io
-        uses: superfly/flyctl-actions@master
+        uses: superfly/flyctl-actions@1.5
         with:
           args: deploy --config fly.toml --remote-only --wait-cache
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
 
+      # Run via the same action so flyctl is on PATH — a bare `flyctl` call
+      # would fail with "command not found" on the runner.
       - name: Show API status
-        run: flyctl status --app offermarket-api
+        uses: superfly/flyctl-actions@1.5
+        with:
+          args: status --app offermarket-api
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
