@@ -48,6 +48,8 @@ jobs:
         run: npm test
         working-directory: ./apps/api
 
+      # TODO: drop `continue-on-error` once the web test suite is reliable —
+      # until then a broken web test silently passes the PR gate.
       # Run Web tests (if any)
       - name: Run Web Tests
         run: npm test

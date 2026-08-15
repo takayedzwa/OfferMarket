@@ -6,6 +6,12 @@
 #
 #   flyctl deploy --config fly.toml --remote-only
 #
+# CI deploys (see .github/workflows/deploy.yml) authenticate with the
+# FLY_API_TOKEN GitHub secret. Generate it with a scoped deploy token:
+#   fly tokens create deploy -a offermarket-api
+# Do NOT use `flyctl auth token` for CI — it's deprecated, returns your full
+# personal token (overprivileged), and can print a malformed value.
+#
 # Required Fly secrets (set once):
 #   flyctl secrets set DATABASE_URL=postgresql://...  (Neon)
 #   flyctl secrets set REDIS_URL=redis://...           (Upstash)
