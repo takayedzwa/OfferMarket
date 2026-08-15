@@ -2,23 +2,22 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { usePathname, useRouter } from "@/i18n/navigation";
-import { routing } from "@/i18n/routing";
+import { usePathname } from "@/i18n/navigation";
+import { routing, localeUrl, type AppLocale } from "@/i18n/routing";
 import { authApi } from "@/lib/api";
 import { Globe, Check } from "lucide-react";
 
-// Compact locale picker for the navbar. Persists the choice to the NEXT_LOCALE
-// cookie (read by the proxy on the next request) and navigates to the same path
-// under the new locale. For authenticated users the choice is also persisted
-// server-side via PATCH /auth/me/preferred-locale (User.preferredLocale) so it
-// survives across sessions/devices and drives server-side email rendering. The
-// PATCH is best-effort and fire-and-forget — a failure must not block the UI
-// locale switch.
+// Compact locale picker for the navbar. With domain-based routing, switching
+// locale means navigating to the other domain (e.g. offermarket.eu →
+// offermarket.nl), preserving the current path. For authenticated users the
+// choice is also persisted server-side via PATCH /auth/me/preferred-locale
+// (User.preferredLocale) so it survives across sessions/devices and drives
+// server-side email rendering. The PATCH is best-effort and fire-and-forget —
+// a failure must not block the domain switch.
 export default function LanguageSwitcher() {
   const t = useTranslations("common.languageSwitcher");
   const locale = useLocale();
   const pathname = usePathname();
-  const router = useRouter();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -33,16 +32,13 @@ export default function LanguageSwitcher() {
   function switchTo(next: string) {
     setOpen(false);
     if (next === locale) return;
-    // Navigating to the localized path also persists the choice: the proxy
-    // (`src/proxy.ts`) sets the NEXT_LOCALE cookie when it processes the
-    // request, so future visits resolve to this locale.
-    router.replace(pathname, { locale: next });
-    // Persist server-side for authenticated users (best-effort). The interceptor
-    // attaches the JWT if present; a 401/403 just means the user is a guest —
-    // the cookie above already handles their session.
+    // Domain-based routing: switching locale = navigating to the other domain,
+    // preserving the current path. `localeUrl` reads the shared locale→domain
+    // map so this works in both dev (*.localhost) and prod.
     if (typeof window !== "undefined" && localStorage.getItem("accessToken")) {
       authApi.updatePreferredLocale(next).catch(() => { /* best-effort */ });
     }
+    window.location.href = localeUrl(next as AppLocale, pathname);
   }
 
   const labelFor = (l: string) => (l === "en" ? t("en") : l === "nl" ? t("nl") : l);

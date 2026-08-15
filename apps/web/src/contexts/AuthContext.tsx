@@ -168,25 +168,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // i18n: initialize the NEXT_LOCALE cookie from the user's server-persisted
-  // preferredLocale — but ONLY when no explicit cookie exists, so a user's
-  // current-session choice (set by the proxy / LanguageSwitcher) is respected.
-  // preferredLocale acts as the cross-device default. The LanguageSwitcher
-  // PATCHes preferredLocale on every switch, keeping it the source of truth.
-  useEffect(() => {
-    if (!user?.preferredLocale || typeof document === "undefined") return;
-    const hasCookie = document.cookie
-      .split("; ")
-      .some((c) => c.startsWith("NEXT_LOCALE="));
-    if (!hasCookie) {
-      document.cookie = `NEXT_LOCALE=${user.preferredLocale}; path=/; max-age=31536000; SameSite=Lax`;
-    }
-  }, [user?.preferredLocale]);
+  // i18n: with domain-based routing the domain is authoritative for language
+  // (localeDetection is off, public URLs have no /en /nl prefix), so there is
+  // no NEXT_LOCALE cookie to seed. preferredLocale remains the server-side
+  // source of truth for email rendering and is PATCHed by LanguageSwitcher on
+  // every explicit switch; it no longer influences which site the user lands on.
 
   // Redirect logged-out visitors away from protected pages to /login. Public
   // pages are never redirected (denylist in isProtectedPath). Uses the
-  // locale-aware router so the redirect lands directly on /<locale>/login
-  // without a proxy redirect hop. `usePathname` is locale-stripped (from
+  // locale-aware router so the redirect lands directly on /login on the current
+  // domain without a proxy redirect hop. `usePathname` is locale-stripped (from
   // @/i18n/navigation), so checks are written without the /en /nl prefix.
   useEffect(() => {
     if (!loading && !user && isProtectedPath(pathname)) {
