@@ -121,7 +121,8 @@ model VerificationCode {
   id        String   @id @default(uuid())
   userId    String
   type      String   // "EMAIL" or "PHONE"
-  codeHash  String   // SHA-256 hash of the verification code
+  codeHash  String   // SHA-256 hash of the 6-digit OTP code
+  tokenHash String?  // SHA-256 hash of the long magic-link token (EMAIL only)
   expiresAt DateTime
   createdAt DateTime @default(now())
 
@@ -129,6 +130,7 @@ model VerificationCode {
 
   @@index([userId, type, expiresAt])
   @@index([codeHash])
+  @@index([tokenHash])
 }
 
 model BlacklistedToken {

@@ -17,6 +17,7 @@ import { CreateRatingDto } from './dto/create-rating.dto';
 import { UpdateRatingDto } from './dto/update-rating.dto';
 import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
 import { RolesGuard } from '../../guards/roles.guard';
+import { VerifiedEmailGuard } from '../../guards/verified-email.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { AdminGuard } from '../../guards/admin.guard';
 
@@ -41,7 +42,7 @@ export class RatingsController {
    * - Would work there again (boolean)
    */
   @Post()
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, VerifiedEmailGuard, RolesGuard)
   @Roles('WORKER')
   async createRating(
     @Body() createRatingDto: CreateRatingDto,
@@ -63,7 +64,7 @@ export class RatingsController {
    * user's ratings.
    */
   @Patch(':id')
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, VerifiedEmailGuard, RolesGuard)
   @Roles('WORKER')
   async updateRating(
     @Param('id') ratingId: string,

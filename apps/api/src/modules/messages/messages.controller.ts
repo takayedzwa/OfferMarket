@@ -2,6 +2,7 @@ import { Controller, Get, Post, Body, Param, Query, UseGuards, BadRequestExcepti
 import { Throttle } from '@nestjs/throttler';
 import { MessagesService } from './messages.service';
 import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
+import { VerifiedEmailGuard } from '../../guards/verified-email.guard';
 
 @Controller('conversations')
 export class MessagesController {
@@ -39,7 +40,7 @@ export class MessagesController {
   }
 
   @Post(':id/messages')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, VerifiedEmailGuard)
   @Throttle({ short: { ttl: 60000, limit: 30 } })
   async sendMessage(
     @Param('id') id: string,

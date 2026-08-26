@@ -21,7 +21,15 @@ describe('email-renderer', () => {
   describe('renderVerificationEmail', () => {
     it('renders the EMAIL verification subject + body with the code', () => {
       const r = renderVerificationEmail('123456', 'EMAIL', 'nl');
-      expect(r.subject).toBe('Je OfferMarket-verificatiecode');
+      expect(r.subject).toBe('Verifieer je OfferMarket-e-mailadres');
+      expect(r.text).toContain('123456');
+    });
+
+    it('renders the EMAIL body with link + code when verifyUrl is given', () => {
+      const url = 'https://offermarket.eu/verify-email?token=abc';
+      const r = renderVerificationEmail('123456', 'EMAIL', 'en', url);
+      expect(r.subject).toBe('Verify your OfferMarket email');
+      expect(r.text).toContain(url);
       expect(r.text).toContain('123456');
     });
 
@@ -32,7 +40,7 @@ describe('email-renderer', () => {
 
     it('falls back to English for an unknown locale', () => {
       const r = renderVerificationEmail('123456', 'EMAIL', 'xx');
-      expect(r.subject).toBe('Your OfferMarket verification code');
+      expect(r.subject).toBe('Verify your OfferMarket email');
     });
   });
 

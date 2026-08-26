@@ -14,6 +14,7 @@
     "verification_code_required": "Verificatiecode is vereist",
     "verification_code_none": "Geen geldige verificatiecode gevonden. Vraag een nieuwe aan.",
     "verification_code_invalid": "Ongeldige verificatiecode",
+    "email_not_verified": "Verifieer je e-mailadres om deze actie uit te voeren.",
     "refresh_token_required": "Vernieuwingstoken is vereist",
     "refresh_token_invalid": "Ongeldige of verlopen vernieuwingstoken",
     "token_type_invalid": "Ongeldig tokentype",

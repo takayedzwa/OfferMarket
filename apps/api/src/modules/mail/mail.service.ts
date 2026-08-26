@@ -65,9 +65,10 @@ export class MailService {
     code: string,
     type: 'EMAIL' | 'PHONE',
     locale?: string | null,
+    verifyUrl?: string | null,
   ): void {
     const emailType: EmailType = type === 'EMAIL' ? 'email_verification' : 'phone_verification';
-    const { subject, text } = renderVerificationEmail(code, type, locale);
+    const { subject, text } = renderVerificationEmail(code, type, locale, verifyUrl);
     this.deliver({ to, subject, text, emailType, category: 'authentication', locale });
   }
 

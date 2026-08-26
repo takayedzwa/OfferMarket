@@ -40,6 +40,7 @@ export const ERROR_CODES = {
   AUTH_VERIFICATION_CODE_REQUIRED: 'auth.verification_code_required',
   AUTH_VERIFICATION_CODE_NONE: 'auth.verification_code_none',
   AUTH_VERIFICATION_CODE_INVALID: 'auth.verification_code_invalid',
+  AUTH_EMAIL_NOT_VERIFIED: 'auth.email_not_verified',
   AUTH_REFRESH_TOKEN_REQUIRED: 'auth.refresh_token_required',
   AUTH_REFRESH_TOKEN_INVALID: 'auth.refresh_token_invalid',
   AUTH_TOKEN_TYPE_INVALID: 'auth.token_type_invalid',
