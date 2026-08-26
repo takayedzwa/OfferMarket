@@ -18,7 +18,12 @@ import { Logger } from '@nestjs/common';
 
 @WebSocketGateway({
   cors: {
-    origin: process.env.FRONTEND_URL?.split(',') || ['http://localhost:3000', 'http://localhost:3002'],
+    origin:
+      process.env.FRONTEND_URL?.split(',') || [
+        'http://localhost:3000',
+        'http://offermarket.localhost:3000',
+        'http://offermarket-nl.localhost:3000',
+      ],
     credentials: true,
   },
   namespace: '/notifications',

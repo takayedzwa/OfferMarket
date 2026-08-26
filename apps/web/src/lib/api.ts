@@ -134,6 +134,17 @@ export const authApi = {
   login: (email: string, password: string) =>
     api.post('/auth/login', { email, password }),
 
+  // Request a verification code for the authenticated user's email or phone.
+  // Sent automatically right after registration; this is also the "resend" the
+  // verify-email UI calls. The raw code is delivered out-of-band (email) and is
+  // never in the response.
+  sendVerificationCode: (type: 'EMAIL' | 'PHONE' = 'EMAIL') =>
+    api.post('/auth/send-verification-code', { type }),
+
+  // Submit the 6-digit code to verify the authenticated user's email.
+  verifyEmail: (code: string) =>
+    api.post('/auth/verify-email', { code }),
+
   forgotPassword: (email: string) =>
     api.post('/auth/forgot-password', { email }),
 

@@ -2,7 +2,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../../prisma/prisma.service';
 import { NotificationsGateway } from './notifications.gateway';
-import { MailService } from '../mail/mail.service';
+import { EmailOutboxService } from '../mail/dispatcher/email-outbox.service';
+import { EmailDeliveryGate } from '../mail/dispatcher/email-delivery-gate';
 import {
   NotificationEventType,
   OfferReceivedPayload,
@@ -26,9 +27,9 @@ import {
 // ============================================================================
 // Central service for creating and delivering notifications.
 // Listens to domain events emitted by other services and handles:
-//   1. Persisting to the Notification table
-//   2. Pushing via WebSocket in real-time
-//   3. Marking channel delivery status
+//   1. Persisting to the Notification table (+ EmailOutbox row atomically)
+//   2. Pushing via WebSocket in real-time (after the DB commit)
+//   3. Delegating email delivery to the outbox dispatcher (crash-safe, retryable)
 // ============================================================================
 
 @Injectable()
@@ -39,7 +40,8 @@ export class NotificationsService {
     private readonly prisma: PrismaService,
     private readonly eventEmitter: EventEmitter2,
     private readonly gateway: NotificationsGateway,
-    private readonly mailService: MailService,
+    private readonly emailOutboxService: EmailOutboxService,
+    private readonly emailDeliveryGate: EmailDeliveryGate,
   ) {
     this.registerEventListeners();
   }
@@ -218,6 +220,13 @@ export class NotificationsService {
   /**
    * Create a notification in the DB and push it via WebSocket in real-time.
    * This is the single entry point for all notification delivery.
+   *
+   * Atomicity: when `channelEmail` is set, the Notification row AND its
+   * EmailOutbox intent row are written in a single `$transaction`, so an email
+   * can never be "lost" to a crash between persisting the notification and
+   * enqueueing the email. The EmailDispatcher drains the outbox out-of-band
+   * (crash-safe, retryable). The WebSocket push happens AFTER the commit so a
+   * connected client never sees a notification that failed to persist.
    */
   private async createAndDeliver(data: {
     userId: string;
@@ -247,6 +256,8 @@ export class NotificationsService {
       // of an async notification. Skip delivery for restricted recipients,
       // except for a small allowlist of legally-required security notices
       // (e.g. a personal data breach) that must reach the user regardless.
+      // The EmailDeliveryGate re-checks this at dispatch time to cover the race
+      // where a restriction activates between enqueue and send.
       const RESTRICTION_EXEMPT_TYPES = [NotificationEventType.BREACH_NOTIFICATION];
       if (!RESTRICTION_EXEMPT_TYPES.includes(data.notificationType as NotificationEventType)) {
         const flags = await this.prisma.userGdprFlags.findUnique({
@@ -260,23 +271,61 @@ export class NotificationsService {
           return undefined;
         }
       }
-      // 1. Persist to DB
-      const notification = await this.prisma.notification.create({
-        data: {
-          userId: data.userId,
-          notificationType: data.notificationType,
-          category: data.category,
-          title: data.title,
-          body: data.body,
-          actionUrl: data.actionUrl,
-          actionData: data.actionData as any,
-          channelEmail: data.channelEmail,
-          channelPush: data.channelPush ?? false,
-          channelSms: data.channelSms ?? false,
-        },
+
+      // Resolve the recipient's email + locale before the transaction so the tx
+      // body stays lean and the same value is used for the outbox intent row.
+      let recipient: { email: string; preferredLocale: string } | null = null;
+      let emailConsent = true;
+      if (data.channelEmail) {
+        recipient = await this.prisma.user.findUnique({
+          where: { id: data.userId },
+          select: { email: true, preferredLocale: true },
+        });
+        // Consent is checked at enqueue so a user who has opted out of email
+        // notifications never gets an outbox row (and thus never gets emailed).
+        // The Notification row + WebSocket push are unaffected — consent is
+        // email-only. The EmailDeliveryGate re-checks at dispatch time too.
+        emailConsent = await this.emailDeliveryGate.hasEmailConsent(data.userId, 'notification');
+      }
+
+      // 1. Persist the Notification (+ EmailOutbox row, atomically). The outbox
+      //    row holds only the delivery intent — the EmailDispatcher re-renders
+      //    the email body from the Notification row at send time (intent-only).
+      const notification = await this.prisma.$transaction(async (tx) => {
+        const created = await tx.notification.create({
+          data: {
+            userId: data.userId,
+            notificationType: data.notificationType,
+            category: data.category,
+            title: data.title,
+            body: data.body,
+            actionUrl: data.actionUrl,
+            actionData: data.actionData as any,
+            channelEmail: data.channelEmail,
+            channelPush: data.channelPush ?? false,
+            channelSms: data.channelSms ?? false,
+          },
+        });
+
+        if (data.channelEmail && recipient?.email && emailConsent) {
+          await this.emailOutboxService.enqueue(
+            {
+              toEmail: recipient.email,
+              notificationId: created.id,
+              userId: data.userId,
+              emailType: 'notification',
+              category: 'notification',
+              locale: recipient.preferredLocale,
+            },
+            tx,
+          );
+        }
+
+        return created;
       });
 
-      // 2. Push via WebSocket to connected clients
+      // 2. Push via WebSocket to connected clients — after the commit, so a
+      //    client never receives a real-time notification that wasn't persisted.
       this.gateway.pushToUser(data.userId, {
         id: notification.id,
         type: notification.notificationType,
@@ -287,29 +336,6 @@ export class NotificationsService {
         actionUrl: notification.actionUrl,
         createdAt: notification.createdAt.toISOString(),
       });
-
-      // 3. Best-effort email delivery for notifications flagged channelEmail.
-      //    Failures must not break the primary operation — the DB row + WebSocket
-      //    push above already succeeded.
-      if (data.channelEmail) {
-        try {
-          const recipient = await this.prisma.user.findUnique({
-            where: { id: data.userId },
-            select: { email: true, preferredLocale: true },
-          });
-          if (recipient?.email) {
-            this.mailService.sendNotification(
-              recipient.email,
-              data.title,
-              data.body,
-              data.actionUrl,
-              recipient.preferredLocale,
-            );
-          }
-        } catch (mailError) {
-          this.logger.warn(`Email delivery failed for notification "${data.notificationType}": ${mailError?.message ?? mailError}`);
-        }
-      }
 
       return notification;
     } catch (error) {

@@ -10,9 +10,16 @@ import { Reflector } from '@nestjs/core';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Enable CORS for frontend (and Socket.IO WebSocket)
+  // Enable CORS for frontend (and Socket.IO WebSocket). FRONTEND_URL is a
+  // comma-separated allowlist; the defaults cover the dev i18n subdomain routing
+  // (see apps/web/src/i18n/routing.ts — en=offermarket.localhost, nl=offermarket-nl.localhost).
   app.enableCors({
-    origin: process.env.FRONTEND_URL?.split(',') || ['http://localhost:3000', 'http://localhost:3002'],
+    origin:
+      process.env.FRONTEND_URL?.split(',') || [
+        'http://localhost:3000',
+        'http://offermarket.localhost:3000',
+        'http://offermarket-nl.localhost:3000',
+      ],
     credentials: true,
   });
 

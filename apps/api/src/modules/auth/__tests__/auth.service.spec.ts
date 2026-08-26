@@ -222,6 +222,124 @@ describe('AuthService', () => {
   });
 
   // =========================================================================
+  // Registration now sends an email verification code AFTER the registration
+  // transaction commits. sendVerificationCode runs on the standalone Prisma
+  // client (not tx), so it must see the committed user row. The dispatch is
+  // best-effort: a mail/DB failure must never roll back or fail a registration
+  // that already succeeded — the user can resend from the verify-email UI.
+  // =========================================================================
+  describe('registration — sends email verification code after commit', () => {
+    it('registerWorker dispatches a 6-digit EMAIL code via MailService once committed', async () => {
+      const tx = {
+        user: {
+          findUnique: jest.fn().mockResolvedValue(null),
+          create: jest.fn().mockResolvedValue({
+            id: 'user-new',
+            email: 'new@test.com',
+            role: 'WORKER',
+            emailVerified: false,
+          }),
+        },
+        refreshToken: { create: jest.fn().mockResolvedValue(undefined) },
+      };
+      prisma.$transaction.mockImplementation(async (fn: (tx: any) => Promise<any>) => fn(tx));
+      // sendVerificationCode looks up the (now committed) user on the
+      // standalone client to read its email + preferredLocale.
+      prisma.user.findUnique.mockResolvedValue({
+        email: 'new@test.com',
+        phone: null,
+        preferredLocale: 'nl',
+      });
+
+      const result = await service.registerWorker('new@test.com', 'C0rrect-Horse-Battery!9q');
+
+      expect(mailService.sendVerificationCode).toHaveBeenCalledTimes(1);
+      const [to, code, type, locale] = mailService.sendVerificationCode.mock.calls[0];
+      expect(to).toBe('new@test.com');
+      expect(type).toBe('EMAIL');
+      expect(locale).toBe('nl');
+      expect(code).toMatch(/^\d{6}$/);
+      // The registration result is still returned unchanged.
+      expect(result.tokens.accessToken).toEqual(expect.any(String));
+    });
+
+    it('registerEmployer dispatches an EMAIL code via MailService once committed', async () => {
+      const tx = {
+        user: {
+          findUnique: jest.fn().mockResolvedValue(null),
+          create: jest.fn().mockResolvedValue({
+            id: 'user-emp',
+            email: 'emp@test.com',
+            role: 'EMPLOYER',
+            emailVerified: false,
+          }),
+        },
+        employer: {
+          findUnique: jest.fn().mockResolvedValue(null),
+          create: jest.fn().mockResolvedValue({ id: 'emp-1', userId: 'user-emp' }),
+        },
+        employerVerification: { create: jest.fn().mockResolvedValue(undefined) },
+        refreshToken: { create: jest.fn().mockResolvedValue(undefined) },
+      };
+      prisma.$transaction.mockImplementation(async (fn: (tx: any) => Promise<any>) => fn(tx));
+      prisma.user.findUnique.mockResolvedValue({
+        email: 'emp@test.com',
+        phone: '+31612345678',
+        preferredLocale: 'en',
+      });
+
+      const result = await service.registerEmployer(
+        'emp@test.com',
+        'C0rrect-Horse-Battery!9q',
+        '+31612345678',
+        { name: 'Acme', kvkNumber: '12345678' },
+      );
+
+      expect(mailService.sendVerificationCode).toHaveBeenCalledTimes(1);
+      const [to, , type] = mailService.sendVerificationCode.mock.calls[0];
+      expect(to).toBe('emp@test.com');
+      expect(type).toBe('EMAIL');
+      expect(result.tokens.accessToken).toEqual(expect.any(String));
+    });
+
+    it('does not fail registerWorker when the verification email send throws (best-effort)', async () => {
+      const tx = {
+        user: {
+          findUnique: jest.fn().mockResolvedValue(null),
+          create: jest.fn().mockResolvedValue({
+            id: 'user-new',
+            email: 'new@test.com',
+            role: 'WORKER',
+            emailVerified: false,
+          }),
+        },
+        refreshToken: { create: jest.fn().mockResolvedValue(undefined) },
+      };
+      prisma.$transaction.mockImplementation(async (fn: (tx: any) => Promise<any>) => fn(tx));
+      prisma.user.findUnique.mockResolvedValue({
+        email: 'new@test.com',
+        phone: null,
+        preferredLocale: 'en',
+      });
+      mailService.sendVerificationCode.mockImplementation(() => {
+        throw new Error('SMTP down');
+      });
+
+      const result = await service.registerWorker('new@test.com', 'C0rrect-Horse-Battery!9q');
+      // Registration succeeded despite the mail failure.
+      expect(result.tokens.accessToken).toEqual(expect.any(String));
+      expect(mailService.sendVerificationCode).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not send a verification email when registration rolls back (common password)', async () => {
+      await expect(service.registerWorker('new@test.com', 'Password1')).rejects.toThrow(
+        BadRequestException,
+      );
+      expect(mailService.sendVerificationCode).not.toHaveBeenCalled();
+    });
+  });
+
+  // =========================================================================
   // sendVerificationCode: the raw code MUST NOT be returned in the API
   // response. It is delivered via the MailService (email side channel).
   // =========================================================================

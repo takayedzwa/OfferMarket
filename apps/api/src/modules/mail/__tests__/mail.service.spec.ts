@@ -39,24 +39,6 @@ describe('MailService (i18n)', () => {
     expect(m.text).toContain(url);
   });
 
-  it('localizes the notification email framing (open label + signature)', () => {
-    service.sendNotification('a@b.test', 'Title', 'Body', '/offers/1', 'nl');
-    const m = last();
-    // Framing localized; title/body passed through verbatim.
-    expect(m.subject).toBe('Title');
-    expect(m.text).toContain('Title');
-    expect(m.text).toContain('Body');
-    expect(m.text).toContain('Openen: /offers/1');
-    expect(m.text).toContain('— OfferMarket');
-  });
-
-  it('omits the open link when actionUrl is empty (English framing fallback)', () => {
-    service.sendNotification('a@b.test', 'Title', 'Body', '', 'en');
-    const m = last();
-    expect(m.text).not.toContain('Open:');
-    expect(m.text).toContain('— OfferMarket');
-  });
-
   it('drops mail with an empty recipient without throwing', () => {
     expect(() => service.sendVerificationCode('', '123456', 'EMAIL', 'nl')).not.toThrow();
     expect(service.outbox.length).toBe(0);

@@ -54,6 +54,7 @@ model User {
   receivedMessages     Message[]             @relation("MessageRecipient")
   sentMessages         Message[]             @relation("MessageSender")
   notifications        Notification[]
+  emailOutbox          EmailOutbox[]
   ratings              Rating[]
   worker               Worker?
   supportTickets       SupportTicket[]       @relation("UserSupportTickets")
@@ -582,10 +583,106 @@ model Notification {
   deliveredAt      DateTime?
   createdAt        DateTime  @default(now())
   user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  emailOutbox      EmailOutbox[]
 
   @@index([userId])
   @@index([notificationType])
   @@index([userId, isRead])
+}
+
+// ============================================================================
+// EMAIL OUTBOX — durable email intent (Postgres outbox pattern)
+// ----------------------------------------------------------------------------
+// `NotificationsService.createAndDeliver` writes a Notification row AND its
+// EmailOutbox row atomically in one $transaction, so an email can never be
+// "lost" to a crash between persisting the notification and sending the mail.
+// The EmailDispatcher drains the outbox on an interval (FOR UPDATE SKIP LOCKED)
+// and re-renders the EmailMessage at send time from the Notification+User
+// (intent-only storage — no rendered HTML / sensitive content at rest).
+//
+// Status lifecycle: pending -> sending -> sent | failed | suppressed
+//   - pending:   waiting to be claimed by the dispatcher
+//   - sending:   claimed + lockedAt set; a stale-sending reaper resets rows
+//                whose lockedAt is older than ~10 min (crashed worker recovery)
+//   - sent:      provider accepted (at-least-once; a duplicate may still occur
+//                if the process crashes after Brevo accepts but before this row
+//                is marked sent — explicitly tolerated)
+//   - failed:    attempts >= maxAttempts on retryable errors, or a permanent error
+//   - suppressed: recipient is on the EmailSuppression list (Phase 3)
+//
+// Auth emails (verification codes / password resets) are NOT enqueued here:
+// their raw tokens cannot be reconstructed at retry time and §20 forbids
+// storing sensitive content at rest, so they stay inline in MailService.
+// ============================================================================
+model EmailOutbox {
+  id                String    @id @default(uuid())
+  // Nullable: auth/out-of-band emails have no Notification row. When set, the
+  // dispatcher re-renders the email body from this notification at send time.
+  notificationId    String?
+  userId            String?
+  toEmail           String // normalized (trim + lower-case) at enqueue time
+  emailType         String // 'notification' | 'email_verification' | 'phone_verification' | 'password_reset'
+  category          String // EmailCategory: 'authentication' | 'transactional' | 'notification' | 'marketing'
+  locale            String    @default("en")
+  status            String    @default("pending")
+  attempts          Int       @default(0)
+  maxAttempts       Int       @default(8)
+  nextAttemptAt     DateTime  @default(now())
+  lockedAt          DateTime?
+  lastAttemptAt     DateTime?
+  providerMessageId String?
+  // Sanitized error description — never raw provider responses that may carry
+  // recipient data or secrets.
+  lastError         String?
+  sentAt            DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  notification Notification? @relation(fields: [notificationId], references: [id], onDelete: SetNull)
+  user         User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([status, nextAttemptAt])
+  @@index([status, lockedAt])
+  @@index([notificationId])
+  @@index([userId])
+  @@index([toEmail])
+}
+
+// ============================================================================
+// EMAIL SUPPRESSION — recipient addresses that must not be emailed again
+// ----------------------------------------------------------------------------
+// Written by the Brevo webhook (Phase 3). Repeated sends to a known-bad address
+// (hard bounce, complaint/spam, blocked, invalid) burn sender reputation, so the
+// EmailDeliveryGate short-circuits any outbox row whose `toEmail` matches a
+// suppression row — no send, no retry. A row per (email, reason); the same email
+// can have multiple reasons. Idempotent upsert via `@@unique([email, reason])`
+// so Brevo retries of the same event do not duplicate rows.
+//
+// NOTE: keyed by EMAIL, not userId — a suppression must follow the address. If a
+// user changes their email, an old suppression must not block the new address.
+// ============================================================================
+model EmailSuppression {
+  id               String             @id @default(uuid())
+  email            String // normalized (trim + lower-case) at write time
+  reason           SuppressionReason
+  // Brevo event id, stored for correlation with the originating webhook event.
+  // Not unique on its own: a (email, reason) row may be refreshed by several
+  // retried events with different ids.
+  brevoEventId     String?
+  providerMessageId String?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  @@unique([email, reason])
+  @@index([email])
+  @@index([brevoEventId])
+}
+
+enum SuppressionReason {
+  HARD_BOUNCE
+  COMPLAINT
+  BLOCKED
+  INVALID
 }
 
 model AuditLog {
