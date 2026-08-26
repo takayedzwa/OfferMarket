@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, UnauthorizedException, ForbiddenException } from '@nestjs/common';
+import { Injectable, BadRequestException, UnauthorizedException, ForbiddenException, Logger } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { ERROR_CODES } from '../../i18n/error-codes';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -11,6 +11,8 @@ import * as crypto from 'crypto';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private prisma: PrismaService,
     private trustService: TrustService,
@@ -22,7 +24,7 @@ export class AuthService {
   // ============================================================================
 
   async registerWorker(email: string, password: string, phone?: string, ipAddress?: string) {
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       // Check if email already exists
       const existingByEmail = await tx.user.findUnique({ where: { email } });
       if (existingByEmail) {
@@ -94,6 +96,15 @@ export class AuthService {
         tokens
       };
     });
+
+    // Send the email verification code AFTER the transaction commits.
+    // sendVerificationCode runs on its own Prisma connection (this.prisma, not
+    // tx) and must see the committed user row. Best-effort: a failure here must
+    // never roll back or fail registration — the account exists and the user can
+    // request a new code from the verify-email UI.
+    await this.sendRegistrationVerificationEmail(result.user.id);
+
+    return result;
   }
 
   // ============================================================================
@@ -233,7 +244,7 @@ export class AuthService {
     ipAddress?: string,
   ) {
     try {
-      return await this.prisma.$transaction(async (tx) => {
+      const result = await this.prisma.$transaction(async (tx) => {
       // Check if email already exists
       const existingByEmail = await tx.user.findUnique({ where: { email } });
       if (existingByEmail) {
@@ -333,6 +344,12 @@ export class AuthService {
         tokens
       };
       });
+
+      // Send the email verification code AFTER the transaction commits (same
+      // rationale as registerWorker — best-effort, never fails registration).
+      await this.sendRegistrationVerificationEmail(result.user.id);
+
+      return result;
     } catch (error: any) {
       // Race condition: two concurrent registrations with the same KvK number
       // both pass the findUnique uniqueness check before either commits. The
@@ -443,6 +460,26 @@ export class AuthService {
   // in the API response is acceptable for development but MUST be removed
   // before production deployment.
   // ============================================================================
+
+  /**
+   * Best-effort email verification dispatch after a successful registration.
+   * Delegates to sendVerificationCode (EMAIL), swallowing + logging any error so
+   * a mail/DB hiccup never fails the registration that already succeeded — the
+   * user can request a new code from the verify-email UI ("resend"). Must be
+   * called AFTER the registration transaction commits: sendVerificationCode
+   * queries on this.prisma (a separate connection) and needs the user row
+   * visible. Only the public registration paths (worker/employer) use this;
+   * admin/support are internal/bootstrap and verified out of band.
+   */
+  private async sendRegistrationVerificationEmail(userId: string): Promise<void> {
+    try {
+      await this.sendVerificationCode(userId, 'EMAIL');
+    } catch (err) {
+      this.logger.warn(
+        `Failed to send registration verification email to user ${userId}: ${(err as Error).message}`,
+      );
+    }
+  }
 
   async sendVerificationCode(userId: string, type: 'EMAIL' | 'PHONE'): Promise<{ message: string }> {
     // Delete any existing codes for this user & type

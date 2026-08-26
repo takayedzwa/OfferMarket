@@ -113,8 +113,10 @@ function RegisterContent() {
           }).catch(() => {/* silently fail */});
         });
 
-        // Redirect to create worker profile
-        router.push("/profile/setup");
+        // Redirect to email verification. The backend already dispatched a
+        // 6-digit code on commit; the verify-email page collects it, then
+        // forwards to /profile/setup for workers.
+        router.push("/verify-email");
       } else {
         // Register employer
         if (!companyName || !kvkNumber) {
@@ -173,8 +175,9 @@ function RegisterContent() {
           }).catch(() => {/* silently fail */});
         });
 
-        // Redirect to create employer profile
-        router.push("/profile/setup-employer");
+        // Redirect to email verification (forwards to /profile/setup-employer
+        // for employers once the code is confirmed).
+        router.push("/verify-email");
       }
     } catch (err: any) {
       setError(apiError(err));
