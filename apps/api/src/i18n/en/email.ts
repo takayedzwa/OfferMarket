@@ -4,9 +4,10 @@
 // exact historical wording (zero-regression).
 export const enEmail = {
   verification: {
-    email_subject: 'Your OfferMarket verification code',
+    email_subject: 'Verify your OfferMarket email',
     phone_subject: 'Your OfferMarket phone verification code',
     body: 'Your OfferMarket verification code is: {code}\n\nIt expires in 15 minutes. If you did not request this, you can safely ignore this email.',
+    email_body_link: 'Welcome to OfferMarket! Verify your email address to finish setting up your account.\n\nClick the link below to verify (opens in your browser):\n{verifyUrl}\n\nOr enter this 6-digit code in the app:\n{code}\n\nThe link and code expire in 15 minutes. If you did not create an account, you can safely ignore this email.',
   },
   password_reset: {
     subject: 'Reset your OfferMarket password',

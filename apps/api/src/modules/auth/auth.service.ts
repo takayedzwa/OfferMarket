@@ -9,6 +9,18 @@ import * as bcrypt from 'bcrypt';
 import * as jwt from 'jsonwebtoken';
 import * as crypto from 'crypto';
 
+/**
+ * Canonical app origin used to build links in outbound email (verify, reset).
+ * FRONTEND_URL may be a comma-separated CORS allowlist (dev lists several
+ * *.localhost subdomains), so take the first entry — the primary origin —
+ * rather than embedding the whole list into a URL (which would break the link).
+ */
+function frontendBaseUrl(): string {
+  return (process.env.FRONTEND_URL || 'http://localhost:3000')
+    .split(',')[0]
+    .trim();
+}
+
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
@@ -487,21 +499,34 @@ export class AuthService {
       where: { userId, type },
     });
 
-    // Generate a 6-digit numeric code
+    // Generate a 6-digit numeric code (the OTP fallback) AND, for EMAIL, a
+    // long url-safe magic-link token. Both share one VerificationCode row: the
+    // code is hashed into `codeHash`, the token into `tokenHash`. Using either
+    // one first deletes the row, invalidating the other (single-use). The raw
+    // code/token are never returned in the API response — only their hashes
+    // are persisted. See `verifyEmail` (code) and `verifyEmailByToken` (link).
     const rawCode = crypto.randomInt(100000, 999999).toString();
     const codeHash = crypto.createHash('sha256').update(rawCode).digest('hex');
     const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
 
+    let verifyUrl: string | null = null;
+    let tokenHash: string | null = null;
+    if (type === 'EMAIL') {
+      const rawToken = crypto.randomBytes(32).toString('hex');
+      tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+      verifyUrl = `${frontendBaseUrl()}/verify-email?token=${rawToken}`;
+    }
+
     await this.prisma.verificationCode.create({
-      data: { userId, type, codeHash, expiresAt },
+      data: { userId, type, codeHash, tokenHash, expiresAt },
     });
 
     // Deliver the code via a side channel (email now; SMS is a future hook).
-    // SECURITY: the raw code is NEVER returned in the API response — it was
-    // previously, which let anyone who could call the endpoint read another
-    // user's verification code. In dev/test the MailService captures the code
-    // in its in-memory outbox for retrieval; in production this is the swap
-    // point for a real email/SMS provider.
+    // SECURITY: the raw code/token are NEVER returned in the API response — the
+    // code was previously, which let anyone who could call the endpoint read
+    // another user's verification code. In dev/test the MailService captures
+    // the code in its in-memory outbox for retrieval; in production this is the
+    // swap point for a real email/SMS provider.
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: { email: true, phone: true, preferredLocale: true },
@@ -509,7 +534,7 @@ export class AuthService {
     if (user) {
       const to = type === 'EMAIL' ? user.email : user.phone;
       if (to) {
-        this.mailService.sendVerificationCode(to, rawCode, type, user.preferredLocale);
+        this.mailService.sendVerificationCode(to, rawCode, type, user.preferredLocale, verifyUrl);
       }
     }
 
@@ -561,6 +586,49 @@ export class AuthService {
     await this.prisma.user.update({
       where: { id: userId },
       data: { emailVerified: true }
+    });
+
+    return { success: true };
+  }
+
+  // ============================================================================
+  // VERIFY EMAIL BY MAGIC LINK
+  // SECURITY: The magic-link token is a 32-byte random value whose SHA-256 hash
+  // is stored in `tokenHash` on the same VerificationCode row as the OTP code.
+  // Unlike `verifyEmail` (which is JWT-guarded and takes the code), this is
+  // token-authenticated: the link is clicked from an email, possibly with no
+  // active session, so the row's userId is trusted from the token match — not
+  // from a JWT. A single DB equality lookup on the hash (no string compare on
+  // the secret) makes the token unguessable (256 bits) and immune to timing
+  // leaks. Single-use (row delete) means using the link also invalidates the
+  // code on the same row, and vice versa. Expiry-enforced. The raw token is
+  // never logged or returned.
+  // ============================================================================
+
+  async verifyEmailByToken(token: string) {
+    if (!token) {
+      throw new BadRequestException({ code: ERROR_CODES.AUTH_VERIFICATION_CODE_REQUIRED, message: 'Verification token is required' });
+    }
+
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+    const verification = await this.prisma.verificationCode.findFirst({
+      where: {
+        type: 'EMAIL',
+        tokenHash,
+        expiresAt: { gt: new Date() },
+      },
+    });
+
+    if (!verification) {
+      throw new BadRequestException({ code: ERROR_CODES.AUTH_VERIFICATION_CODE_INVALID, message: 'Invalid or expired verification link' });
+    }
+
+    // Single-use: delete the row (also invalidates the OTP code on it).
+    await this.prisma.verificationCode.delete({ where: { id: verification.id } });
+
+    await this.prisma.user.update({
+      where: { id: verification.userId },
+      data: { emailVerified: true },
     });
 
     return { success: true };
@@ -919,8 +987,9 @@ export class AuthService {
     // returned in the API response. In dev/test the MailService captures the
     // link in its in-memory outbox for retrieval; in production this is the
     // swap point for a real email provider (AWS SES / SendGrid / SMTP).
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-    const resetUrl = `${frontendUrl}/reset-password?token=${rawToken}`;
+    // frontendBaseUrl() takes the first origin of the (possibly comma-list)
+    // FRONTEND_URL so the reset link is well-formed.
+    const resetUrl = `${frontendBaseUrl()}/reset-password?token=${rawToken}`;
     this.mailService.sendPasswordReset(user.email, resetUrl, user.preferredLocale);
 
     return {

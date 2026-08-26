@@ -19,16 +19,28 @@ export interface RenderedEmail {
   text: string;
 }
 
-/** Render a verification code email (EMAIL or PHONE channel), localized. */
+/**
+ * Render a verification code email (EMAIL or PHONE channel), localized.
+ *
+ * EMAIL verification includes a magic link (`verifyUrl`) as the primary
+ * action plus the 6-digit code as a fallback (some email clients mangle
+ * links). PHONE verification is code-only (delivered via SMS side channel),
+ * so no link is rendered.
+ */
 export function renderVerificationEmail(
   code: string,
   type: 'EMAIL' | 'PHONE',
   locale?: string | null,
+  verifyUrl?: string | null,
 ): RenderedEmail {
   const subjectKey = type === 'EMAIL' ? 'verification.email_subject' : 'verification.phone_subject';
+  const text =
+    type === 'EMAIL' && verifyUrl
+      ? translateEmail('verification.email_body_link', locale, { code, verifyUrl })
+      : translateEmail('verification.body', locale, { code });
   return {
     subject: translateEmail(subjectKey, locale),
-    text: translateEmail('verification.body', locale, { code }),
+    text,
   };
 }
 

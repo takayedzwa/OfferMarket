@@ -15,14 +15,23 @@ describe('MailService (i18n)', () => {
     service.sendVerificationCode('a@b.test', '123456', 'EMAIL', 'nl');
     const m = last();
     expect(m.to).toBe('a@b.test');
-    expect(m.subject).toBe('Je OfferMarket-verificatiecode');
+    expect(m.subject).toBe('Verifieer je OfferMarket-e-mailadres');
     expect(m.text).toContain('123456');
   });
 
   it('renders the verification email in English by default (no locale)', () => {
     service.sendVerificationCode('a@b.test', '123456', 'EMAIL');
     const m = last();
-    expect(m.subject).toBe('Your OfferMarket verification code');
+    expect(m.subject).toBe('Verify your OfferMarket email');
+    expect(m.text).toContain('123456');
+  });
+
+  it('embeds the verify link + code when verifyUrl is provided', () => {
+    const url = 'https://offermarket.eu/verify-email?token=abc';
+    service.sendVerificationCode('a@b.test', '123456', 'EMAIL', 'en', url);
+    const m = last();
+    expect(m.subject).toBe('Verify your OfferMarket email');
+    expect(m.text).toContain(url);
     expect(m.text).toContain('123456');
   });
 

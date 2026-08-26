@@ -9,6 +9,7 @@ import {
 import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
 import { RolesGuard } from '../../guards/roles.guard';
+import { VerifiedEmailGuard } from '../../guards/verified-email.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { PrismaService } from '../../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
@@ -35,7 +36,7 @@ export class UploadsController {
   ) {}
 
   @Post('verification-document')
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, VerifiedEmailGuard, RolesGuard)
   @Roles('EMPLOYER')
   @Throttle({ short: { ttl: 60000, limit: 20 } })
   async presignVerificationDocument(

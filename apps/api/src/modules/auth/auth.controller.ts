@@ -194,6 +194,20 @@ export class AuthController {
   }
 
   // ============================================================================
+  // VERIFY EMAIL BY MAGIC LINK
+  // PUBLIC (no JWT): the magic link is clicked from an email, possibly with no
+  // active session. The 256-bit token in `?token=` authenticates the request —
+  // it hashes to the stored `tokenHash` on the user's VerificationCode row. The
+  // global throttler bounds brute force (which is infeasible regardless).
+  // ============================================================================
+
+  @Post('verify-email-token')
+  @Throttle({ short: { ttl: 60000, limit: 10 } })
+  async verifyEmailByToken(@Body('token') token: string) {
+    return this.authService.verifyEmailByToken(token);
+  }
+
+  // ============================================================================
   // VERIFY PHONE
   // SECURITY: Same as verify-email — userId comes from JWT, code is validated.
   // ============================================================================

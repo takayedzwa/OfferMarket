@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { Link, useRouter } from "@/i18n/navigation";
 import { authApi } from "@/lib/api";
@@ -23,6 +23,36 @@ function VerifyEmailPage() {
   const [resending, setResending] = useState(false);
   const [resendNote, setResendNote] = useState("");
   const [verified, setVerified] = useState(false);
+  // Magic-link landing: when the user clicks "Verify" in the email we land here
+  // with ?token=<32-byte hex>. We auto-submit it once (public, token-auth'd
+  // endpoint), then strip the token from the URL so it isn't left in the
+  // browser history / sent in the Referer header on later navigations.
+  const [linkVerifying, setLinkVerifying] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get("token");
+    if (!token) return;
+
+    setLinkVerifying(true);
+    // Remove the token from the address bar immediately.
+    const cleanUrl = window.location.origin + window.location.pathname;
+    window.history.replaceState({}, "", cleanUrl);
+
+    authApi
+      .verifyEmailToken(token)
+      .then(() => {
+        setVerified(true);
+        setLinkVerifying(false);
+        setTimeout(() => router.push(nextStep()), 1200);
+      })
+      .catch((err) => {
+        setLinkVerifying(false);
+        setError(apiError(err) || t("linkFailed"));
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Where to go after a successful verification. Mirror the register page's
   // post-register redirect: workers → /profile/setup, employers →
@@ -73,6 +103,10 @@ function VerifyEmailPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
+      {/* Prevent the magic-link token from leaking via the Referer header to any
+          third-party resource loaded on this page. */}
+      <meta name="referrer" content="no-referrer" />
+
       {/* Header */}
       <header className="border-b bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -113,6 +147,10 @@ function VerifyEmailPage() {
               >
                 {t("continue")}
               </button>
+            ) : linkVerifying ? (
+              <div className="text-center py-6">
+                <p className="text-gray-600">{t("linkVerifying")}</p>
+              </div>
             ) : (
               <form onSubmit={handleVerify} className="space-y-4">
                 <div>

@@ -15,7 +15,7 @@ import { MailService } from '../../mail/mail.service';
 class MockPrismaService {
   // Top-level models (used outside transactions)
   user = { findUnique: jest.fn(), create: jest.fn(), update: jest.fn().mockResolvedValue(undefined) };
-  verificationCode = { deleteMany: jest.fn(), create: jest.fn() };
+  verificationCode = { deleteMany: jest.fn(), create: jest.fn(), findFirst: jest.fn(), delete: jest.fn().mockResolvedValue(undefined) };
   // Top-level refreshToken — used by login (user already persisted). MUST NOT
   // be touched from inside a registration transaction (the user row is not
   // committed yet, so an insert here would violate RefreshToken_userId_fkey).
@@ -373,6 +373,76 @@ describe('AuthService', () => {
       // No delivery attempted when there is no address, but the code is still
       // persisted for later verification.
       expect(mailService.sendVerificationCode).not.toHaveBeenCalled();
+    });
+
+    it('EMAIL stores a hashed magic-link token + verifyUrl and never persists the raw token', async () => {
+      prisma.user.findUnique.mockResolvedValue({ email: 'worker@test.com', phone: null });
+      prisma.verificationCode.deleteMany.mockResolvedValue(undefined);
+      prisma.verificationCode.create.mockResolvedValue(undefined);
+
+      await service.sendVerificationCode('user-1', 'EMAIL');
+
+      // The persisted row carries both a codeHash and a tokenHash; the raw
+      // 6-digit code and raw token only ever appear in the mailService call,
+      // never in the prisma create payload.
+      const createArg = prisma.verificationCode.create.mock.calls[0][0];
+      expect(createArg.data).toHaveProperty('codeHash');
+      expect(createArg.data).toHaveProperty('tokenHash');
+      expect(createArg.data.tokenHash).toMatch(/^[0-9a-f]{64}$/); // sha256 hex
+      expect(createArg.data.codeHash).not.toEqual(createArg.data.tokenHash);
+
+      const [, , , , verifyUrl] = mailService.sendVerificationCode.mock.calls[0];
+      expect(verifyUrl).toMatch(/\/verify-email\?token=[0-9a-f]{64}$/);
+      // The raw token in the URL must NOT equal the stored hash.
+      expect(createArg.data.tokenHash).not.toEqual(verifyUrl.split('token=')[1]);
+    });
+
+    it('PHONE does not store a tokenHash and passes no verifyUrl', async () => {
+      prisma.user.findUnique.mockResolvedValue({ email: null, phone: '+31612345678' });
+      prisma.verificationCode.deleteMany.mockResolvedValue(undefined);
+      prisma.verificationCode.create.mockResolvedValue(undefined);
+
+      await service.sendVerificationCode('user-1', 'PHONE');
+
+      const createArg = prisma.verificationCode.create.mock.calls[0][0];
+      expect(createArg.data.tokenHash).toBeNull();
+      const callArgs = mailService.sendVerificationCode.mock.calls[0];
+      expect(callArgs[4]).toBeNull(); // no verifyUrl for PHONE
+    });
+  });
+
+  // =========================================================================
+  // verifyEmailByToken: the magic-link path. Token-authenticated (no JWT) —
+  // the row's userId is trusted from the token match. Single-use (row delete
+  // invalidates the OTP on the same row too). Expiry-enforced.
+  // =========================================================================
+  describe('verifyEmailByToken — magic link', () => {
+    it('verifies the email when a valid non-expired token row exists', async () => {
+      prisma.verificationCode.findFirst.mockResolvedValue({ id: 'vc-1', userId: 'user-9' });
+
+      const result = await service.verifyEmailByToken('a-valid-token');
+
+      expect(result).toEqual({ success: true });
+      // Looked up by the token's SHA-256 hash, with an unexpired window.
+      const where = prisma.verificationCode.findFirst.mock.calls[0][0].where;
+      expect(where.type).toBe('EMAIL');
+      expect(where.tokenHash).toMatch(/^[0-9a-f]{64}$/);
+      expect(where.expiresAt).toBeDefined();
+      // Single-use: the row is deleted and the user is marked verified.
+      expect(prisma.verificationCode.delete).toHaveBeenCalledWith({ where: { id: 'vc-1' } });
+      expect(prisma.user.update).toHaveBeenCalledWith({ where: { id: 'user-9' }, data: { emailVerified: true } });
+    });
+
+    it('rejects an empty token', async () => {
+      await expect(service.verifyEmailByToken('')).rejects.toThrow(BadRequestException);
+      expect(prisma.verificationCode.findFirst).not.toHaveBeenCalled();
+    });
+
+    it('rejects an invalid / expired / already-used token (no matching row)', async () => {
+      prisma.verificationCode.findFirst.mockResolvedValue(null);
+      await expect(service.verifyEmailByToken('stale-or-wrong')).rejects.toThrow(BadRequestException);
+      expect(prisma.verificationCode.delete).not.toHaveBeenCalled();
+      expect(prisma.user.update).not.toHaveBeenCalled();
     });
   });
 });

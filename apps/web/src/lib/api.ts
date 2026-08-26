@@ -116,6 +116,20 @@ api.interceptors.response.use(
       }
     }
 
+    // 403 with the email-not-verified code: the server-side VerifiedEmailGuard
+    // blocked a transactional action (offers, messaging, ratings, doc upload).
+    // Send the user to verify their email so they can verify and retry. This is
+    // the server-driven gate — it fires even if a client-side guard was bypassed.
+    // Skip when already on /verify-email (avoid a redirect loop).
+    if (
+      error.response?.status === 403 &&
+      error.response?.data?.code === 'auth.email_not_verified' &&
+      typeof window !== 'undefined' &&
+      !window.location.pathname.startsWith('/verify-email')
+    ) {
+      window.location.assign('/verify-email');
+    }
+
     return Promise.reject(error);
   }
 );
@@ -144,6 +158,11 @@ export const authApi = {
   // Submit the 6-digit code to verify the authenticated user's email.
   verifyEmail: (code: string) =>
     api.post('/auth/verify-email', { code }),
+
+  // Verify via the magic-link token (clicked from the email). Public endpoint —
+  // the 256-bit token authenticates the request, no JWT/session required.
+  verifyEmailToken: (token: string) =>
+    api.post('/auth/verify-email-token', { token }),
 
   forgotPassword: (email: string) =>
     api.post('/auth/forgot-password', { email }),

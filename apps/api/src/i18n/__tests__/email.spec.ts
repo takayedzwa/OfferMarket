@@ -18,10 +18,10 @@ describe('email i18n catalog', () => {
   describe('translateEmail', () => {
     it('translates a dot-notation key in the requested locale', () => {
       expect(translateEmail('verification.email_subject', 'nl')).toBe(
-        'Je OfferMarket-verificatiecode',
+        'Verifieer je OfferMarket-e-mailadres',
       );
       expect(translateEmail('verification.email_subject', 'en')).toBe(
-        'Your OfferMarket verification code',
+        'Verify your OfferMarket email',
       );
     });
 

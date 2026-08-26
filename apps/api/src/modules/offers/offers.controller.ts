@@ -2,6 +2,7 @@ import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards, Re
 import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../../guards/jwt-auth.guard';
 import { RolesGuard } from '../../guards/roles.guard';
+import { VerifiedEmailGuard } from '../../guards/verified-email.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { OffersService } from './offers.service';
 import { OfferValidationPipe } from './pipes/offer-validation.pipe';
@@ -27,7 +28,7 @@ export class OffersController {
    * - No "competitive salary" allowed
    */
   @Post()
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, VerifiedEmailGuard, RolesGuard)
   @Roles('EMPLOYER')
   @Throttle({ short: { ttl: 60000, limit: 10 } })
   async createOffer(
@@ -74,7 +75,7 @@ export class OffersController {
    * - Invoice generated
    */
   @Post(':id/accept')
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, VerifiedEmailGuard, RolesGuard)
   @Roles('WORKER')
   async acceptOffer(
     @Param('id') id: string,
@@ -92,7 +93,7 @@ export class OffersController {
    * POST /offers/:id/reject
    */
   @Post(':id/reject')
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, VerifiedEmailGuard, RolesGuard)
   @Roles('WORKER')
   async rejectOffer(
     @Param('id') id: string,
@@ -112,7 +113,7 @@ export class OffersController {
    * POST /offers/:id/shortlist
    */
   @Post(':id/shortlist')
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, VerifiedEmailGuard, RolesGuard)
   @Roles('WORKER')
   async shortlistOffer(
     @Param('id') id: string,
@@ -130,7 +131,7 @@ export class OffersController {
    * POST /offers/:id/counter
    */
   @Post(':id/counter')
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, VerifiedEmailGuard, RolesGuard)
   @Roles('WORKER')
   async counterOffer(
     @Param('id') id: string,
@@ -149,7 +150,7 @@ export class OffersController {
    * POST /offers/:id/withdraw
    */
   @Post(':id/withdraw')
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, VerifiedEmailGuard, RolesGuard)
   @Roles('EMPLOYER')
   async withdrawOffer(
     @Param('id') id: string,

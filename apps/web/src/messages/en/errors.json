@@ -13,6 +13,7 @@
     "verification_code_required": "Verification code is required",
     "verification_code_none": "No valid verification code found. Please request a new one.",
     "verification_code_invalid": "Invalid verification code",
+    "email_not_verified": "Please verify your email to perform this action.",
     "refresh_token_required": "Refresh token is required",
     "refresh_token_invalid": "Invalid or expired refresh token",
     "token_type_invalid": "Invalid token type",
