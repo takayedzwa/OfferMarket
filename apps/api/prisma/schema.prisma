@@ -47,6 +47,11 @@ model User {
   // validation list in the PATCH endpoint + apps/web/src/i18n/routing.ts.
   preferredLocale          String    @default("en")
 
+  // Referral program: this user's personal invite code (null until the user
+  // first opens the referral dashboard — generated lazily via crypto.randomBytes
+  // from an unambiguous alphabet and assigned under the unique constraint).
+  referralCode             String?   @unique
+
   // Relations
   conversations1       Conversation[]        @relation("ConversationParticipant1")
   conversations2       Conversation[]        @relation("ConversationParticipant2")
@@ -69,6 +74,12 @@ model User {
   gdprFlags            UserGdprFlags?
   DataExportRequest    DataExportRequest[]
   DataDeletionRequest  DataDeletionRequest[]
+
+  // Referral program relations (referred users keep the row after erasure via
+  // SET NULL so reward history stays attributable to the referrer)
+  referralsMade        Referral[]            @relation("ReferralReferrer")
+  referralsReceived    Referral[]            @relation("ReferralReferred")
+  referralRewards      ReferralReward[]
 
   // DSA (Digital Services Act) relations
   contentReportsFiled     ContentReport[]       @relation("UserContentReportsFiled")
@@ -707,6 +718,100 @@ model AuditLog {
   @@index([entityType, entityId])
   @@index([action])
   @@index([occurredAt])
+}
+
+// ============================================================================
+// REFERRAL PROGRAM
+// ============================================================================
+// Users invite new users with a personal referral code (?ref=CODE on register).
+// Each invitee can be attributed to at most ONE referrer — enforced by the
+// unique constraint on referredUserId (first valid attribution wins; later
+// clicks of another code are ignored). A referral only counts toward the
+// referrer's progress once it is QUALIFIED (the configurable qualification
+// rule; the implemented rule is invitee email verification — the same gate the
+// platform already applies to transactional actions, see VerifiedEmailGuard).
+//
+// Rewards are issued by ReferralsService.recordQualification inside a
+// transaction that row-locks the referrer (SELECT ... FOR UPDATE) and derives
+// the reward's sequenceNumber from the count of existing rewards, so concurrent
+// qualifications cannot duplicate or lose a reward. Backed by the secondary
+// @@unique([ownerId, sequenceNumber]); P2002 on that key is treated as the
+// idempotent "already issued" outcome.
+//
+// Reward fulfillment is provider-agnostic by design (rewardProvider +
+// providerReference + providerMetadata) — no gift-card vendor columns. See the
+// RewardProvider interface in modules/referrals/rewards. 'manual' is the
+// initial provider: an admin marks pending rewards fulfilled in the console
+// and the provider interface is where a real gift-card API plugs in later.
+// ============================================================================
+
+model Referral {
+  id             String        @id @default(uuid())
+  // Both user fields are SET NULL on erasure (like EmailOutbox.user): the rows
+  // survive GDPR deletion so reward history remains auditable, but erasure is
+  // never blocked by a referral row.
+  referrerId     String?
+  referredUserId String?       @unique
+  referralCode   String
+  status         ReferralStatus @default(PENDING)
+  attributedAt   DateTime      @default(now())
+  qualifiedAt    DateTime?
+  invalidatedAt  DateTime?
+  invalidatedReason String?
+  // IP the invitee registered from (abuse forensics only; not exposed to users)
+  attributedIp   String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  referrer      User? @relation("ReferralReferrer", fields: [referrerId], references: [id], onDelete: SetNull)
+  referredUser  User? @relation("ReferralReferred", fields: [referredUserId], references: [id], onDelete: SetNull)
+
+  @@index([referrerId, status])
+  @@index([referrerId, attributedAt])
+}
+
+model ReferralReward {
+  id                String             @id @default(uuid())
+  // Nullable: GDPR erasure of the owner nulls this out (SET NULL) but the row
+  // itself survives so the reward ledger stays complete for auditing.
+  ownerId           String?            // The referring user who earned the reward
+  sequenceNumber    Int                // 1st / 2nd / 3rd ... threshold milestone
+  rewardType        String             @default("gift_card")
+  amountMinor       Int                // Integer minor units (e.g. cents) — never floats
+  currency          String @default("EUR")
+  thresholdSnapshot Int                // Referral threshold in effect at issuance
+  status            RewardStatus       @default(PENDING)
+  rewardProvider    String @default("manual")
+  providerReference String?
+  providerMetadata  Json?
+  lastError         String?
+  createdAt         DateTime           @default(now())
+  fulfilledAt       DateTime?
+  updatedAt         DateTime           @updatedAt
+
+  owner User? @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+
+  // Idempotency: at most one reward per user per threshold milestone. Used by
+  // the reward engine to survive races where two qualifications reach the
+  // threshold concurrently — the second insert fails with P2002 and is
+  // discarded instead of double-issuing.
+  @@unique([ownerId, sequenceNumber])
+  @@index([ownerId, status])
+  @@index([status, createdAt])
+}
+
+enum ReferralStatus {
+  PENDING
+  QUALIFIED
+  INVALIDATED
+}
+
+enum RewardStatus {
+  PENDING
+  PROCESSING
+  FULFILLED
+  FAILED
+  CANCELLED
 }
 
 // ============================================================================

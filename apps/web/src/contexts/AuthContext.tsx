@@ -18,6 +18,7 @@ const PROTECTED_PREFIXES = [
   "/admin",
   "/profile",
   "/conversations",
+  "/referrals",
   "/privacy/dashboard",
   "/support/tickets",
   "/support/users",

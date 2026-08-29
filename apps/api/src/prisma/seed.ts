@@ -76,6 +76,25 @@ async function main() {
     { key: 'invoice_bank_account_iban', value: '', category: 'billing' },
     { key: 'invoice_bank_account_name', value: 'OfferMarket B.V.', category: 'billing' },
     { key: 'invoice_prefix', value: 'INV', category: 'billing' },
+    // Referral program (single JSON knob edited from the admin console; see
+    // modules/referrals/referral-settings.ts). amountMinor is integer minor
+    // units (cents) — matches the billing settings convention. qualification
+    // rule 'email_verified' is the only rule implemented; the value is stored
+    // so future rules can be added without a settings migration.
+    {
+      key: 'referral_program',
+      category: 'referral',
+      value: {
+        enabled: true,
+        rewardsEnabled: true,
+        recurringRewards: true,
+        threshold: 5,
+        rewardType: 'gift_card',
+        rewardAmountMinor: 2500,
+        rewardCurrency: 'EUR',
+        qualificationRule: 'email_verified',
+      },
+    },
   ];
 
   for (const setting of defaultSettings) {

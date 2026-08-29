@@ -29,6 +29,11 @@ export enum NotificationEventType {
   SUPPORT_TICKET_UPDATED = 'support.ticket.updated',
   SUPPORT_OFFER_EXTENDED = 'support.offer.extended',
   SUPPORT_COMPANY_UNBLOCKED = 'support.company.unblocked',
+
+  // Referral program (modules/referrals) — sent to the REFERRER.
+  REFERRAL_QUALIFIED = 'referral.qualified',
+  REFERRAL_REWARD_EARNED = 'referral.reward.earned',
+  REFERRAL_REWARD_FULFILLED = 'referral.reward.fulfilled',
 }
 
 // ============================================================================
@@ -166,6 +171,34 @@ export interface SupportCompanyUnblockedPayload extends BaseNotificationPayload 
   recipientUserId: string;
   workerId: string;
   employerId: string;
+}
+
+// ============================================================================
+// Referral program payloads (modules/referrals)
+// ============================================================================
+
+/** An invitee qualified (email verified) — sent to the referrer. */
+export interface ReferralQualifiedPayload extends BaseNotificationPayload {
+  referrerUserId: string;
+  inviteeFirstName?: string;
+}
+
+/** A referral threshold milestone was reached and a reward was issued. */
+export interface ReferralRewardEarnedPayload extends BaseNotificationPayload {
+  ownerUserId: string;
+  rewardType: string;
+  amountMinor: number;
+  currency: string;
+  sequenceNumber: number;
+  threshold: number;
+}
+
+/** A previously created reward was fulfilled — sent to the reward owner. */
+export interface ReferralRewardFulfilledPayload extends BaseNotificationPayload {
+  ownerUserId: string;
+  rewardType: string;
+  amountMinor: number;
+  currency: string;
 }
 
 // ============================================================================

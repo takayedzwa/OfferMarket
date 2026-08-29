@@ -171,5 +171,8 @@
     "MEDIUM": "Gemiddeld",
     "HIGH": "Hoog",
     "URGENT": "Dringend"
+  },
+  "referral": {
+    "rewardMilestone": "Beloning #{number} (bij {threshold} succesvolle verwijzingen)"
   }
 }

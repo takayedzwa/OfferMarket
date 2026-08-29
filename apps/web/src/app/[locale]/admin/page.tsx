@@ -9,7 +9,7 @@ import { adminApi } from "@/lib/api";
 import {
   Users, Building2, Settings, AlertTriangle,
   FileText, Eye, DollarSign, Clock, Activity,
-  UserCheck, CreditCard, ShieldAlert, LifeBuoy, Scale, ShieldCheck
+  UserCheck, CreditCard, ShieldAlert, LifeBuoy, Scale, ShieldCheck, Gift
 } from "lucide-react";
 
 interface DashboardStats {
@@ -102,6 +102,7 @@ export default function AdminDashboard() {
     { label: t("action.privacy.label"), icon: ShieldCheck, href: '/admin/privacy', description: t("action.privacy.desc") },
     { label: t("action.dsa.label"), icon: Scale, href: '/admin/dsa', description: t("action.dsa.desc") },
     { label: t("action.support.label"), icon: LifeBuoy, href: '/admin/support', description: t("action.support.desc") },
+    { label: t("action.referrals.label"), icon: Gift, href: '/admin/referrals', description: t("action.referrals.desc") },
   ];
 
   return (

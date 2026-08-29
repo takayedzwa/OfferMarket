@@ -72,5 +72,17 @@
     "minutesAgo": "{count}m geleden",
     "hoursAgo": "{count}u geleden",
     "daysAgo": "{count}d geleden"
+  },
+  "referral_qualified": {
+    "title": "Je verwijzing is lid geworden!",
+    "body": "{inviteeFirstName} is lid geworden via jouw verwijzingslink en heeft het e-mailadres geverifieerd. Je voortgang is bijgewerkt."
+  },
+  "referral_reward_earned": {
+    "title": "Verwijzingsbeloning verdiend! 🎉",
+    "body": "Je hebt beloning #{sequenceNumber} verdiend na {threshold} succesvolle verwijzingen. Deze staat klaar voor uitgifte."
+  },
+  "referral_reward_fulfilled": {
+    "title": "Je verwijzingsbeloning is onderweg",
+    "body": "Je {rewardType}-beloning is uitgegeven. Bekijk de verwijzingspagina voor details."
   }
 }

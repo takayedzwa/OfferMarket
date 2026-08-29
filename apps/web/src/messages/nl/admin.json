@@ -12,14 +12,42 @@
       "totalCredits": "Totaal credits"
     },
     "action": {
-      "billing": { "label": "Facturatie", "desc": "Facturen en credits beheren" },
-      "settings": { "label": "Instellingen", "desc": "Platformconfiguratie" },
-      "reports": { "label": "Inhoudsmeldingen", "desc": "DSA-inhoudsmeldingen beoordelen" },
-      "auditLogs": { "label": "Auditlogboeken", "desc": "Beheerdersacties bekijken" },
-      "trust": { "label": "Vertrouwen & veiligheid", "desc": "Veiligheidssignalen beheren" },
-      "privacy": { "label": "Privacy", "desc": "Privacyverzoeken en logboeken" },
-      "dsa": { "label": "DSA-meldingen", "desc": "Digital Services Act-meldingen" },
-      "support": { "label": "Support", "desc": "Supporttickets beheren" }
+      "billing": {
+        "label": "Facturatie",
+        "desc": "Facturen en credits beheren"
+      },
+      "settings": {
+        "label": "Instellingen",
+        "desc": "Platformconfiguratie"
+      },
+      "reports": {
+        "label": "Inhoudsmeldingen",
+        "desc": "DSA-inhoudsmeldingen beoordelen"
+      },
+      "auditLogs": {
+        "label": "Auditlogboeken",
+        "desc": "Beheerdersacties bekijken"
+      },
+      "trust": {
+        "label": "Vertrouwen & veiligheid",
+        "desc": "Veiligheidssignalen beheren"
+      },
+      "privacy": {
+        "label": "Privacy",
+        "desc": "Privacyverzoeken en logboeken"
+      },
+      "dsa": {
+        "label": "DSA-meldingen",
+        "desc": "Digital Services Act-meldingen"
+      },
+      "support": {
+        "label": "Support",
+        "desc": "Supporttickets beheren"
+      },
+      "referrals": {
+        "label": "Verwijzingsprogramma",
+        "desc": "Configureer het verwijzingsprogramma en beheer beloningen"
+      }
     },
     "header": {
       "title": "Beheerdersconsole",

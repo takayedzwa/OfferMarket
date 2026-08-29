@@ -24,6 +24,16 @@
     "reset_token_used": "Reset token has already been used. Please request a new one.",
     "token_revoked": "Token has been revoked"
   },
+  "referrals": {
+    "not_found": "Referral not found",
+    "already_invalidated": "This referral has already been invalidated",
+    "reward_not_found": "Referral reward not found",
+    "reward_already_fulfilled": "This reward has already been fulfilled and cannot be changed",
+    "reward_already_cancelled": "This reward has already been cancelled",
+    "reward_already_processing": "This reward is currently being processed",
+    "settings_invalid": "Referral program settings are invalid",
+    "clipboard_unavailable": "Could not copy to clipboard. Please copy the link manually."
+  },
   "guard": {
     "not_authenticated": "User not authenticated",
     "roles_required": "Access denied. Required roles: {roles}.",

@@ -5,6 +5,7 @@ import { AuthService } from '../auth.service';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { TrustService } from '../../trust/trust.service';
 import { MailService } from '../../mail/mail.service';
+import { ReferralsService } from '../../referrals/referrals.service';
 
 /**
  * Mock PrismaService. `sendVerificationCode` uses the top-level `user` and
@@ -49,6 +50,13 @@ describe('AuthService', () => {
       providers: [
         AuthService,
         { provide: PrismaService, useValue: prisma },
+        // Referral lifecycle hooks are injected into AuthService (attribution at
+        // signup, qualification on email verification) — mocked here; the
+        // referral engine itself is covered by referrals.service.spec.ts.
+        { provide: ReferralsService, useValue: {
+          attributeReferral: jest.fn().mockResolvedValue(undefined),
+          recordQualification: jest.fn().mockResolvedValue(undefined),
+        } },
         { provide: TrustService, useValue: {
           detectRapidAccountCreation: jest.fn(),
           isBlacklisted: jest.fn().mockResolvedValue(false),

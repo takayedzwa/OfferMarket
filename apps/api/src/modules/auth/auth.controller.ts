@@ -88,7 +88,7 @@ export class AuthController {
   @Throttle({ short: { ttl: 60000, limit: 5 } })
   async registerWorker(@Body() dto: RegisterWorkerDto, @Request() req?: any) {
     const ipAddress = this.getClientIp(req);
-    return this.authService.registerWorker(dto.email, dto.password, dto.phone, ipAddress);
+    return this.authService.registerWorker(dto.email, dto.password, dto.phone, ipAddress, dto.referralCode);
   }
 
   // ============================================================================
@@ -132,7 +132,7 @@ export class AuthController {
   @Throttle({ short: { ttl: 60000, limit: 5 } })
   async registerEmployer(@Body() dto: RegisterEmployerDto, @Request() req?: any) {
     const ipAddress = this.getClientIp(req);
-    return this.authService.registerEmployer(dto.email, dto.password, dto.phone, dto.company, ipAddress);
+    return this.authService.registerEmployer(dto.email, dto.password, dto.phone, dto.company, ipAddress, dto.referralCode);
   }
 
   // ============================================================================
