@@ -171,5 +171,8 @@
     "MEDIUM": "Medium",
     "HIGH": "High",
     "URGENT": "Urgent"
+  },
+  "referral": {
+    "rewardMilestone": "Reward #{number} (at {threshold} successful referrals)"
   }
 }

@@ -468,5 +468,87 @@
       "maintenanceMessage": "Onderhoudsbericht",
       "maintenanceMessageHint": "Bericht dat aan gebruikers wordt getoond tijdens onderhoud"
     }
+  },
+  "referrals": {
+    "header": {
+      "title": "Verwijzingsprogramma",
+      "subtitle": "Configuratie, verwijzingen en beloningen"
+    },
+    "backToAdmin": "Terug naar beheerdersconsole",
+    "settings": {
+      "title": "Programmaconfiguratie",
+      "enabled": "Verwijzingsprogramma ingeschakeld",
+      "enabledHint": "Nieuwe aanmeldingen kunnen aan een verwijzer worden toegeschreven.",
+      "rewardsEnabled": "Beloningen ingeschakeld",
+      "rewardsEnabledHint": "Beloningen worden uitgegeven zodra de drempel is bereikt.",
+      "recurringRewards": "Terugkerende beloningen",
+      "recurringRewardsHint": "Ken een beloning toe per veelvoud van de drempel (niet alleen de eerste).",
+      "threshold": "Verwijzingen per beloning",
+      "thresholdHint": "Aantal succesvolle verwijzingen nodig voor één beloning (1–1000).",
+      "rewardAmount": "Beloningsbedrag",
+      "rewardAmountHint": "Grote eenheden; wordt opgeslagen en verwerkt als gehele kleine eenheden ({currency} centen).",
+      "rewardCurrency": "Beloningsvaluta (ISO 4217)",
+      "rewardType": "Type beloning",
+      "qualificationRule": "Kwalificatieregel",
+      "rule": {
+        "email_verified": "Uitgenodigde heeft e-mailadres geverifieerd"
+      },
+      "fulfillmentNote": "Beschikbare uitgifteproviders: {providers}. Beloningen blijven in behandeling tot ze hier worden uitgegeven.",
+      "save": "Instellingen opslaan",
+      "saved": "Instellingen van het verwijzingsprogramma opgeslagen.",
+      "saving": "Opslaan..."
+    },
+    "errors": {
+      "loadFailed": "Kon gegevens van het verwijzingsprogramma niet laden.",
+      "saveFailed": "Kon instellingen niet opslaan. Probeer het opnieuw.",
+      "invalidAmount": "Het beloningsbedrag moet een positief getal zijn.",
+      "actionFailed": "Actie mislukt. Probeer het opnieuw."
+    },
+    "statusFilter": {
+      "all": "Alle statussen"
+    },
+    "referralStatus": {
+      "PENDING": "In behandeling",
+      "QUALIFIED": "Gekwalificeerd",
+      "INVALIDATED": "Ongeldig gemaakt"
+    },
+    "rewardStatus": {
+      "PENDING": "In behandeling",
+      "PROCESSING": "Wordt verwerkt",
+      "FULFILLED": "Uitgegeven",
+      "FAILED": "Mislukt",
+      "CANCELLED": "Geannuleerd"
+    },
+    "referrals": {
+      "title": "Verwijzingen",
+      "filter": "Filter op status",
+      "empty": "Geen verwijzingen gevonden.",
+      "referredUser": "Uitgenodigde gebruiker",
+      "referrer": "Verwijzer",
+      "code": "Code",
+      "status": "Status",
+      "attributedAt": "Toegeschreven",
+      "actions": "Acties",
+      "invalidate": "Ongeldig maken",
+      "invalidated": "Verwijzing ongeldig gemaakt. Uitgegeven beloningen worden niet automatisch teruggevorderd.",
+      "noActions": "—"
+    },
+    "rewards": {
+      "title": "Beloningen",
+      "filter": "Filter op status",
+      "empty": "Geen beloningen gevonden.",
+      "owner": "Eigenaar",
+      "amount": "Bedrag",
+      "milestone": "Mijlpaal",
+      "status": "Status",
+      "provider": "Provider",
+      "actions": "Acties",
+      "fulfill": "Uitgeven",
+      "cancel": "Annuleren",
+      "fulfilled": "Beloning uitgegeven.",
+      "cancelled": "Beloning geannuleerd.",
+      "noActions": "Definitief",
+      "fulfillmentHint": "Handmatige uitgifte registreert de beloning als door jou uitgegeven. Koppel later een cadeaubonprovider om de uitgifte te automatiseren."
+    }
   }
 }

@@ -16,6 +16,7 @@ import { RatingsModule } from './modules/ratings/ratings.module';
 import { TrustModule } from './modules/trust/trust.module';
 import { BillingModule } from './modules/billing/billing.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
+import { ReferralsModule } from './modules/referrals/referrals.module';
 import { PrivacyModule } from './modules/privacy/privacy.module';
 import { DsaModule } from './modules/dsa/dsa.module';
 import { UploadsModule } from './modules/uploads/uploads.module';
@@ -63,6 +64,7 @@ import { ProcessingRestrictionGuard } from './guards/processing-restriction.guar
     TrustModule,
     BillingModule,
     NotificationsModule,
+    ReferralsModule,
     PrivacyModule,
     DsaModule,
     UploadsModule,

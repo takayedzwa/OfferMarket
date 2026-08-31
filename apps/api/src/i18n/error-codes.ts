@@ -89,6 +89,15 @@ export const ERROR_CODES = {
   GUARD_SUPPORT_REQUIRED: 'guard.support_required',
   GUARD_PROCESSING_RESTRICTED: 'guard.processing_restricted',
 
+  // --- referrals.service.ts ---
+  REFERRAL_NOT_FOUND: 'referral.not_found',
+  REFERRAL_ALREADY_INVALIDATED: 'referral.already_invalidated',
+  REFERRAL_REWARD_NOT_FOUND: 'referral.reward_not_found',
+  REFERRAL_REWARD_ALREADY_FULFILLED: 'referral.reward_already_fulfilled',
+  REFERRAL_REWARD_ALREADY_CANCELLED: 'referral.reward_already_cancelled',
+  REFERRAL_REWARD_ALREADY_PROCESSING: 'referral.reward_already_processing',
+  REFERRAL_SETTINGS_INVALID: 'referral.settings_invalid',
+
   // --- generic / filter-emitted ---
   ERROR_INTERNAL: 'error.internal',
   ERROR_NETWORK: 'error.network',

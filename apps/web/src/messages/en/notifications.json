@@ -72,5 +72,17 @@
     "minutesAgo": "{count}m ago",
     "hoursAgo": "{count}h ago",
     "daysAgo": "{count}d ago"
+  },
+  "referral_qualified": {
+    "title": "Your referral joined!",
+    "body": "{inviteeFirstName} joined via your referral link and verified their email. Your referral progress has been updated."
+  },
+  "referral_reward_earned": {
+    "title": "Referral reward earned! 🎉",
+    "body": "You earned reward #{sequenceNumber} for reaching {threshold} successful referrals. It is now pending fulfillment."
+  },
+  "referral_reward_fulfilled": {
+    "title": "Your referral reward is on its way",
+    "body": "Your {rewardType} reward has been fulfilled. Check the referral page for details."
   }
 }

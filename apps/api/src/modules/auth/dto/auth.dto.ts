@@ -1,5 +1,6 @@
 import { IsEmail, IsString, MinLength, Matches, IsOptional, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
+import { REFERRAL_CODE_REGEX } from '../../referrals/dto/referral-query.dto';
 
 // Shared password policy — reused by the staff-creation DTO in the admin
 // module so all credential-setting paths enforce the same rules.
@@ -18,6 +19,15 @@ export class RegisterWorkerDto {
   @IsString()
   @IsOptional()
   phone?: string;
+
+  // Optional referral code captured from the shared registration link (?ref=).
+  // Shape-validated only; unknown/invalid codes are silently ignored by the
+  // service (prevents code enumeration through the register endpoint).
+  @Matches(REFERRAL_CODE_REGEX, {
+    message: 'referralCode must be 10 characters from the referral alphabet',
+  })
+  @IsOptional()
+  referralCode?: string;
 }
 
 /**
@@ -55,6 +65,13 @@ export class RegisterEmployerDto {
   @ValidateNested()
   @Type(() => RegisterEmployerCompanyDto)
   company!: RegisterEmployerCompanyDto;
+
+  // See RegisterWorkerDto.referralCode for the security rationale.
+  @Matches(REFERRAL_CODE_REGEX, {
+    message: 'referralCode must be 10 characters from the referral alphabet',
+  })
+  @IsOptional()
+  referralCode?: string;
 }
 
 export class RegisterAdminDto {

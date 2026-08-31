@@ -25,6 +25,16 @@
     "reset_token_used": "Reset-token is al gebruikt. Vraag een nieuwe aan.",
     "token_revoked": "Token is ingetrokken"
   },
+  "referrals": {
+    "not_found": "Verwijzing niet gevonden",
+    "already_invalidated": "Deze verwijzing is al ongeldig gemaakt",
+    "reward_not_found": "Verwijzingsbeloning niet gevonden",
+    "reward_already_fulfilled": "Deze beloning is al uitgegeven en kan niet worden gewijzigd",
+    "reward_already_cancelled": "Deze beloning is al geannuleerd",
+    "reward_already_processing": "Deze beloning wordt momenteel verwerkt",
+    "settings_invalid": "Instellingen van het verwijzingsprogramma zijn ongeldig",
+    "clipboard_unavailable": "Kon niet naar het klembord kopiëren. Kopieer de link handmatig."
+  },
   "guard": {
     "not_authenticated": "Gebruiker niet geverifieerd",
     "roles_required": "Toegang geweigerd. Vereiste rollen: {roles}.",

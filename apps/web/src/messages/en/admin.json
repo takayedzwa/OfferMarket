@@ -12,14 +12,42 @@
       "totalCredits": "Total Credits"
     },
     "action": {
-      "billing": { "label": "Billing", "desc": "Manage invoices and credits" },
-      "settings": { "label": "Settings", "desc": "Platform settings" },
-      "reports": { "label": "Reports", "desc": "Reported content" },
-      "auditLogs": { "label": "Audit Logs", "desc": "View audit trail" },
-      "trust": { "label": "Trust & Fraud", "desc": "Manage safety signals" },
-      "privacy": { "label": "GDPR / Privacy", "desc": "Privacy requests and logs" },
-      "dsa": { "label": "DSA Compliance", "desc": "Digital Services Act reports" },
-      "support": { "label": "Support", "desc": "Manage support tickets" }
+      "billing": {
+        "label": "Billing",
+        "desc": "Manage invoices and credits"
+      },
+      "settings": {
+        "label": "Settings",
+        "desc": "Platform settings"
+      },
+      "reports": {
+        "label": "Reports",
+        "desc": "Reported content"
+      },
+      "auditLogs": {
+        "label": "Audit Logs",
+        "desc": "View audit trail"
+      },
+      "trust": {
+        "label": "Trust & Fraud",
+        "desc": "Manage safety signals"
+      },
+      "privacy": {
+        "label": "GDPR / Privacy",
+        "desc": "Privacy requests and logs"
+      },
+      "dsa": {
+        "label": "DSA Compliance",
+        "desc": "Digital Services Act reports"
+      },
+      "support": {
+        "label": "Support",
+        "desc": "Manage support tickets"
+      },
+      "referrals": {
+        "label": "Referral program",
+        "desc": "Configure the referral program and manage rewards"
+      }
     },
     "header": {
       "title": "Admin Console",

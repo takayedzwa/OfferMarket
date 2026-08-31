@@ -7,6 +7,7 @@ import { JwtStrategy } from '../../strategies/jwt.strategy';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { TrustModule } from '../trust/trust.module';
 import { MailModule } from '../mail/mail.module';
+import { ReferralsModule } from '../referrals/referrals.module';
 
 @Module({
   imports: [
@@ -18,6 +19,8 @@ import { MailModule } from '../mail/mail.module';
     PrismaModule,
     TrustModule,
     MailModule,
+    // Referral attribution (registration) + qualification (email verification)
+    ReferralsModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy],

@@ -14,6 +14,13 @@ function RegisterContent() {
   const searchParams = useSearchParams();
   const initialRole = searchParams.get("role") || "";
 
+  // Referral attribution: a shared ?ref=CODE registration link pre-seeds this.
+  // The code is passed to the backend verbatim and validated there — unknown
+  // codes are silently ignored server-side (no enumeration).
+  const [referralCode] = useState(() => {
+    const raw = searchParams.get("ref") || "";
+    return /^[A-Za-z2-9]{10}$/.test(raw) ? raw.toUpperCase() : "";
+  });
   const [role, setRole] = useState<"worker" | "employer">(initialRole as "worker" | "employer" || "worker");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -69,7 +76,7 @@ function RegisterContent() {
 
       if (role === "worker") {
         // Register worker
-        response = await authApi.registerWorker(email, password, phone || undefined);
+        response = await authApi.registerWorker(email, password, phone || undefined, referralCode || undefined);
         const { user, tokens } = response.data;
 
         // Store auth data
@@ -129,7 +136,7 @@ function RegisterContent() {
           name: companyName,
           kvkNumber,
           website: website || undefined,
-        });
+        }, referralCode || undefined);
         const { user, tokens } = response.data;
 
         // Store auth data
@@ -250,6 +257,15 @@ function RegisterContent() {
             {error && (
               <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
                 {error}
+              </div>
+            )}
+
+            {referralCode && (
+              <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg text-green-800 text-sm flex items-center gap-2">
+                <span className="text-lg" aria-hidden>🎁</span>
+                <span>
+                  {t("referralApplied")} <strong className="font-mono">{referralCode}</strong>
+                </span>
               </div>
             )}
 

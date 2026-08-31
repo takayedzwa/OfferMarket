@@ -4,6 +4,7 @@ import { ERROR_CODES } from '../../i18n/error-codes';
 import { PrismaService } from '../../prisma/prisma.service';
 import { TrustService } from '../trust/trust.service';
 import { MailService } from '../mail/mail.service';
+import { ReferralsService } from '../referrals/referrals.service';
 import { isCommonPassword } from './password-blocklist';
 import * as bcrypt from 'bcrypt';
 import * as jwt from 'jsonwebtoken';
@@ -29,13 +30,14 @@ export class AuthService {
     private prisma: PrismaService,
     private trustService: TrustService,
     private mailService: MailService,
+    private referralsService: ReferralsService,
   ) {}
 
   // ============================================================================
   // REGISTER WORKER
   // ============================================================================
 
-  async registerWorker(email: string, password: string, phone?: string, ipAddress?: string) {
+  async registerWorker(email: string, password: string, phone?: string, ipAddress?: string, referralCode?: string) {
     const result = await this.prisma.$transaction(async (tx) => {
       // Check if email already exists
       const existingByEmail = await tx.user.findUnique({ where: { email } });
@@ -97,6 +99,13 @@ export class AuthService {
       // user row resolves on the same connection; otherwise the insert hits a
       // foreign-key violation and rolls the whole registration back.
       await this.storeRefreshToken(user.id, tokens.refreshToken, undefined, tx);
+
+      // REFERRAL: attribute the signup to a referrer, if a valid code was
+      // supplied. Runs on the same tx so attribute+create commit atomically;
+      // silently skips on invalid/disabled/self/duplicate (see ReferralsService).
+      if (referralCode) {
+        await this.referralsService.attributeReferral(tx, user.id, referralCode, ipAddress);
+      }
 
       return {
         user: {
@@ -254,6 +263,7 @@ export class AuthService {
       website?: string;
     },
     ipAddress?: string,
+    referralCode?: string,
   ) {
     try {
       const result = await this.prisma.$transaction(async (tx) => {
@@ -345,6 +355,11 @@ export class AuthService {
 
       // Generate JWT
       const tokens = this.generateTokens(user.id, user.role);
+
+      // REFERRAL: same attribution hook as registerWorker (see above).
+      if (referralCode) {
+        await this.referralsService.attributeReferral(tx, user.id, referralCode, ipAddress);
+      }
 
       return {
         user: {
@@ -588,6 +603,11 @@ export class AuthService {
       data: { emailVerified: true }
     });
 
+    // REFERRAL: email verification is the referral qualification rule — hook
+    // after the status flip. Best-effort: never fails verification (the method
+    // swallows its own errors).
+    await this.referralsService.recordQualification(userId);
+
     return { success: true };
   }
 
@@ -630,6 +650,9 @@ export class AuthService {
       where: { id: verification.userId },
       data: { emailVerified: true },
     });
+
+    // REFERRAL: same qualification hook as verifyEmail (see above).
+    await this.referralsService.recordQualification(verification.userId);
 
     return { success: true };
   }

@@ -7,6 +7,7 @@ import { useAuth } from "../contexts/AuthContext";
 import NotificationBell from "./notifications/NotificationBell";
 import LanguageSwitcher from "./LanguageSwitcher";
 import {
+  Gift,
   Home, Users, Briefcase, MessageSquare, FileText,
   Shield, Ticket, Building2, User, CreditCard, Lock, Flag,
   Menu, X,
@@ -56,6 +57,7 @@ export default function Navbar() {
         { href: "/dashboard/worker", label: "links.dashboard", Icon: Briefcase },
         { href: "/offers", label: "links.offers", Icon: FileText },
         { href: "/conversations", label: "links.messages", Icon: MessageSquare },
+        { href: "/referrals", label: "links.referrals", Icon: Gift },
         { href: "/profile", label: "links.profile", Icon: User },
       );
     }
@@ -66,6 +68,7 @@ export default function Navbar() {
         { href: "/workers", label: "links.searchWorkers", Icon: Users },
         { href: "/conversations", label: "links.messages", Icon: MessageSquare },
         { href: "/dashboard/employer/billing", label: "links.billing", Icon: CreditCard },
+        { href: "/referrals", label: "links.referrals", Icon: Gift },
       );
     }
     if (isAdmin) {

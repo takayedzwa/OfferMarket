@@ -139,11 +139,17 @@ api.interceptors.response.use(
 // ============================================================================
 
 export const authApi = {
-  registerWorker: (email: string, password: string, phone?: string) =>
-    api.post('/auth/register/worker', { email, password, phone }),
+  registerWorker: (email: string, password: string, phone?: string, referralCode?: string) =>
+    api.post('/auth/register/worker', { email, password, phone, ...(referralCode ? { referralCode } : {}) }),
 
-  registerEmployer: (email: string, password: string, phone: string, company: { name: string; kvkNumber: string; website?: string }) =>
-    api.post('/auth/register/employer', { email, password, phone, company }),
+  registerEmployer: (
+    email: string,
+    password: string,
+    phone: string,
+    company: { name: string; kvkNumber: string; website?: string },
+    referralCode?: string,
+  ) =>
+    api.post('/auth/register/employer', { email, password, phone, company, ...(referralCode ? { referralCode } : {}) }),
 
   login: (email: string, password: string) =>
     api.post('/auth/login', { email, password }),
@@ -185,6 +191,63 @@ export const authApi = {
       localStorage.removeItem('refreshToken');
     }
   },
+};
+
+// ============================================================================
+// REFERRALS API
+// ============================================================================
+
+// User-facing referral program endpoints (referral code, progress, rewards).
+// Everything is keyed to the JWT identity — ids/counts are never sent to the
+// backend, which derives progress server-side.
+export const referralsApi = {
+  // Code + shareable link + progress + reward history in one payload.
+  getMyReferralInfo: () => api.get('/referrals/me'),
+
+  // Referred users + qualification status (paginated).
+  listMyReferrals: (params?: { page?: number; limit?: number }) =>
+    api.get('/referrals/me/referrals', { params }),
+
+  // Reward ledger (paginated).
+  listMyRewards: (params?: { page?: number; limit?: number }) =>
+    api.get('/referrals/me/rewards', { params }),
+};
+
+/**
+ * Admin referral-program management (AdminGuard on the server). Uses the
+ * axios client per A-L3 (central auth header + 401/refresh handling).
+ */
+export const referralAdminApi = {
+  getSettings: () => api.get('/admin/referrals/settings'),
+
+  // Partial update — omitted fields keep their stored values (merged server-side).
+  updateSettings: (settings: {
+    enabled?: boolean;
+    rewardsEnabled?: boolean;
+    recurringRewards?: boolean;
+    threshold?: number;
+    rewardType?: string;
+    rewardAmountMinor?: number;
+    rewardCurrency?: string;
+    qualificationRule?: string;
+  }) => api.patch('/admin/referrals/settings', settings),
+
+  listReferrals: (params?: { page?: number; limit?: number; status?: string; referrerId?: string }) =>
+    api.get('/admin/referrals', { params }),
+
+  listRewards: (params?: { page?: number; limit?: number; status?: string; ownerId?: string }) =>
+    api.get('/admin/referrals/rewards', { params }),
+
+  // Manual fulfillment (or retry of a FAILED reward).
+  fulfillReward: (rewardId: string) => api.post(`/admin/referrals/rewards/${rewardId}/fulfill`),
+
+  // Void a PENDING/FAILED reward (fraud etc.) — FULFILLED is final.
+  cancelReward: (rewardId: string, reason?: string) =>
+    api.post(`/admin/referrals/rewards/${rewardId}/cancel`, { reason }),
+
+  // Void a referral attributed/qualified in error.
+  invalidateReferral: (referralId: string, reason?: string) =>
+    api.post(`/admin/referrals/${referralId}/invalidate`, { reason }),
 };
 
 /**

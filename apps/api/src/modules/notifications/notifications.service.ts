@@ -20,6 +20,9 @@ import {
   SupportTicketUpdatedPayload,
   SupportOfferExtendedPayload,
   SupportCompanyUnblockedPayload,
+  ReferralQualifiedPayload,
+  ReferralRewardEarnedPayload,
+  ReferralRewardFulfilledPayload,
 } from './notification.types';
 
 // ============================================================================
@@ -31,6 +34,11 @@ import {
 //   2. Pushing via WebSocket in real-time (after the DB commit)
 //   3. Delegating email delivery to the outbox dispatcher (crash-safe, retryable)
 // ============================================================================
+
+/** Display-only English fallback formatting of integer minor units (cents). */
+function formatMinor(amountMinor: number, currency: string): string {
+  return new Intl.NumberFormat('en', { style: 'currency', currency }).format(amountMinor / 100);
+}
 
 @Injectable()
 export class NotificationsService {
@@ -65,6 +73,9 @@ export class NotificationsService {
     this.eventEmitter.on(NotificationEventType.SUPPORT_TICKET_UPDATED, this.handleSupportTicketUpdated.bind(this));
     this.eventEmitter.on(NotificationEventType.SUPPORT_OFFER_EXTENDED, this.handleSupportOfferExtended.bind(this));
     this.eventEmitter.on(NotificationEventType.SUPPORT_COMPANY_UNBLOCKED, this.handleSupportCompanyUnblocked.bind(this));
+    this.eventEmitter.on(NotificationEventType.REFERRAL_QUALIFIED, this.handleReferralQualified.bind(this));
+    this.eventEmitter.on(NotificationEventType.REFERRAL_REWARD_EARNED, this.handleReferralRewardEarned.bind(this));
+    this.eventEmitter.on(NotificationEventType.REFERRAL_REWARD_FULFILLED, this.handleReferralRewardFulfilled.bind(this));
   }
 
   // ============================================================================
@@ -525,6 +536,71 @@ export class NotificationsService {
       category: 'support',
       title: 'A blocked company was unblocked',
       body: 'Support removed a company block on your account. You can now interact with that employer again.',
+      actionUrl: payload.actionUrl,
+      channelEmail: true,
+      channelPush: true,
+      channelSms: false,
+    });
+  }
+
+  // ============================================================================
+  // REFERRAL EVENT HANDLERS
+  // ============================================================================
+  // These fire from ReferralsService (modules/referrals). The frontend renders
+  // the localized title/body client-side from `notificationType` + actionData;
+  // the English title/body here are the fallback (email rendering, old clients).
+
+  private async handleReferralQualified(payload: ReferralQualifiedPayload) {
+    const name = payload.inviteeFirstName || 'Someone';
+    await this.createAndDeliver({
+      userId: payload.referrerUserId,
+      notificationType: 'referral_qualified',
+      category: 'referral',
+      title: 'Your referral joined!',
+      body: `${name} joined via your referral link and verified their email. Your referral progress has been updated.`,
+      actionData: { inviteeFirstName: name },
+      actionUrl: payload.actionUrl,
+      channelEmail: true,
+      channelPush: true,
+      channelSms: false,
+    });
+  }
+
+  private async handleReferralRewardEarned(payload: ReferralRewardEarnedPayload) {
+    const amount = formatMinor(payload.amountMinor, payload.currency);
+    await this.createAndDeliver({
+      userId: payload.ownerUserId,
+      notificationType: 'referral_reward_earned',
+      category: 'referral',
+      title: 'Referral reward earned! 🎉',
+      body: `You earned a ${amount} ${payload.rewardType} for reaching ${payload.threshold} successful referrals. It is now pending fulfillment.`,
+      actionData: {
+        amountMinor: payload.amountMinor,
+        currency: payload.currency,
+        rewardType: payload.rewardType,
+        sequenceNumber: payload.sequenceNumber,
+        threshold: payload.threshold,
+      },
+      actionUrl: payload.actionUrl,
+      channelEmail: true,
+      channelPush: true,
+      channelSms: false,
+    });
+  }
+
+  private async handleReferralRewardFulfilled(payload: ReferralRewardFulfilledPayload) {
+    const amount = formatMinor(payload.amountMinor, payload.currency);
+    await this.createAndDeliver({
+      userId: payload.ownerUserId,
+      notificationType: 'referral_reward_fulfilled',
+      category: 'referral',
+      title: 'Your referral reward is on its way',
+      body: `Your ${amount} ${payload.rewardType} reward has been fulfilled. Check the referral page for details.`,
+      actionData: {
+        amountMinor: payload.amountMinor,
+        currency: payload.currency,
+        rewardType: payload.rewardType,
+      },
       actionUrl: payload.actionUrl,
       channelEmail: true,
       channelPush: true,

@@ -468,5 +468,87 @@
       "maintenanceMessage": "Maintenance Message",
       "maintenanceMessageHint": "Message shown to users during maintenance"
     }
+  },
+  "referrals": {
+    "header": {
+      "title": "Referral program",
+      "subtitle": "Configuration, referrals and rewards"
+    },
+    "backToAdmin": "Back to admin console",
+    "settings": {
+      "title": "Program configuration",
+      "enabled": "Referral program enabled",
+      "enabledHint": "New signups can be attributed to a referrer.",
+      "rewardsEnabled": "Rewards enabled",
+      "recurringRewards": "Recurring rewards",
+      "recurringRewardsHint": "Award a reward for every multiple of the threshold (not just the first).",
+      "threshold": "Referrals per reward",
+      "thresholdHint": "Number of successful referrals needed for one reward (1–1000).",
+      "rewardAmount": "Reward amount",
+      "rewardAmountHint": "Major units; stored and processed as integer minor units ({currency} cents).",
+      "rewardCurrency": "Reward currency (ISO 4217)",
+      "rewardType": "Reward type",
+      "qualificationRule": "Qualification rule",
+      "rule": {
+        "email_verified": "Invitee verified their email"
+      },
+      "fulfillmentNote": "Fulfillment providers available: {providers}. Rewards stay pending until fulfilled here.",
+      "save": "Save settings",
+      "saved": "Referral program settings saved.",
+      "saving": "Saving...",
+      "rewardsEnabledHint": "Rewards are issued when the threshold is reached."
+    },
+    "errors": {
+      "loadFailed": "Could not load referral program data.",
+      "saveFailed": "Could not save settings. Please try again.",
+      "invalidAmount": "Reward amount must be a positive number.",
+      "actionFailed": "Action failed. Please try again."
+    },
+    "statusFilter": {
+      "all": "All statuses"
+    },
+    "referralStatus": {
+      "PENDING": "Pending",
+      "QUALIFIED": "Qualified",
+      "INVALIDATED": "Invalidated"
+    },
+    "rewardStatus": {
+      "PENDING": "Pending",
+      "PROCESSING": "Processing",
+      "FULFILLED": "Fulfilled",
+      "FAILED": "Failed",
+      "CANCELLED": "Cancelled"
+    },
+    "referrals": {
+      "title": "Referrals",
+      "filter": "Filter by status",
+      "empty": "No referrals found.",
+      "referredUser": "Referred user",
+      "referrer": "Referrer",
+      "code": "Code",
+      "status": "Status",
+      "attributedAt": "Attributed",
+      "actions": "Actions",
+      "invalidate": "Invalidate",
+      "invalidated": "Referral invalidated. Issued rewards are not clawed back automatically.",
+      "noActions": "—"
+    },
+    "rewards": {
+      "title": "Rewards",
+      "filter": "Filter by status",
+      "empty": "No rewards found.",
+      "owner": "Owner",
+      "amount": "Amount",
+      "milestone": "Milestone",
+      "status": "Status",
+      "provider": "Provider",
+      "actions": "Actions",
+      "fulfill": "Fulfill",
+      "cancel": "Cancel",
+      "fulfilled": "Reward fulfilled.",
+      "cancelled": "Reward cancelled.",
+      "noActions": "Final",
+      "fulfillmentHint": "Manual fulfillment records the reward as fulfilled by you. Connect a gift-card provider later to automate issuance."
+    }
   }
 }
