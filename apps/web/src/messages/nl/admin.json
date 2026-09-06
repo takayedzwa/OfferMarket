@@ -47,6 +47,10 @@
       "referrals": {
         "label": "Verwijzingsprogramma",
         "desc": "Configureer het verwijzingsprogramma en beheer beloningen"
+      },
+      "insights": {
+        "label": "Insights CMS",
+        "desc": "Arbeidsmarktinzichten maken, inplannen en publiceren"
       }
     },
     "header": {

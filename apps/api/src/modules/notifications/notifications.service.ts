@@ -23,6 +23,7 @@ import {
   ReferralQualifiedPayload,
   ReferralRewardEarnedPayload,
   ReferralRewardFulfilledPayload,
+  InsightPublishedPayload,
 } from './notification.types';
 
 // ============================================================================
@@ -76,6 +77,7 @@ export class NotificationsService {
     this.eventEmitter.on(NotificationEventType.REFERRAL_QUALIFIED, this.handleReferralQualified.bind(this));
     this.eventEmitter.on(NotificationEventType.REFERRAL_REWARD_EARNED, this.handleReferralRewardEarned.bind(this));
     this.eventEmitter.on(NotificationEventType.REFERRAL_REWARD_FULFILLED, this.handleReferralRewardFulfilled.bind(this));
+    this.eventEmitter.on(NotificationEventType.INSIGHT_PUBLISHED, this.handleInsightPublished.bind(this));
   }
 
   // ============================================================================
@@ -600,6 +602,32 @@ export class NotificationsService {
         amountMinor: payload.amountMinor,
         currency: payload.currency,
         rewardType: payload.rewardType,
+      },
+      actionUrl: payload.actionUrl,
+      channelEmail: true,
+      channelPush: true,
+      channelSms: false,
+    });
+  }
+
+  // ============================================================================
+  // INSIGHT EVENT HANDLERS
+  // ============================================================================
+
+  private async handleInsightPublished(payload: InsightPublishedPayload) {
+    await this.createAndDeliver({
+      userId: payload.recipientUserId,
+      notificationType: 'insight_published',
+      category: 'insights',
+      title: 'New market intelligence available',
+      body: payload.profession
+        ? `New ${payload.category.toLowerCase()} insight for ${payload.profession}: ${payload.articleTitle}`
+        : `New ${payload.category.toLowerCase()} insight: ${payload.articleTitle}`,
+      actionData: {
+        articleId: payload.articleId,
+        articleSlug: payload.articleSlug,
+        category: payload.category,
+        profession: payload.profession,
       },
       actionUrl: payload.actionUrl,
       channelEmail: true,

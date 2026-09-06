@@ -1,0 +1,168 @@
+{
+  "meta": {
+    "title": "Insights — Dutch skilled-trade labor market intelligence",
+    "description": "What your skills are worth, what employers are offering, and where demand is moving. Built on verified marketplace data, official public data and independent analysis.",
+    "yourMarketTitle": "Your Market",
+    "article": "Insight"
+  },
+  "hero": {
+    "eyebrow": "Market intelligence",
+    "title": "Know what your skills are worth",
+    "subtitle": "Salary data, demand signals and employer intelligence for skilled professionals — built on verified offers, official statistics and honest methodology.",
+    "anonymousCta": "Join to see your market",
+    "anonymousNote": "Personalized market intelligence for workers and employers. Registration is free."
+  },
+  "dataClasses": {
+    "title": "Where our data comes from",
+    "legend": "Every number on this page carries its data class:",
+    "OFFERMARKT": "Offermarket marketplace data",
+    "OFFICIAL": "Official public data",
+    "THIRD_PARTY": "Industry data",
+    "EDITORIAL": "Editorial analysis",
+    "OFFERMARKT_DESC": "Computed from verified offers submitted on Offermarket.",
+    "OFFICIAL_DESC": "CBS, UWV, RVO, Dutch government, Eurostat, European Commission — always linked to the original source.",
+    "THIRD_PARTY_DESC": "Third-party research, summarized and attributed — never republished.",
+    "EDITORIAL_DESC": "Our own analysis. Makes no data claims."
+  },
+  "yourMarket": {
+    "title": "Your Market",
+    "subtitle": "Based on your profile and live marketplace activity",
+    "experience": "{years, plural, one {# year experience} other {# years experience}}",
+    "demand": "Demand",
+    "demandLevel": {
+      "VERY_HIGH": "Very high",
+      "HIGH": "High",
+      "MODERATE": "Moderate",
+      "LOW": "Low"
+    },
+    "typicalSalary": "Typical salary",
+    "typicalSalaryNote": "per year",
+    "trend": "Market trend",
+    "skills": "Relevant skills",
+    "employers": "Employers hiring",
+    "offers": "Relevant offers",
+    "recentChanges": "Recent market changes",
+    "changes": {
+      "offers": "{change, plural, one {# offer} other {# offers}} {direction, select, up {more} down {fewer} other {}}",
+      "employers": "{change, plural, one {# employer} other {# employers}} {direction, select, up {more} down {fewer} other {}}"
+    },
+    "viewDeep": "Open your full market view",
+    "noProfile": "Complete your profile with a profession and region to unlock your personal market view.",
+    "setupProfile": "Set up your profile",
+    "scopeNote": {
+      "city": "Showing your own region.",
+      "province": "Local sample too small — showing regional data.",
+      "country": "Local and regional samples too small — showing national data."
+    },
+    "employer": {
+      "title": "Your hiring market",
+      "subtitle": "Aggregated intelligence for your dominant trade — cohort data only, never individual candidates.",
+      "hiringDifficulty": "Hiring difficulty",
+      "difficultyLevel": {
+        "VERY_HARD": "Very hard",
+        "HARD": "Hard",
+        "MODERATE": "Moderate",
+        "EASY": "Manageable"
+      },
+      "salaryCompetitiveness": "Salary competitiveness",
+      "competitiveness": {
+        "above": "Above market median",
+        "at": "At market median",
+        "below": "Below market median",
+        "unknown": "No offers to compare yet"
+      },
+      "yourMedian": "Your median offer",
+      "marketMedian": "Market median",
+      "competitorRanges": "Competitor offer ranges",
+      "candidateAvailability": "Candidate availability",
+      "candidates": "{count, plural, one {# candidate} other {# candidates}}",
+      "timeToHire": "Time to hire",
+      "medianDays": "{days, plural, one {# day} other {# days}} (median)",
+      "acceptanceRate": "Offer acceptance rate (market)",
+      "demandByRegion": "Demand by region",
+      "employersInCohort": "{count, plural, one {# employer} other {# employers}} in cohort"
+    }
+  },
+  "latest": {
+    "title": "Latest insights",
+    "subtitle": "Market intelligence, freshly published",
+    "viewAll": "View all",
+    "readMore": "Read insight",
+    "views": "{count, plural, one {# view} other {# views}}",
+    "empty": "No insights published yet in this category. Check back soon."
+  },
+  "category": {
+    "SALARY": "Salary Intelligence",
+    "DEMAND": "Demand Intelligence",
+    "EMPLOYER": "Employer Intelligence",
+    "INDUSTRY": "Industry News",
+    "CAREER": "Career Intelligence",
+    "SALARY_DESC": "What skills are worth — verified offer ranges and official wage statistics.",
+    "DEMAND_DESC": "Where demand is highest and how it is shifting.",
+    "EMPLOYER_DESC": "Which employers are competitive and how they hire.",
+    "INDUSTRY_DESC": "Regulation, technology and labor-market developments.",
+    "CAREER_DESC": "Skills that pay, certifications that matter, moves that pay off.",
+    "browse": "Browse {category}"
+  },
+  "article": {
+    "published": "Published",
+    "updated": "Last updated",
+    "dataPeriod": "Data period",
+    "by": "By",
+    "editorialTeam": "Offermarket Editorial",
+    "transparency": {
+      "title": "About this data",
+      "sampleSize": "Sample size",
+      "observations": "{count, plural, one {# observation} other {# observations}}",
+      "dataPeriod": "Data period",
+      "scope": "Geographic scope",
+      "profession": "Profession",
+      "methodology": "Methodology",
+      "dataClass": "Data class",
+      "noSample": "This is editorial analysis — it makes no data claims."
+    },
+    "keyStats": "Key statistics",
+    "sources": {
+      "title": "Sources",
+      "publisher": "Publisher",
+      "published": "Published",
+      "dataDate": "Data date",
+      "viewOriginal": "View original source"
+    },
+    "share": {
+      "title": "Share this insight",
+      "linkedin": "Share on LinkedIn",
+      "facebook": "Share on Facebook",
+      "whatsapp": "Share on WhatsApp",
+      "copyLink": "Copy link",
+      "copied": "Link copied"
+    },
+    "related": "Related insights",
+    "notFound": "This insight does not exist or is no longer published."
+  },
+  "insufficient": {
+    "title": "Insufficient data",
+    "body": "We only show numbers when the verified sample is large enough to be meaningful. This statistic needs more marketplace activity first.",
+    "sample": "{count, plural, one {# verified offer so far} other {# verified offers so far}}"
+  },
+  "follow": {
+    "title": "Get notified",
+    "body": "Follow a profession, region or skill and we will notify you when new insights are published.",
+    "followProfession": "Follow this profession",
+    "followRegion": "Follow this region",
+    "following": "Following ✓",
+    "signInToFollow": "Sign in to follow",
+    "unfollow": "Unfollow",
+    "myFollows": "Your follows",
+    "noFollows": "You are not following anything yet. Follow a profession, region or skill from any insight.",
+    "profession": "Profession",
+    "region": "Region",
+    "skill": "Skill",
+    "email": "Email notifications"
+  },
+  "cta": {
+    "registerWorker": "Create a worker profile",
+    "registerEmployer": "Hire with structured offers",
+    "clickNote": "See the real numbers behind these insights."
+  }
+}

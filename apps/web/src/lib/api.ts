@@ -845,3 +845,176 @@ export const getOfferStatusLabel = (status: string): string => {
   };
   return keys[status] ? `enums.offerStatus.${keys[status]}` : status;
 };
+
+// ============================================================================
+// INSIGHTS — labor-market intelligence product
+// ============================================================================
+// Public reader endpoints + personalized market intelligence + admin CMS.
+// Every data-driven field returned by these endpoints is either labeled with
+// its data class (OFFERMARKT / OFFICIAL / THIRD_PARTY / EDITORIAL) or returned
+// as an explicit INSUFFICIENT_DATA state — the API never sends a number the
+// sample size cannot support (see apps/api/src/modules/insights).
+
+export interface GatedValue<T> {
+  available: boolean;
+  reason?: 'INSUFFICIENT_DATA';
+  value?: T;
+  sampleSize?: number;
+}
+
+export interface WorkerMarketOverview {
+  profile: {
+    profession: string | null;
+    regionName: string | null;
+    regionId: string | null;
+    yearsOfExperience: number | null;
+    skills: string[];
+    certifications: string[];
+  };
+  scopeUsed: 'city' | 'province' | 'country' | null;
+  scopeNote: string | null;
+  demand: GatedValue<{ level: string; offers: number }>;
+  salaryRange: GatedValue<{ p25: number; p75: number; currency: string }>;
+  salaryTrend: GatedValue<{ changePct: number; direction: 'up' | 'down' | 'stable' }>;
+  mostValuableSkills: GatedValue<Array<{ skill: string; premiumPct: number }>>;
+  relevantEmployers: GatedValue<{ count: number }>;
+  relevantOffers: GatedValue<{ count: number }>;
+  recentChanges: Array<{ metric: string; change: number; direction: 'up' | 'down' | 'stable' }>;
+}
+
+export interface EmployerMarketView {
+  profession: string | null;
+  hiringDifficulty: GatedValue<{ level: string; candidatesPerOffer: number | null }>;
+  salaryCompetitiveness: GatedValue<{
+    yourMedian: number | null;
+    marketMedian: number | null;
+    position: 'above' | 'at' | 'below' | 'unknown';
+  }>;
+  demandByRegion: GatedValue<Array<{ regionName: string; offers: number }>>;
+  candidateAvailability: GatedValue<{ count: number }>;
+  competitorOfferRanges: GatedValue<{ p25: number; p50: number; p75: number; employersInCohort: number }>;
+  timeToHire: GatedValue<{ medianDays: number }>;
+  offerAcceptanceRate: GatedValue<{ ratePct: number; sampleSize: number }>;
+}
+
+export interface InsightArticleCard {
+  id: string;
+  slug: string;
+  title: string;
+  summary: string;
+  category: string;
+  profession?: string | null;
+  skills?: string[];
+  dataClass: string;
+  sampleSize?: number | null;
+  dataPeriodStart?: string | null;
+  dataPeriodEnd?: string | null;
+  publishedAt?: string | null;
+  lastUpdatedAt?: string | null;
+  viewCount?: number;
+  uniqueReaderCount?: number;
+  shareCount?: number;
+}
+
+export interface InsightSourceRef {
+  source: {
+    id: string;
+    name: string;
+    url: string;
+    publisher: string;
+    sourceType: string;
+    publicationDate?: string | null;
+    dataDate?: string | null;
+    citation?: string | null;
+  };
+  isPrimary: boolean;
+  order: number;
+}
+
+export interface InsightArticleDetail extends InsightArticleCard {
+  content: string;
+  region?: { id: string; name: string; nameEn?: string | null } | null;
+  charts?: any[];
+  statistics?: any[];
+  keyStats?: any;
+  methodology?: string | null;
+  authorName?: string;
+  seoTitle?: string | null;
+  metaDescription?: string | null;
+  socialTitle?: string | null;
+  sources?: InsightSourceRef[];
+}
+
+export interface InsightFollow {
+  id: string;
+  profession?: string | null;
+  regionId?: string | null;
+  region?: { id: string; name: string } | null;
+  skillSlug?: string | null;
+  notifyEmail: boolean;
+}
+
+export const insightsApi = {
+  // --- public reads ---
+  listArticles: (params?: { page?: number; limit?: number; category?: string; profession?: string; regionId?: string }) =>
+    api.get('/insights/articles', { params }),
+  getArticle: (slug: string) => api.get(`/insights/articles/${slug}`),
+  getCategories: () => api.get('/insights/categories'),
+  marketPreview: (profession?: string) => api.get('/insights/market/preview', { params: { profession } }),
+
+  // --- personalized market intelligence ---
+  workerMarketOverview: () => api.get<WorkerMarketOverview>('/insights/market/overview'),
+  employerMarketView: () => api.get<EmployerMarketView>('/insights/market/employer'),
+
+  // --- analytics (anonymous-safe; sessionKey is a random per-browser key) ---
+  trackEvent: (event: {
+    sessionKey: string;
+    eventType: string;
+    articleId?: string;
+    path?: string;
+    referrer?: string;
+    locale?: string;
+  }) => api.post('/insights/analytics/event', event),
+
+  // --- follows ---
+  listFollows: () => api.get('/insights/follows'),
+  createFollow: (data: { profession?: string; regionId?: string; skillSlug?: string; notifyEmail?: boolean }) =>
+    api.post('/insights/follows', data),
+  deleteFollow: (id: string) => api.delete(`/insights/follows/${id}`),
+};
+
+export const insightAdminApi = {
+  listArticles: (params?: { page?: number; limit?: number; status?: string; category?: string }) =>
+    api.get('/admin/insights/articles', { params }),
+  getArticle: (id: string) => api.get(`/admin/insights/articles/${id}`),
+  createArticle: (data: any) => api.post('/admin/insights/articles', data),
+  updateArticle: (id: string, data: any) => api.patch(`/admin/insights/articles/${id}`, data),
+  scheduleArticle: (id: string, publishAt: string) =>
+    api.post(`/admin/insights/articles/${id}/schedule`, { publishAt }),
+  publishArticle: (id: string) => api.post(`/admin/insights/articles/${id}/publish`),
+  unpublishArticle: (id: string) => api.post(`/admin/insights/articles/${id}/unpublish`),
+  archiveArticle: (id: string) => api.post(`/admin/insights/articles/${id}/archive`),
+  deleteArticle: (id: string) => api.delete(`/admin/insights/articles/${id}`),
+  listSources: () => api.get('/admin/insights/sources'),
+  createSource: (data: any) => api.post('/admin/insights/sources', data),
+  updateSource: (id: string, data: any) => api.patch(`/admin/insights/sources/${id}`, data),
+  deleteSource: (id: string) => api.delete(`/admin/insights/sources/${id}`),
+};
+
+/** Pseudonymous analytics session key: random, stored per-browser. Never an IP
+ * or device fingerprint — the analytics events must carry no personal data. */
+export const getInsightsSessionKey = (): string => {
+  try {
+    const existing = localStorage.getItem('insights_session_key');
+    if (existing) return existing;
+    const key = Array.from(crypto.getRandomValues(new Uint8Array(16)))
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('');
+    localStorage.setItem('insights_session_key', key);
+    return key;
+  } catch {
+    // localStorage can throw in privacy-restricted browsers — degrade to a
+    // per-page-load key (only loses returning-reader detection).
+    return Math.random().toString(36).slice(2) + Date.now().toString(36);
+  }
+};

@@ -98,6 +98,17 @@ export const ERROR_CODES = {
   REFERRAL_REWARD_ALREADY_PROCESSING: 'referral.reward_already_processing',
   REFERRAL_SETTINGS_INVALID: 'referral.settings_invalid',
 
+  // --- insights.service.ts ---
+  INSIGHT_NOT_FOUND: 'insight.not_found',
+  INSIGHT_SLUG_TAKEN: 'insight.slug_taken',
+  INSIGHT_INVALID_TRANSITION: 'insight.invalid_transition',
+  INSIGHT_SAMPLE_TOO_SMALL: 'insight.sample_too_small',
+  INSIGHT_DATA_PERIOD_REQUIRED: 'insight.data_period_required',
+  INSIGHT_SOURCE_NOT_FOUND: 'insight.source_not_found',
+  INSIGHT_FOLLOW_EMPTY: 'insight.follow_empty',
+  INSIGHT_FOLLOW_NOT_FOUND: 'insight.follow_not_found',
+  INSIGHT_REGION_NOT_FOUND: 'insight.region_not_found',
+
   // --- generic / filter-emitted ---
   ERROR_INTERNAL: 'error.internal',
   ERROR_NETWORK: 'error.network',

@@ -18,6 +18,7 @@ import { BillingModule } from './modules/billing/billing.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { ReferralsModule } from './modules/referrals/referrals.module';
 import { PrivacyModule } from './modules/privacy/privacy.module';
+import { InsightsModule } from './modules/insights/insights.module';
 import { DsaModule } from './modules/dsa/dsa.module';
 import { UploadsModule } from './modules/uploads/uploads.module';
 import { HealthModule } from './modules/health/health.module';
@@ -66,6 +67,7 @@ import { ProcessingRestrictionGuard } from './guards/processing-restriction.guar
     NotificationsModule,
     ReferralsModule,
     PrivacyModule,
+    InsightsModule,
     DsaModule,
     UploadsModule,
   ],

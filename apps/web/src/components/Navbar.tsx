@@ -10,7 +10,7 @@ import {
   Gift,
   Home, Users, Briefcase, MessageSquare, FileText,
   Shield, Ticket, Building2, User, CreditCard, Lock, Flag,
-  Menu, X,
+  Menu, X, Newspaper,
 } from "lucide-react";
 
 export default function Navbar() {
@@ -50,6 +50,9 @@ export default function Navbar() {
   // `label` holds a translation key resolved via `t(...)` at render time.
   const navLinks: { href: string; label: string; Icon: React.ComponentType<{ className?: string }> }[] = [
     { href: "/", label: "links.home", Icon: Home },
+    // Insights is the one public tab in the primary navigation: visible to
+    // every visitor and every role, before the role-gated links below.
+    { href: "/insights", label: "links.insights", Icon: Newspaper },
   ];
   if (isAuthenticated) {
     if (userRole === "WORKER") {

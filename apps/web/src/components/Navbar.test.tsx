@@ -69,6 +69,7 @@ jest.mock('@/contexts/AuthContext', () => {
 
 jest.mock('lucide-react', () => ({
   Home: () => 'HomeIcon',
+  Newspaper: () => 'NewspaperIcon',
   Gift: () => 'GiftIcon',
   Users: () => 'UsersIcon',
   Briefcase: () => 'BriefcaseIcon',

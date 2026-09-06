@@ -65,6 +65,7 @@ jest.mock('lucide-react', () => ({
   Scale: () => 'ScaleIcon',
   ShieldCheck: () => 'ShieldCheckIcon',
   Gift: () => 'GiftIcon',
+  Newspaper: () => 'NewspaperIcon',
 }));
 
 // A-L3: the dashboard now uses the centralized axios client (adminApi) instead

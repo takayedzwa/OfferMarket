@@ -34,6 +34,9 @@ export enum NotificationEventType {
   REFERRAL_QUALIFIED = 'referral.qualified',
   REFERRAL_REWARD_EARNED = 'referral.reward.earned',
   REFERRAL_REWARD_FULFILLED = 'referral.reward.fulfilled',
+
+  // Insights (modules/insights) — a followed profession/region/skill got new data.
+  INSIGHT_PUBLISHED = 'insight.published',
 }
 
 // ============================================================================
@@ -199,6 +202,20 @@ export interface ReferralRewardFulfilledPayload extends BaseNotificationPayload 
   rewardType: string;
   amountMinor: number;
   currency: string;
+}
+
+// ============================================================================
+// Insights payloads (modules/insights)
+// ============================================================================
+
+/** A followed profession/region/skill got a new published insight. */
+export interface InsightPublishedPayload extends BaseNotificationPayload {
+  recipientUserId: string;
+  articleId: string;
+  articleTitle: string;
+  articleSlug: string;
+  category: string;
+  profession?: string;
 }
 
 // ============================================================================
