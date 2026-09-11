@@ -141,7 +141,12 @@
     "banPlaceholder": "Enter reason for ban...",
     "banUserBtn": "Ban User",
     "failedSuspend": "Failed to suspend user",
-    "failedBan": "Failed to ban user"
+    "failedBan": "Failed to ban user",
+    "credentials": "Credentials",
+    "verifyCta": "Verify",
+    "rejectCta": "Reject",
+    "rejectCredentialPrompt": "Reason for rejecting this credential:",
+    "failedCredential": "Failed to update credential"
   },
   "invoiceDetail": {
     "invoiceNotFound": "Invoice not found",

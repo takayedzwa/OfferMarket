@@ -221,3 +221,148 @@ describe('AdminService — createStaffUser', () => {
     expect(prisma._lastTx.adminAction.create).not.toHaveBeenCalled();
   });
 });
+/**
+ * Mock PrismaService for the worker credential-review methods
+ * (verifyCertification / rejectCertification / listPendingCertifications).
+ */
+class MockCredentialPrismaService {
+  certification = {
+    findUnique: jest.fn(),
+    updateMany: jest.fn(),
+    findMany: jest.fn(),
+    count: jest.fn(),
+  };
+  adminAction = {
+    create: jest.fn().mockResolvedValue({}),
+  };
+}
+
+describe('AdminService — worker credential review', () => {
+  let service: AdminService;
+  let prisma: MockCredentialPrismaService;
+  const adminUserId = 'admin-1';
+
+  const pendingCert = {
+    id: 'cert-1',
+    name: 'BIG-registratie',
+    verificationStatus: 'PENDING',
+    profileId: 'worker-1',
+  };
+
+  beforeEach(async () => {
+    prisma = new MockCredentialPrismaService();
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        AdminService,
+        { provide: PrismaService, useValue: prisma },
+      ],
+    }).compile();
+    service = module.get<AdminService>(AdminService);
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  describe('listPendingCertifications', () => {
+    it('returns pending certifications with their worker and pagination', async () => {
+      prisma.certification.findMany.mockResolvedValue([pendingCert]);
+      prisma.certification.count.mockResolvedValue(1);
+
+      const result = await service.listPendingCertifications(2, 20);
+
+      expect(prisma.certification.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { verificationStatus: 'PENDING' },
+          skip: 20,
+          take: 20,
+        }),
+      );
+      expect(result.certifications).toEqual([pendingCert]);
+      expect(result.pagination).toEqual({ page: 2, limit: 20, total: 1, totalPages: 1 });
+    });
+  });
+
+  describe('verifyCertification', () => {
+    it('moves a PENDING certification to VERIFIED and writes an audit row', async () => {
+      prisma.certification.findUnique.mockResolvedValue(pendingCert);
+      prisma.certification.updateMany.mockResolvedValue({ count: 1 });
+
+      const result = await service.verifyCertification('cert-1', adminUserId, 'checked BIG-register');
+
+      expect(prisma.certification.updateMany).toHaveBeenCalledWith({
+        where: { id: 'cert-1', verificationStatus: 'PENDING' },
+        data: expect.objectContaining({
+          verificationStatus: 'VERIFIED',
+          verifiedBy: adminUserId,
+          verificationMethod: 'MANUAL_REVIEW',
+        }),
+      });
+      expect(prisma.adminAction.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            actorId: adminUserId,
+            action: 'CREDENTIAL_VERIFIED',
+            entityType: 'certification',
+          }),
+        }),
+      );
+      expect(result).toEqual({ success: true, message: 'Certification verified' });
+    });
+
+    it('throws BadRequest when the certification is no longer PENDING', async () => {
+      prisma.certification.findUnique.mockResolvedValue({
+        ...pendingCert,
+        verificationStatus: 'VERIFIED',
+      });
+      prisma.certification.updateMany.mockResolvedValue({ count: 0 });
+
+      await expect(
+        service.verifyCertification('cert-1', adminUserId),
+      ).rejects.toThrow(BadRequestException);
+      expect(prisma.adminAction.create).not.toHaveBeenCalled();
+    });
+
+    it('throws NotFound for an unknown certification', async () => {
+      prisma.certification.findUnique.mockResolvedValue(null);
+      await expect(
+        service.verifyCertification('missing', adminUserId),
+      ).rejects.toThrow();
+    });
+  });
+
+  describe('rejectCertification', () => {
+    it('moves a PENDING certification to REVOKED and records the reason', async () => {
+      prisma.certification.findUnique.mockResolvedValue(pendingCert);
+      prisma.certification.updateMany.mockResolvedValue({ count: 1 });
+
+      const result = await service.rejectCertification('cert-1', adminUserId, 'not in BIG-register');
+
+      expect(prisma.certification.updateMany).toHaveBeenCalledWith({
+        where: { id: 'cert-1', verificationStatus: 'PENDING' },
+        data: { verificationStatus: 'REVOKED' },
+      });
+      expect(prisma.adminAction.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            action: 'CREDENTIAL_REJECTED',
+            details: expect.objectContaining({ reason: 'not in BIG-register' }),
+          }),
+        }),
+      );
+      expect(result).toEqual({ success: true, message: 'Certification rejected' });
+    });
+
+    it('throws BadRequest when the certification is no longer PENDING', async () => {
+      prisma.certification.findUnique.mockResolvedValue({
+        ...pendingCert,
+        verificationStatus: 'EXPIRED',
+      });
+      prisma.certification.updateMany.mockResolvedValue({ count: 0 });
+
+      await expect(
+        service.rejectCertification('cert-1', adminUserId, 'reason'),
+      ).rejects.toThrow(BadRequestException);
+    });
+  });
+});

@@ -109,7 +109,9 @@
     "ENGLISH_B2": "English B2+",
     "EU_CITIZEN": "EU Citizen",
     "WORK_PERMIT_VALID": "Work Permit Valid",
-    "VERIFIED_CREDENTIALS": "Verified Credentials"
+    "VERIFIED_CREDENTIALS": "Verified Credentials",
+    "BIG_REGISTERED": "BIG-registered",
+    "VOG_VERIFIED": "VOG Verified"
   },
   "contentReportCategory": {
     "ILLEGAL_CONTENT": "Illegal content",

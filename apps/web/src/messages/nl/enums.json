@@ -109,7 +109,9 @@
     "ENGLISH_B2": "Engels B2+",
     "EU_CITIZEN": "EU-burger",
     "WORK_PERMIT_VALID": "Geldige werkvergunning",
-    "VERIFIED_CREDENTIALS": "Geverifieerde referenties"
+    "VERIFIED_CREDENTIALS": "Geverifieerde referenties",
+    "BIG_REGISTERED": "BIG-geregistreerd",
+    "VOG_VERIFIED": "VOG gecontroleerd"
   },
   "contentReportCategory": {
     "ILLEGAL_CONTENT": "Illegale inhoud",

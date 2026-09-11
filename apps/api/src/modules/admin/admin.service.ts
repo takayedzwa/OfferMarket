@@ -519,6 +519,137 @@ export class AdminService {
   }
 
   // ============================================================================
+  // WORKER CREDENTIAL REVIEW
+  // ============================================================================
+  // Nurses (and future regulated trades) declare credentials as Certifications
+  // (BIG-registration, VOG, professional liability insurance). Admins verify
+  // them manually — e.g. against the public BIG-register — via these methods.
+  // ============================================================================
+
+  async listPendingCertifications(page: number = 1, limit: number = 20) {
+    const skip = (page - 1) * limit;
+
+    const [certifications, total] = await Promise.all([
+      this.prisma.certification.findMany({
+        where: { verificationStatus: 'PENDING' },
+        skip,
+        take: limit,
+        include: {
+          profile: {
+            include: {
+              user: {
+                select: { id: true, firstName: true, lastName: true, email: true },
+              },
+            },
+          },
+        },
+        orderBy: { createdAt: 'asc' },
+      }),
+      this.prisma.certification.count({ where: { verificationStatus: 'PENDING' } }),
+    ]);
+
+    return {
+      certifications,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  async verifyCertification(certificationId: string, adminUserId: string, notes?: string) {
+    const certification = await this.prisma.certification.findUnique({
+      where: { id: certificationId },
+      select: { id: true, name: true, verificationStatus: true, profileId: true },
+    });
+
+    if (!certification) {
+      throw new NotFoundException('Certification not found');
+    }
+
+    // Atomic, idempotent transition: only update rows still in PENDING —
+    // see verifyEmployer for rationale.
+    const result = await this.prisma.certification.updateMany({
+      where: { id: certificationId, verificationStatus: 'PENDING' },
+      data: {
+        verificationStatus: 'VERIFIED',
+        verifiedAt: new Date(),
+        verifiedBy: adminUserId,
+        verificationMethod: 'MANUAL_REVIEW',
+      },
+    });
+
+    if (result.count === 0) {
+      throw new BadRequestException(
+        `Certification cannot be verified in status: ${certification.verificationStatus}`,
+      );
+    }
+
+    await this.prisma.adminAction.create({
+      data: {
+        actorId: adminUserId,
+        action: 'CREDENTIAL_VERIFIED',
+        entityType: 'certification',
+        entityId: certificationId,
+        details: {
+          notes,
+          certificationName: certification.name,
+          workerProfileId: certification.profileId,
+          previousStatus: certification.verificationStatus,
+          newStatus: 'VERIFIED',
+        },
+      },
+    });
+
+    return { success: true, message: 'Certification verified' };
+  }
+
+  async rejectCertification(certificationId: string, adminUserId: string, reason: string) {
+    const certification = await this.prisma.certification.findUnique({
+      where: { id: certificationId },
+      select: { id: true, name: true, verificationStatus: true, profileId: true },
+    });
+
+    if (!certification) {
+      throw new NotFoundException('Certification not found');
+    }
+
+    // Atomic, idempotent transition — see rejectEmployer for rationale.
+    const result = await this.prisma.certification.updateMany({
+      where: { id: certificationId, verificationStatus: 'PENDING' },
+      data: {
+        verificationStatus: 'REVOKED',
+      },
+    });
+
+    if (result.count === 0) {
+      throw new BadRequestException(
+        `Certification cannot be rejected in status: ${certification.verificationStatus}`,
+      );
+    }
+
+    await this.prisma.adminAction.create({
+      data: {
+        actorId: adminUserId,
+        action: 'CREDENTIAL_REJECTED',
+        entityType: 'certification',
+        entityId: certificationId,
+        details: {
+          reason,
+          certificationName: certification.name,
+          workerProfileId: certification.profileId,
+          previousStatus: certification.verificationStatus,
+          newStatus: 'REVOKED',
+        },
+      },
+    });
+
+    return { success: true, message: 'Certification rejected' };
+  }
+
+  // ============================================================================
   // PLATFORM SETTINGS
   // ============================================================================
 

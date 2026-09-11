@@ -60,7 +60,14 @@
     "placeholderVerify": "Add verification notes (optional)...",
     "placeholderReject": "Enter rejection reason...",
     "alertVerifyFailed": "Failed to verify employer",
-    "alertRejectFailed": "Failed to reject employer"
+    "alertRejectFailed": "Failed to reject employer",
+    "credentialsTitle": "Worker credentials",
+    "credentialsSubtitle": "Declared credentials awaiting manual verification (BIG registration, VOG, professional liability insurance). For BIG registration, check the BIG-number at bigregister.nl.",
+    "credentialsEmpty": "No pending credentials",
+    "submittedOn": "Submitted {date}",
+    "viewWorker": "View profile",
+    "alertCredentialFailed": "Failed to update credential",
+    "rejectCredentialPrompt": "Reason for rejecting this credential:"
   },
   "trust": {
     "title": "Trust & Fraud",

@@ -116,6 +116,28 @@ export default function AdminUserDetailPage() {
       .catch(() => {});
   };
 
+  const handleVerifyCert = (certId: string) => {
+    adminApi
+      .verifyCertification(certId)
+      .then(() => {
+        fetchUser();
+        fetchActions();
+      })
+      .catch(() => alert(t("failedCredential")));
+  };
+
+  const handleRejectCert = (certId: string) => {
+    const reason = window.prompt(t("rejectCredentialPrompt"));
+    if (!reason || !reason.trim()) return;
+    adminApi
+      .rejectCertification(certId, reason.trim())
+      .then(() => {
+        fetchUser();
+        fetchActions();
+      })
+      .catch(() => alert(t("failedCredential")));
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -295,6 +317,41 @@ export default function AdminUserDetailPage() {
                       <div>
                         <div className="text-sm text-gray-500">{t("location")}</div>
                         <div className="font-medium text-gray-900">{user.worker.location}</div>
+                      </div>
+                    </div>
+                  )}
+                  {(user.worker.certifications?.length ?? 0) > 0 && (
+                    <div>
+                      <div className="text-sm text-gray-500">{t("credentials")}</div>
+                      <div className="mt-2 space-y-2">
+                        {user.worker.certifications.map((cert: any) => (
+                          <div key={cert.id} className="flex items-center justify-between gap-3 p-3 bg-gray-50 rounded-lg">
+                            <div className="min-w-0">
+                              <div className="text-sm font-medium text-gray-900">{cert.name}</div>
+                              <div className="text-xs text-gray-500 truncate">
+                                {cert.issuingBody}
+                                {cert.certificationNumber ? ` · ${cert.certificationNumber}` : ""}
+                                {cert.validUntil ? ` · ${date(cert.validUntil)}` : ""}
+                              </div>
+                            </div>
+                            {cert.verificationStatus === 'PENDING' ? (
+                              <div className="flex gap-2 shrink-0">
+                                <button onClick={() => handleVerifyCert(cert.id)} className="px-3 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 text-xs">
+                                  {t("verifyCta")}
+                                </button>
+                                <button onClick={() => handleRejectCert(cert.id)} className="px-3 py-1 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 text-xs">
+                                  {t("rejectCta")}
+                                </button>
+                              </div>
+                            ) : (
+                              <span className={`px-2 py-1 text-xs font-medium rounded-full shrink-0 ${
+                                cert.verificationStatus === 'VERIFIED' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                              }`}>
+                                {cert.verificationStatus}
+                              </span>
+                            )}
+                          </div>
+                        ))}
                       </div>
                     </div>
                   )}

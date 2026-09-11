@@ -107,6 +107,10 @@ const SPECIALIZATION_KEYS = [
   "RENEWABLE_ENERGY",
 ] as const;
 
+// Specializations are electrician-specific today; the filter only applies
+// when no trade or an electrical trade is selected.
+const isElectricalTrade = (trade?: string) => !!trade && trade.toLowerCase().includes("electric");
+
 // ============================================================================
 // MAIN COMPONENT
 // ============================================================================
@@ -239,7 +243,10 @@ export default function WorkersSearch() {
   useEffect(() => {
     workersApi.getTrades()
       .then((res) => setTrades(res.data.currentlyAvailable || res.data || []))
-      .catch(() => setTrades([{ value: "Electrician", label: "Electrician", available: true }]));
+      .catch(() => setTrades([
+        { value: "Electrician", label: "Electrician", available: true },
+        { value: "Nurse", label: "Nurse", available: true },
+      ]));
 
     workersApi.getSpecializations()
       .then((res) => setSpecializationOptions(res.data || []))
@@ -530,7 +537,11 @@ export default function WorkersSearch() {
                 </label>
                 <select
                   value={filters.trade}
-                  onChange={(e) => updateFilter('trade', e.target.value)}
+                  onChange={(e) => {
+                    const trade = e.target.value;
+                    updateFilter('trade', trade);
+                    if (!isElectricalTrade(trade)) updateFilter('specializations', []);
+                  }}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
                 >
                   <option value="">{t("allTrades")}</option>
@@ -793,6 +804,7 @@ export default function WorkersSearch() {
                 </div>
 
                 {/* Specializations */}
+                {(!filters.trade || isElectricalTrade(filters.trade)) && (
                 <div>
                   <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
                     <Briefcase className="w-4 h-4" />
@@ -814,6 +826,7 @@ export default function WorkersSearch() {
                     ))}
                   </div>
                 </div>
+                )}
 
                 {/* Skills */}
                 <div>

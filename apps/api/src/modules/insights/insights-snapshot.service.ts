@@ -63,7 +63,7 @@ export class InsightsSnapshotService {
   ) {}
 
   /** Nightly job: write today's snapshot for every active (profession, region). */
-  @Cron('0 30 2 * *')
+  @Cron('30 2 * * *')
   async writeDailySnapshots(): Promise<{ snapshots: number }> {
     const t = await this.config.getThresholds();
     const windowStart = new Date(Date.now() - 180 * 24 * 60 * 60 * 1000);

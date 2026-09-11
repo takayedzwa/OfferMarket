@@ -102,7 +102,10 @@ export default function SetupWorkerProfile() {
     workersApi.getTrades()
       .then((res) => setTrades(res.data.trades || []))
       .catch(() => {
-        setTrades([{ value: "Electrician", label: "Electrician", available: true }]);
+        setTrades([
+          { value: "Electrician", label: "Electrician", available: true },
+          { value: "Nurse", label: "Nurse", available: true },
+        ]);
       });
 
     enumsApi.getWorkSchedule()

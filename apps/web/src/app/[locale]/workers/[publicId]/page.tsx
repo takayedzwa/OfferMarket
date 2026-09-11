@@ -106,6 +106,8 @@ const BADGE_ICONS: Record<string, string> = {
   EU_CITIZEN: "🇪🇺",
   WORK_PERMIT_VALID: "📋",
   VERIFIED_CREDENTIALS: "✓",
+  BIG_REGISTERED: "✚",
+  VOG_VERIFIED: "🛡️",
 };
 
 export default function WorkerProfilePage() {

@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
 import { useFormat } from "@/hooks/useFormat";
 import { ArrowLeft, CheckCircle, XCircle, Building2, Clock, FileText, Eye } from "lucide-react";
+import { adminApi } from "@/lib/api";
 
 interface PendingVerification {
   id: string;
@@ -22,6 +23,22 @@ interface PendingVerification {
   };
 }
 
+interface PendingCredential {
+  id: string;
+  name: string;
+  issuingBody: string;
+  certificationNumber?: string;
+  createdAt: string;
+  profile?: {
+    user?: {
+      id: string;
+      firstName?: string;
+      lastName?: string;
+      email: string;
+    };
+  };
+}
+
 export default function AdminVerificationsPage() {
   const t = useTranslations("admin-list.verifications");
   const router = useRouter();
@@ -32,6 +49,14 @@ export default function AdminVerificationsPage() {
   const [showModal, setShowModal] = useState(false);
   const [actionType, setActionType] = useState<"verify" | "reject">("verify");
   const [notes, setNotes] = useState("");
+  const [pendingCredentials, setPendingCredentials] = useState<PendingCredential[]>([]);
+
+  const fetchPendingCredentials = () => {
+    adminApi
+      .getPendingCertifications({ limit: 50 })
+      .then(({ data }) => setPendingCredentials(data.certifications || []))
+      .catch(() => {});
+  };
 
   const fetchPendingVerifications = () => {
     setLoading(true);
@@ -68,7 +93,24 @@ export default function AdminVerificationsPage() {
 
   useEffect(() => {
     fetchPendingVerifications();
+    fetchPendingCredentials();
   }, []);
+
+  const handleCredentialAction = (certId: string, type: "verify" | "reject") => {
+    const request =
+      type === "verify"
+        ? adminApi.verifyCertification(certId)
+        : (() => {
+            const reason = window.prompt(t("rejectCredentialPrompt"));
+            if (!reason || !reason.trim()) return null;
+            return adminApi.rejectCertification(certId, reason.trim());
+          })();
+
+    if (!request) return;
+    request
+      .then(() => fetchPendingCredentials())
+      .catch(() => alert(t("alertCredentialFailed")));
+  };
 
   const handleAction = () => {
     if (!selectedVerification) return;
@@ -243,6 +285,55 @@ export default function AdminVerificationsPage() {
             ))}
           </div>
         )}
+
+        {/* Worker credentials queue */}
+        <div className="mt-10">
+          <h2 className="text-lg font-semibold text-gray-900">{t("credentialsTitle")}</h2>
+          <p className="text-sm text-gray-500 mt-1 mb-4">{t("credentialsSubtitle")}</p>
+          {pendingCredentials.length === 0 ? (
+            <p className="text-sm text-gray-500">{t("credentialsEmpty")}</p>
+          ) : (
+            <div className="space-y-3">
+              {pendingCredentials.map((cert) => (
+                <div key={cert.id} className="bg-white rounded-xl border shadow-sm p-4 flex items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <div className="font-medium text-gray-900">{cert.name}</div>
+                    <div className="text-sm text-gray-500 truncate">
+                      {cert.profile?.user
+                        ? `${cert.profile.user.firstName ?? ""} ${cert.profile.user.lastName ?? ""} · ${cert.profile.user.email}`
+                        : ""}
+                      {cert.issuingBody ? ` · ${cert.issuingBody}` : ""}
+                      {cert.certificationNumber ? ` · ${cert.certificationNumber}` : ""}
+                    </div>
+                    <div className="text-xs text-gray-400 mt-1">{t("submittedOn", { date: date(cert.createdAt) })}</div>
+                  </div>
+                  <div className="flex gap-2 shrink-0">
+                    {cert.profile?.user?.id && (
+                      <button
+                        onClick={() => router.push(`/admin/users/${cert.profile!.user!.id}`)}
+                        className="px-3 py-1.5 bg-gray-50 text-gray-700 rounded-lg hover:bg-gray-100 text-xs"
+                      >
+                        {t("viewWorker")}
+                      </button>
+                    )}
+                    <button
+                      onClick={() => handleCredentialAction(cert.id, "reject")}
+                      className="px-3 py-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 text-xs"
+                    >
+                      {t("reject")}
+                    </button>
+                    <button
+                      onClick={() => handleCredentialAction(cert.id, "verify")}
+                      className="px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 text-xs"
+                    >
+                      {t("verify")}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </main>
 
       {/* Action Modal */}

@@ -163,7 +163,15 @@
     "privacyGuarantee": "Privacy Guarantee",
     "privacy1": "✓ Your identity is hidden until you accept an offer",
     "privacy2": "✓ Employers only see anonymized profile data",
-    "privacy3": "✓ Your contact info is never shared automatically"
+    "privacy3": "✓ Your contact info is never shared automatically",
+    "credentialHint": "Add your credentials here — for example your BIG registration, VOG or professional liability insurance. Our team verifies them manually before employers see them as verified.",
+    "credentialPresetBig": "BIG-registration",
+    "credentialPresetVog": "VOG (Certificate of Good Conduct)",
+    "credentialPresetInsurance": "Professional liability insurance",
+    "statusPending": "Pending review",
+    "statusVerified": "Verified",
+    "statusRejected": "Rejected",
+    "statusExpired": "Expired"
   },
   "editCompany": {
     "loading": "Loading...",
@@ -250,7 +258,7 @@
     "addSkill": "Add Skill",
     "selectTrade": "Select your trade",
     "comingSoon": "(Coming Soon)",
-    "tradeNote": "Currently available for Electricians. More trades coming soon.",
+    "tradeNote": "Currently available for Electricians and Nurses. More trades coming soon.",
     "labelCountry": "Country",
     "labelProvince": "Province",
     "labelCity": "City",
