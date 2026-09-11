@@ -23,7 +23,10 @@ function makePrisma() {
 
 function makeService(prisma: any) {
   const eventEmitter = { emit: jest.fn() } as any;
-  const service = new InsightsService(prisma, eventEmitter);
+  const config = {
+    getThresholds: jest.fn().mockResolvedValue({ MIN_ARTICLE_SAMPLE: 20 }),
+  } as any;
+  const service = new InsightsService(prisma, eventEmitter, config);
   return { service, eventEmitter };
 }
 

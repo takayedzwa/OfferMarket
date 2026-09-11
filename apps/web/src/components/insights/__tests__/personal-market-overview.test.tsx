@@ -5,6 +5,7 @@ import { NextIntlClientProvider } from 'next-intl';
 import enMessages from '@/messages/en';
 import PersonalMarketOverview from '../PersonalMarketOverview';
 import type { WorkerMarketOverview } from '@/lib/api';
+import { makeMarketValue } from '../test-fixtures';
 
 jest.mock('@/i18n/navigation', () => ({
   Link: function MockLink({ children, href }: { children: React.ReactNode; href: string }) {
@@ -35,6 +36,7 @@ function makeOverview(overrides: Partial<WorkerMarketOverview> = {}): WorkerMark
     relevantEmployers: gated({ count: 12 }),
     relevantOffers: gated({ count: 30 }),
     recentChanges: [],
+    marketValue: makeMarketValue(),
     ...overrides,
   };
 }

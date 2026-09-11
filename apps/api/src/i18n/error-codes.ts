@@ -108,6 +108,12 @@ export const ERROR_CODES = {
   INSIGHT_FOLLOW_EMPTY: 'insight.follow_empty',
   INSIGHT_FOLLOW_NOT_FOUND: 'insight.follow_not_found',
   INSIGHT_REGION_NOT_FOUND: 'insight.region_not_found',
+  INSIGHT_SNAPSHOT_NOT_FOUND: 'insight.snapshot_not_found',
+
+  // --- market-profession.service.ts (profession taxonomy) ---
+  PROFESSION_NOT_FOUND: 'profession.not_found',
+  PROFESSION_SLUG_TAKEN: 'profession.slug_taken',
+  PROFESSION_INVALID: 'profession.invalid',
 
   // --- generic / filter-emitted ---
   ERROR_INTERNAL: 'error.internal',

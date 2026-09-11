@@ -74,3 +74,79 @@ export function median(values: number[]): number | null {
 export function round1(n: number): number {
   return Math.round(n * 10) / 10;
 }
+
+/**
+ * The full threshold surface. Everything here is admin-configurable at runtime
+ * (AdminSettings key `insights.thresholds`, see insights-config.service.ts);
+ * SAMPLE_SIZES / MARKET_WINDOWS above are the typed fallback defaults so the
+ * system behaves identically before an admin has ever touched the settings.
+ * These are "engine-level" values used by the aggregation/snapshot services.
+ */
+export type InsightsThresholds = {
+  SALARY_RANGE: number;
+  SALARY_TREND: number;
+  DEMAND_LEVEL: number;
+  MOST_VALUABLE_SKILLS: number;
+  EMPLOYER_COHORT: number;
+  TIME_TO_HIRE: number;
+  MIN_ARTICLE_SAMPLE: number;
+  /** aggregation window in days (current period) */
+  WINDOW_DAYS: number;
+  /** snapshot retention: snapshots older than this many days are pruned */
+  SNAPSHOT_RETENTION_DAYS: number;
+};
+
+export const DEFAULT_THRESHOLDS: InsightsThresholds = {
+  SALARY_RANGE: SAMPLE_SIZES.SALARY_RANGE,
+  SALARY_TREND: SAMPLE_SIZES.SALARY_TREND,
+  DEMAND_LEVEL: SAMPLE_SIZES.DEMAND_LEVEL,
+  MOST_VALUABLE_SKILLS: SAMPLE_SIZES.MOST_VALUABLE_SKILLS,
+  EMPLOYER_COHORT: SAMPLE_SIZES.EMPLOYER_COHORT,
+  TIME_TO_HIRE: SAMPLE_SIZES.TIME_TO_HIRE,
+  MIN_ARTICLE_SAMPLE: SAMPLE_SIZES.MIN_ARTICLE_SAMPLE,
+  WINDOW_DAYS: MARKET_WINDOWS.CURRENT_DAYS,
+  SNAPSHOT_RETENTION_DAYS: 730,
+};
+
+/**
+ * Auto-draft insights generator configuration (AdminSettings key
+ * `insights.generator`). Generated drafts are ALWAYS DRAFT — a human reviews
+ * before anything is published.
+ */
+export type InsightsGeneratorConfig = {
+  enabled: boolean;
+  /** publish a salary-change draft when |Δ%| between month windows ≥ this */
+  salaryChangePct: number;
+  /** publish a demand-growth draft when skill offer growth ≥ this % */
+  demandGrowthPct: number;
+  /** benefit-vs-acceptance draft: minimum offers in each cohort */
+  benefitMinSample: number;
+  /** benefit draft: minimum acceptance-rate gap in percentage points */
+  benefitMinGapPct: number;
+};
+
+export const DEFAULT_GENERATOR_CONFIG: InsightsGeneratorConfig = {
+  enabled: true,
+  salaryChangePct: 3,
+  demandGrowthPct: 15,
+  benefitMinSample: 20,
+  benefitMinGapPct: 5,
+};
+
+/**
+ * Methodology version of the aggregation engine. Every snapshot and generated
+ * article records this; when a calculation changes materially, bump it so old
+ * numbers can always be traced to the exact method that produced them.
+ */
+export const METHOD_VERSION = 1 as const;
+
+/**
+ * Annualizes an OfferVersion salary to a yearly figure. Monthly ×12; hourly
+ * and unknown periods are excluded from salary statistics (never guessed).
+ */
+export function annualizeSalary(version: { salaryMax: number; salaryPeriod: string } | null): number | null {
+  if (!version) return null;
+  if (version.salaryPeriod === 'year') return version.salaryMax;
+  if (version.salaryPeriod === 'month') return version.salaryMax * 12;
+  return null;
+}

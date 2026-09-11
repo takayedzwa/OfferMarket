@@ -4,6 +4,7 @@ import {
   IsDateString,
   IsEnum,
   IsInt,
+  IsNumber,
   IsOptional,
   IsString,
   IsUUID,
@@ -359,3 +360,72 @@ export const InsightArticleStatuses = [
   'UNPUBLISHED',
   'ARCHIVED',
 ] as const;
+// ============================================================================
+// Intelligence engine DTOs (aggregation thresholds, generator, taxonomy)
+// ============================================================================
+
+export class UpdateInsightsThresholdsDto {
+  @IsOptional() @IsInt() @Min(1) SALARY_RANGE?: number;
+  @IsOptional() @IsInt() @Min(1) SALARY_TREND?: number;
+  @IsOptional() @IsInt() @Min(1) DEMAND_LEVEL?: number;
+  @IsOptional() @IsInt() @Min(1) MOST_VALUABLE_SKILLS?: number;
+  @IsOptional() @IsInt() @Min(1) EMPLOYER_COHORT?: number;
+  @IsOptional() @IsInt() @Min(1) TIME_TO_HIRE?: number;
+  @IsOptional() @IsInt() @Min(1) MIN_ARTICLE_SAMPLE?: number;
+  @IsOptional() @IsInt() @Min(7) WINDOW_DAYS?: number;
+  @IsOptional() @IsInt() @Min(30) SNAPSHOT_RETENTION_DAYS?: number;
+}
+
+export class UpdateInsightsGeneratorConfigDto {
+  @IsOptional() @IsBoolean() enabled?: boolean;
+  @IsOptional() @IsNumber() @Min(0.1) salaryChangePct?: number;
+  @IsOptional() @IsNumber() @Min(0.1) demandGrowthPct?: number;
+  @IsOptional() @IsInt() @Min(0) benefitMinSample?: number;
+  @IsOptional() @IsNumber() @Min(0) benefitMinGapPct?: number;
+}
+
+export class UpsertProfessionApiDto {
+  @IsString() @MinLength(2) @MaxLength(80)
+  name!: string;
+
+  @IsOptional() @IsString() @MaxLength(80)
+  nameEn?: string;
+
+  @IsString() @MinLength(2) @MaxLength(40)
+  group!: string;
+
+  @IsOptional() @IsString() @MaxLength(2000)
+  description?: string;
+
+  @IsOptional() @IsArray() @IsString({ each: true })
+  aliases?: string[];
+
+  @IsOptional() @IsBoolean()
+  isActive?: boolean;
+
+  @IsOptional() @IsInt() @Min(0)
+  sortOrder?: number;
+}
+
+export class UpdateProfessionApiDto {
+  @IsOptional() @IsString() @MinLength(2) @MaxLength(80)
+  name?: string;
+
+  @IsOptional() @IsString() @MaxLength(80)
+  nameEn?: string;
+
+  @IsOptional() @IsString() @MinLength(2) @MaxLength(40)
+  group?: string;
+
+  @IsOptional() @IsString() @MaxLength(2000)
+  description?: string;
+
+  @IsOptional() @IsArray() @IsString({ each: true })
+  aliases?: string[];
+
+  @IsOptional() @IsBoolean()
+  isActive?: boolean;
+
+  @IsOptional() @IsInt() @Min(0)
+  sortOrder?: number;
+}

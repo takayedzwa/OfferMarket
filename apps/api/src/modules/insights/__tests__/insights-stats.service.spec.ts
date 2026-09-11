@@ -1,5 +1,16 @@
 import { InsightsStatsService } from '../insights-stats.service';
-import { SAMPLE_SIZES } from '../insights-settings';
+import { InsightsConfigService } from '../insights-config.service';
+import { DEFAULT_THRESHOLDS, SAMPLE_SIZES } from '../insights-settings';
+
+function makeConfig(): InsightsConfigService {
+  return {
+    getThresholds: jest.fn().mockResolvedValue({ ...DEFAULT_THRESHOLDS }),
+    getGeneratorConfig: jest.fn().mockResolvedValue({ enabled: true }),
+    updateThresholds: jest.fn(),
+    updateGeneratorConfig: jest.fn(),
+    invalidateCache: jest.fn(),
+  } as any;
+}
 
 function makePrisma() {
   return {
@@ -37,7 +48,7 @@ describe('InsightsStatsService — worker market overview sample-size gating', (
     });
     prisma.offer.findMany.mockResolvedValue([]);
     prisma.profileSkill.findMany.mockResolvedValue([]);
-    const service = new InsightsStatsService(prisma as any);
+    const service = new InsightsStatsService(prisma as any, makeConfig());
 
     const overview = await service.getWorkerMarketOverview('u1');
 
@@ -67,7 +78,7 @@ describe('InsightsStatsService — worker market overview sample-size gating', (
       ),
     );
     prisma.profileSkill.findMany.mockResolvedValue([]);
-    const service = new InsightsStatsService(prisma as any);
+    const service = new InsightsStatsService(prisma as any, makeConfig());
 
     const overview = await service.getWorkerMarketOverview('u1');
 
@@ -104,7 +115,7 @@ describe('InsightsStatsService — worker market overview sample-size gating', (
       ),
     ]);
     prisma.profileSkill.findMany.mockResolvedValue([]);
-    const service = new InsightsStatsService(prisma as any);
+    const service = new InsightsStatsService(prisma as any, makeConfig());
 
     const overview = await service.getWorkerMarketOverview('u1');
 
@@ -130,7 +141,7 @@ describe('InsightsStatsService — worker market overview sample-size gating', (
       ),
     );
     prisma.profileSkill.findMany.mockResolvedValue([]);
-    const service = new InsightsStatsService(prisma as any);
+    const service = new InsightsStatsService(prisma as any, makeConfig());
 
     const overview = await service.getWorkerMarketOverview('u1');
 
@@ -159,7 +170,7 @@ describe('InsightsStatsService — employer market view cohort gating', () => {
         ),
       );
     prisma.worker.count.mockResolvedValue(25);
-    const service = new InsightsStatsService(prisma as any);
+    const service = new InsightsStatsService(prisma as any, makeConfig());
 
     const view = await service.getEmployerMarketView('u1');
 
@@ -172,10 +183,77 @@ describe('InsightsStatsService — employer market view cohort gating', () => {
     const prisma = makePrisma();
     prisma.employer.findUnique.mockResolvedValue({ id: 'e1', userId: 'u1' });
     prisma.offer.findMany.mockResolvedValue([]);
-    const service = new InsightsStatsService(prisma as any);
+    const service = new InsightsStatsService(prisma as any, makeConfig());
 
     const view = await service.getEmployerMarketView('u1');
     expect(view.profession).toBeNull();
     expect(view.hiringDifficulty).toMatchObject({ available: false });
+  });
+});
+describe('InsightsStatsService — explainable market-value indicator', () => {
+  it('scores the transparent rubric from the worker profile + gated demand', async () => {
+    const prisma = makePrisma();
+    prisma.worker.findUnique.mockResolvedValue({
+      userId: 'u1',
+      primaryTrade: 'Electrician',
+      regionId: 'region-city',
+      region: { id: 'region-city', parentId: 'region-prov', name: 'Rotterdam' },
+      yearsOfExperience: 5, // → 15 points
+      skills: [{ isVerified: true }, { isVerified: true }, { isVerified: true }, { isVerified: true }], // 4 × 5 = 20
+      certifications: [{ id: 'c1' }, { id: 'c2' }], // 2 × 7.5 = 15
+      desiredSalaryMax: 50000,
+    });
+    prisma.offer.findMany.mockResolvedValue([]);
+    prisma.profileSkill.findMany.mockResolvedValue([]);
+    prisma.offer.count.mockResolvedValue(2); // 2 × 3 = 6 COMPARABLE_OFFERS points
+    const service = new InsightsStatsService(prisma as any, makeConfig());
+
+    const overview = await service.getWorkerMarketOverview('u1');
+
+    const mv = overview.marketValue;
+    expect(mv.maxScore).toBe(100);
+    expect(mv.components.map((c) => c.key)).toEqual([
+      'EXPERIENCE', 'SKILLS', 'CERTIFICATIONS', 'DEMAND', 'COMPARABLE_OFFERS',
+    ]);
+    // Demand insufficient → 0 points, but explicitly labeled.
+    const demandComponent = mv.components.find((c) => c.key === 'DEMAND')!;
+    expect(demandComponent.points).toBe(0);
+    expect(demandComponent.explanationKey).toBe('MARKET_VALUE.DEMAND_UNKNOWN');
+    const exp = mv.components.find((c) => c.key === 'EXPERIENCE')!;
+    expect(exp.points).toBe(15);
+    expect(exp.explanationKey).toBe('MARKET_VALUE.EXPERIENCE_BAND');
+    // 15 + 20 + 15 + 0 + 6
+    expect(mv.scorePct).toBe(56);
+    // Percentile stays gated: no market salary sample.
+    expect(mv.salaryPercentile).toMatchObject({ available: false, reason: 'INSUFFICIENT_DATA' });
+  });
+
+  it('computes the salary percentile only when the market sample clears SALARY_RANGE', async () => {
+    const prisma = makePrisma();
+    prisma.worker.findUnique.mockResolvedValue({
+      userId: 'u1',
+      primaryTrade: 'Electrician',
+      regionId: 'region-city',
+      region: { id: 'region-city', parentId: 'region-prov', name: 'Rotterdam' },
+      yearsOfExperience: 12,
+      skills: [],
+      certifications: [],
+      desiredSalaryMax: 50000,
+    });
+    // 30 offers with salaries 40_000…69_000 → 50_000 sits at the 37th percentile.
+    prisma.offer.findMany.mockResolvedValue(
+      Array.from({ length: 30 }, (_, i) => offer({ currentVersion: { salaryMax: 40000 + i * 1000, salaryPeriod: 'year' } })),
+    );
+    prisma.profileSkill.findMany.mockResolvedValue([]);
+    prisma.offer.count.mockResolvedValue(0);
+    const service = new InsightsStatsService(prisma as any, makeConfig());
+
+    const overview = await service.getWorkerMarketOverview('u1');
+
+    expect(overview.marketValue.salaryPercentile).toMatchObject({
+      available: true,
+      value: { percentile: 37 },
+      sampleSize: 30,
+    });
   });
 });

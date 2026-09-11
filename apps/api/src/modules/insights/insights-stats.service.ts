@@ -1,9 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { InsightsConfigService } from './insights-config.service';
 import {
   DEMAND_BUCKETS,
-  MARKET_WINDOWS,
-  SAMPLE_SIZES,
+  annualizeSalary,
   median,
   percentile,
   round1,
@@ -36,12 +36,7 @@ const MARKET_ACTIVE_STATUSES = [
 ];
 
 /** Annualization: month salaries ×12; hourly offers are excluded from salary stats. */
-function annualizeSalaryMax(version: { salaryMax: number; salaryPeriod: string } | null): number | null {
-  if (!version) return null;
-  if (version.salaryPeriod === 'year') return version.salaryMax;
-  if (version.salaryPeriod === 'month') return version.salaryMax * 12;
-  return null;
-}
+const annualizeSalaryMax = annualizeSalary;
 
 export interface GatedValue<T> {
   available: boolean;
@@ -53,6 +48,28 @@ export interface GatedValue<T> {
 function gated<T>(value: T, sampleSize: number, min: number): GatedValue<T> {
   if (sampleSize < min) return { available: false, reason: 'INSUFFICIENT_DATA', sampleSize };
   return { available: true, value, sampleSize };
+}
+
+export interface MarketValueComponent {
+  key: 'EXPERIENCE' | 'SKILLS' | 'CERTIFICATIONS' | 'DEMAND' | 'COMPARABLE_OFFERS';
+  points: number;
+  maxPoints: number;
+  detail: Record<string, unknown>;
+  /** i18n key explaining WHY this component scored what it scored */
+  explanationKey: string;
+  explanationParams: Record<string, string | number>;
+}
+
+export interface MarketValueIndicator {
+  scorePct: number;
+  maxScore: number;
+  components: MarketValueComponent[];
+  /**
+   * Where the worker's desired salary sits in the comparable-offers
+   * distribution (0–100 percentile) — only when the comparable sample clears
+   * the salary minimum, never estimated from small samples.
+   */
+  salaryPercentile: GatedValue<{ percentile: number }>;
 }
 
 export interface WorkerMarketOverview {
@@ -73,6 +90,7 @@ export interface WorkerMarketOverview {
   relevantEmployers: GatedValue<{ count: number }>;
   relevantOffers: GatedValue<{ count: number }>;
   recentChanges: Array<{ metric: string; change: number; direction: 'up' | 'down' | 'stable' }>;
+  marketValue: MarketValueIndicator;
 }
 
 export interface EmployerMarketView {
@@ -90,7 +108,10 @@ export interface EmployerMarketView {
 export class InsightsStatsService {
   private readonly logger = new Logger(InsightsStatsService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly config: InsightsConfigService,
+  ) {}
 
   /**
    * Personalized market overview for a worker. Uses their profession, region,
@@ -126,11 +147,10 @@ export class InsightsStatsService {
       return overview;
     }
 
+    const t = await this.config.getThresholds();
     // One bounded query covers both windows and every geographic scope: we
     // fetch the trade's offers over 2× the window and slice in memory.
-    const windowStart = new Date(
-      Date.now() - (MARKET_WINDOWS.CURRENT_DAYS + MARKET_WINDOWS.PREVIOUS_DAYS) * 24 * 60 * 60 * 1000,
-    );
+    const windowStart = new Date(Date.now() - 2 * t.WINDOW_DAYS * 24 * 60 * 60 * 1000);
     const offers = await this.prisma.offer.findMany({
       where: {
         status: { in: MARKET_ACTIVE_STATUSES as any[] },
@@ -148,7 +168,7 @@ export class InsightsStatsService {
       },
     });
 
-    const currentStart = new Date(Date.now() - MARKET_WINDOWS.CURRENT_DAYS * 24 * 60 * 60 * 1000);
+    const currentStart = new Date(Date.now() - t.WINDOW_DAYS * 24 * 60 * 60 * 1000);
     const inCurrent = offers.filter((o) => o.submittedAt && o.submittedAt >= currentStart);
     const inPrevious = offers.filter((o) => o.submittedAt && o.submittedAt < currentStart);
 
@@ -170,7 +190,7 @@ export class InsightsStatsService {
     for (const scope of scopes) {
       const sample = inCurrent.filter(scope.match);
       // A scope qualifies when it can support the heaviest stat we show (salary).
-      if (sample.length >= SAMPLE_SIZES.DEMAND_LEVEL) {
+      if (sample.length >= t.DEMAND_LEVEL) {
         scopeUsed = scope.level;
         scopedCurrent = sample;
         break;
@@ -191,7 +211,7 @@ export class InsightsStatsService {
     }
 
     // Demand level
-    overview.demand = this.classifyDemand(scopedCurrent.length);
+    overview.demand = this.classifyDemand(scopedCurrent.length, t.DEMAND_LEVEL);
 
     // Salary range (P25–P75 of annualized salaryMax)
     const salaries = scopedCurrent
@@ -205,7 +225,7 @@ export class InsightsStatsService {
           currency: 'EUR',
         },
         salaries.length,
-        SAMPLE_SIZES.SALARY_RANGE,
+        t.SALARY_RANGE,
       ),
     };
 
@@ -215,7 +235,7 @@ export class InsightsStatsService {
       .filter((v): v is number => v !== null);
     const curMedian = median(salaries);
     const prevMedian = median(prevSalaries);
-    if (curMedian && prevMedian && salaries.length + prevSalaries.length >= SAMPLE_SIZES.SALARY_TREND) {
+    if (curMedian && prevMedian && salaries.length + prevSalaries.length >= t.SALARY_TREND) {
       const changePct = round1(((curMedian - prevMedian) / prevMedian) * 100);
       overview.salaryTrend = {
         available: true,
@@ -234,7 +254,7 @@ export class InsightsStatsService {
     }
 
     // Most valuable skills: skills on the receiving workers, ranked by salary
-    // premium vs the overall median; requires SAMPLE_SIZES.MOST_VALUABLE_SKILLS.
+    // premium vs the overall median; requires the configured skill minimum.
     const overallMedian = curMedian;
     const scopedWorkerProfileIds = [
       ...new Set(scopedCurrent.map((o) => o.workerId).filter(Boolean) as string[]),
@@ -261,7 +281,7 @@ export class InsightsStatsService {
       }
     }
     const valuable = [...skillAgg.entries()]
-      .filter(([, sals]) => sals.length >= SAMPLE_SIZES.MOST_VALUABLE_SKILLS)
+      .filter(([, sals]) => sals.length >= t.MOST_VALUABLE_SKILLS)
       .map(([skill, sals]) => ({
         skill,
         premiumPct: round1(((median(sals)! - (overallMedian ?? median(sals)!)) / (overallMedian ?? median(sals)!)) * 100),
@@ -270,16 +290,16 @@ export class InsightsStatsService {
       .slice(0, 5);
     const skillOfferCount = [...skillAgg.values()].reduce((sum, sals) => sum + sals.length, 0);
     overview.mostValuableSkills = {
-      ...gated(valuable, skillOfferCount, SAMPLE_SIZES.MOST_VALUABLE_SKILLS),
+      ...gated(valuable, skillOfferCount, t.MOST_VALUABLE_SKILLS),
     };
 
     // Employers & offers
     const employerCount = new Set(scopedCurrent.map((o) => o.employerId)).size;
-    overview.relevantEmployers = gated({ count: employerCount }, employerCount, SAMPLE_SIZES.DEMAND_LEVEL);
+    overview.relevantEmployers = gated({ count: employerCount }, employerCount, t.DEMAND_LEVEL);
     overview.relevantOffers = gated(
       { count: scopedCurrent.length },
       scopedCurrent.length,
-      SAMPLE_SIZES.DEMAND_LEVEL,
+      t.DEMAND_LEVEL,
     );
 
     // Recent market changes: deltas vs the previous window.
@@ -303,12 +323,136 @@ export class InsightsStatsService {
     }
     overview.recentChanges = changes;
 
+    // Explainable market-value indicator (P5): a transparent points rubric
+    // over the worker's own inputs plus the sample-gated market aggregates.
+    // No black box — every component carries its points, its raw inputs and an
+    // i18n explanation key, so the UI can always answer "why is this my score".
+    overview.marketValue = await this.computeMarketValue({
+      worker,
+      marketSalaries: salaries,
+      demand: overview.demand,
+      thresholds: t,
+    });
+
     return overview;
+  }
+
+  /**
+   * Transparent market-value rubric (max 100 points):
+   *   EXPERIENCE 25 · SKILLS 25 · DEMAND 20 · CERTIFICATIONS 15 ·
+   *   COMPARABLE_OFFERS 15 (how sought-after the worker currently is)
+   * Every component exposes its raw inputs; the salaryPercentile is computed
+   * only when the comparable-offer sample clears the salary minimum.
+   */
+  private async computeMarketValue(args: {
+    worker: {
+      yearsOfExperience: number | null;
+      skills: Array<{ isVerified: boolean }>;
+      certifications: Array<unknown>;
+      id: string;
+      desiredSalaryMax: number | null;
+    };
+    marketSalaries: number[];
+    demand: GatedValue<{ level: string; offers: number }>;
+    thresholds: { SALARY_RANGE: number; WINDOW_DAYS: number };
+  }): Promise<MarketValueIndicator> {
+    const { worker, marketSalaries, demand, thresholds } = args;
+    const components: MarketValueComponent[] = [];
+
+    // EXPERIENCE (25): the worker's own years — never estimated.
+    const years = worker.yearsOfExperience ?? null;
+    const expPoints = years === null ? 0 : years >= 11 ? 25 : years >= 6 ? 22 : years >= 3 ? 15 : 8;
+    components.push({
+      key: 'EXPERIENCE',
+      points: expPoints,
+      maxPoints: 25,
+      detail: { years },
+      explanationKey: years === null ? 'MARKET_VALUE.EXPERIENCE_UNKNOWN' : 'MARKET_VALUE.EXPERIENCE_BAND',
+      explanationParams: { years: years ?? 0, points: expPoints },
+    });
+
+    // SKILLS (25): 5 points per profile skill, capped.
+    const skillCount = worker.skills.length;
+    const skillPoints = Math.min(25, skillCount * 5);
+    components.push({
+      key: 'SKILLS',
+      points: skillPoints,
+      maxPoints: 25,
+      detail: { skillCount },
+      explanationKey: 'MARKET_VALUE.SKILLS_COUNT',
+      explanationParams: { count: skillCount, points: skillPoints },
+    });
+
+    // CERTIFICATIONS (15): 7.5 per verified certification, capped.
+    const certCount = worker.certifications.length;
+    const certPoints = Math.min(15, certCount * 7.5);
+    components.push({
+      key: 'CERTIFICATIONS',
+      points: certPoints,
+      maxPoints: 15,
+      detail: { certCount },
+      explanationKey: certCount === 0 ? 'MARKET_VALUE.CERTS_NONE' : 'MARKET_VALUE.CERTS_COUNT',
+      explanationParams: { count: certCount, points: certPoints },
+    });
+
+    // DEMAND (20): the (already sample-gated) demand classification for the
+    // scope that was actually used — insufficient data scores 0 and says so.
+    const demandLevel = demand.available ? demand.value!.level : null;
+    const demandPoints =
+      demandLevel === 'VERY_HIGH' ? 20 : demandLevel === 'HIGH' ? 15 : demandLevel === 'MODERATE' ? 10 : demandLevel === 'LOW' ? 5 : 0;
+    components.push({
+      key: 'DEMAND',
+      points: demandPoints,
+      maxPoints: 20,
+      detail: { level: demandLevel, offers: demand.sampleSize ?? 0 },
+      explanationKey: demandLevel ? `MARKET_VALUE.DEMAND_${demandLevel}` : 'MARKET_VALUE.DEMAND_UNKNOWN',
+      explanationParams: { offers: demand.sampleSize ?? 0, points: demandPoints },
+    });
+
+    // COMPARABLE_OFFERS (15): how sought-after the worker is — real offers
+    // received in the window. Personal data, so no aggregation gate applies.
+    const windowStart = new Date(Date.now() - thresholds.WINDOW_DAYS * 24 * 60 * 60 * 1000);
+    const offersReceived = await this.prisma.offer.count({
+      where: {
+        workerId: worker.id,
+        status: { in: MARKET_ACTIVE_STATUSES as any[] },
+        submittedAt: { gte: windowStart },
+      },
+    });
+    const offerPoints = Math.min(15, (offersReceived ?? 0) * 3);
+    components.push({
+      key: 'COMPARABLE_OFFERS',
+      points: offerPoints,
+      maxPoints: 15,
+      detail: { offersReceived },
+      explanationKey: offersReceived === 0 ? 'MARKET_VALUE.OFFERS_NONE' : 'MARKET_VALUE.OFFERS_COUNT',
+      explanationParams: { count: offersReceived, points: offerPoints },
+    });
+
+    // Salary percentile: where the worker's desired salary sits inside the
+    // comparable-offers distribution — only with a real sample.
+    const scorePct = components.reduce((sum, c) => sum + c.points, 0);
+    let salaryPercentile: MarketValueIndicator['salaryPercentile'] = {
+      available: false,
+      reason: 'INSUFFICIENT_DATA',
+      sampleSize: marketSalaries.length,
+    };
+    if (marketSalaries.length >= thresholds.SALARY_RANGE && worker.desiredSalaryMax) {
+      const below = marketSalaries.filter((s) => s <= worker.desiredSalaryMax!).length;
+      salaryPercentile = {
+        available: true,
+        value: { percentile: Math.round((below / marketSalaries.length) * 100) },
+        sampleSize: marketSalaries.length,
+      };
+    }
+
+    return { scorePct, maxScore: 100, components, salaryPercentile };
   }
 
   /** Generic (anonymous) market teaser — only counts that stand on their own. */
   async getMarketPreview(profession?: string) {
-    const currentStart = new Date(Date.now() - MARKET_WINDOWS.CURRENT_DAYS * 24 * 60 * 60 * 1000);
+    const t = await this.config.getThresholds();
+    const currentStart = new Date(Date.now() - t.WINDOW_DAYS * 24 * 60 * 60 * 1000);
     const count = await this.prisma.offer.count({
       where: {
         status: { in: MARKET_ACTIVE_STATUSES as any[] },
@@ -320,9 +464,9 @@ export class InsightsStatsService {
     });
     return {
       profession: profession ?? null,
-      periodDays: MARKET_WINDOWS.CURRENT_DAYS,
+      periodDays: t.WINDOW_DAYS,
       offers: count,
-      salaryAvailable: count >= SAMPLE_SIZES.SALARY_RANGE,
+      salaryAvailable: count >= t.SALARY_RANGE,
       dataClass: 'OFFERMARKT' as const,
     };
   }
@@ -362,7 +506,8 @@ export class InsightsStatsService {
 
     const view = this.emptyEmployerView(profession);
 
-    const windowStart = new Date(Date.now() - MARKET_WINDOWS.CURRENT_DAYS * 24 * 60 * 60 * 1000);
+    const t = await this.config.getThresholds();
+    const windowStart = new Date(Date.now() - t.WINDOW_DAYS * 24 * 60 * 60 * 1000);
     const marketOffers = await this.prisma.offer.findMany({
       where: {
         status: { in: MARKET_ACTIVE_STATUSES as any[] },
@@ -402,7 +547,7 @@ export class InsightsStatsService {
           candidatesPerOffer,
         },
         offersInWindow,
-        SAMPLE_SIZES.DEMAND_LEVEL,
+        t.DEMAND_LEVEL,
       ),
     };
 
@@ -418,8 +563,8 @@ export class InsightsStatsService {
     if (
       marketMedian !== null &&
       theirSalaries.length > 0 &&
-      marketSalaries.length >= SAMPLE_SIZES.SALARY_RANGE &&
-      new Set(marketOffers.map((o) => o.employerId)).size >= SAMPLE_SIZES.EMPLOYER_COHORT
+      marketSalaries.length >= t.SALARY_RANGE &&
+      new Set(marketOffers.map((o) => o.employerId)).size >= t.EMPLOYER_COHORT
     ) {
       const yourMedianValue = yourMedian;
       view.salaryCompetitiveness = {
@@ -459,16 +604,16 @@ export class InsightsStatsService {
           .slice(0, 5)
           .map(([regionName, offerCount]) => ({ regionName, offers: offerCount })),
         marketOffers.length,
-        SAMPLE_SIZES.DEMAND_LEVEL,
+        t.DEMAND_LEVEL,
       ),
     };
 
     // Candidate availability
-    view.candidateAvailability = gated({ count: candidateCount }, candidateCount, SAMPLE_SIZES.DEMAND_LEVEL);
+    view.candidateAvailability = gated({ count: candidateCount }, candidateCount, t.DEMAND_LEVEL);
 
     // Competitor offer ranges (cohort-gated)
     const employersInCohort = new Set(marketOffers.map((o) => o.employerId)).size;
-    if (employersInCohort >= SAMPLE_SIZES.EMPLOYER_COHORT && marketSalaries.length >= SAMPLE_SIZES.SALARY_RANGE) {
+    if (employersInCohort >= t.EMPLOYER_COHORT && marketSalaries.length >= t.SALARY_RANGE) {
       view.competitorOfferRanges = {
         available: true,
         value: {
@@ -494,7 +639,7 @@ export class InsightsStatsService {
     view.timeToHire = gated(
       { medianDays: Math.round(median(hireDurations) ?? 0) },
       hireDurations.length,
-      SAMPLE_SIZES.TIME_TO_HIRE,
+      t.TIME_TO_HIRE,
     );
 
     // Offer acceptance rate for the cohort (not this employer — no confidential exposure).
@@ -502,7 +647,7 @@ export class InsightsStatsService {
     view.offerAcceptanceRate = gated(
       { ratePct: round1((acceptedCount / marketOffers.length) * 100), sampleSize: marketOffers.length },
       marketOffers.length,
-      SAMPLE_SIZES.TIME_TO_HIRE,
+      t.TIME_TO_HIRE,
     );
 
     return view;
@@ -532,6 +677,12 @@ export class InsightsStatsService {
       relevantEmployers: insufficient(),
       relevantOffers: insufficient(),
       recentChanges: [],
+      marketValue: {
+        scorePct: 0,
+        maxScore: 100,
+        components: [],
+        salaryPercentile: insufficient(),
+      },
     };
   }
 
@@ -552,8 +703,8 @@ export class InsightsStatsService {
     };
   }
 
-  private classifyDemand(offers: number): GatedValue<{ level: string; offers: number }> {
-    const bucket = DEMAND_BUCKETS.find((b) => offers >= b.min);
+  private classifyDemand(offers: number, minDemand: number): GatedValue<{ level: string; offers: number }> {
+    const bucket = DEMAND_BUCKETS.find((b) => offers >= Math.max(b.min, minDemand));
     if (!bucket) return { available: false, reason: 'INSUFFICIENT_DATA', sampleSize: offers };
     return { available: true, value: { level: bucket.level, offers }, sampleSize: offers };
   }

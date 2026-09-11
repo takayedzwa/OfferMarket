@@ -179,6 +179,80 @@ async function main() {
   }
   console.log('✅ Seeded editorial starter insights');
 
+  // --------------------------------------------------------------------
+  // Market Intelligence engine: profession taxonomy + engine settings.
+  // The taxonomy is admin-managed reference data (MarketProfessionService);
+  // these seed rows give the resolver something to match against on day one.
+  // Settings mirror the typed defaults in insights-settings.ts — update: {}
+  // keeps an admin's runtime changes safe across re-seeds.
+  // --------------------------------------------------------------------
+  const professionSeed: Array<{
+    slug: string; name: string; nameEn?: string; group: string; aliases?: string[]; sortOrder: number;
+  }> = [
+    // technical
+    { slug: 'electrician', name: 'Elektricien', nameEn: 'Electrician', group: 'technical', aliases: ['installation electrician', 'installatie elektricien'], sortOrder: 10 },
+    { slug: 'hvac-technician', name: 'HVAC-monteur', nameEn: 'HVAC technician', group: 'technical', aliases: ['warmtepomp installateur', 'klimaatbeheersing'], sortOrder: 11 },
+    { slug: 'industrial-mechanic', name: 'Industrieel monteur', nameEn: 'Industrial mechanic', group: 'technical', sortOrder: 12 },
+    { slug: 'welder', name: 'Lasser', nameEn: 'Welder', group: 'technical', aliases: ['lasser-metaal', 'metaalbewerker'], sortOrder: 13 },
+    { slug: 'plumber', name: 'Loodgieter', nameEn: 'Plumber', group: 'technical', aliases: ['installatietechnicus', 'sanitair'], sortOrder: 14 },
+    // healthcare
+    { slug: 'nurse', name: 'Verpleegkundige', nameEn: 'Nurse', group: 'healthcare', sortOrder: 20 },
+    { slug: 'care-worker', name: 'Verzorgende', nameEn: 'Care worker', group: 'healthcare', aliases: ['zorgverlener'], sortOrder: 21 },
+    // transport
+    { slug: 'truck-driver', name: 'Vrachtwagenchauffeur', nameEn: 'Truck driver', group: 'transport', aliases: ['chauffeur', 'ce-chauffeur'], sortOrder: 30 },
+    { slug: 'bus-driver', name: 'Buschauffeur', nameEn: 'Bus driver', group: 'transport', sortOrder: 31 },
+    // engineering
+    { slug: 'electrical-engineer', name: 'Electrotechnisch ingenieur', nameEn: 'Electrical engineer', group: 'engineering', sortOrder: 40 },
+    { slug: 'mechanical-engineer', name: 'Werktuigbouwkundig ingenieur', nameEn: 'Mechanical engineer', group: 'engineering', sortOrder: 41 },
+  ];
+  for (const profession of professionSeed) {
+    await prisma.profession.upsert({
+      where: { slug: profession.slug },
+      create: profession,
+      update: {},
+    });
+  }
+  console.log(`✅ Seeded ${professionSeed.length} profession taxonomy entries`);
+
+  const insightsSettings = [
+    {
+      key: 'insights.thresholds',
+      category: 'insights',
+      // Must match DEFAULT_THRESHOLDS in apps/api/src/modules/insights/insights-settings.ts
+      value: {
+        SALARY_RANGE: 30,
+        SALARY_TREND: 60,
+        DEMAND_LEVEL: 5,
+        MOST_VALUABLE_SKILLS: 10,
+        EMPLOYER_COHORT: 8,
+        TIME_TO_HIRE: 20,
+        MIN_ARTICLE_SAMPLE: 30,
+        WINDOW_DAYS: 90,
+        SNAPSHOT_RETENTION_DAYS: 730,
+      },
+    },
+    {
+      key: 'insights.generator',
+      category: 'insights',
+      // Must match DEFAULT_GENERATOR_CONFIG in insights-settings.ts
+      value: {
+        enabled: true,
+        salaryChangePct: 3,
+        demandGrowthPct: 15,
+        benefitMinSample: 20,
+        benefitMinGapPct: 5,
+      },
+    },
+  ];
+  for (const setting of insightsSettings) {
+    await prisma.adminSettings.upsert({
+      where: { key: setting.key },
+      create: setting,
+      update: {},
+    });
+  }
+  console.log('✅ Seeded insights engine settings');
+
   console.log('🎉 Database seeding completed!');
 }
 

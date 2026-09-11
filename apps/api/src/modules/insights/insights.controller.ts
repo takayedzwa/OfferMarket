@@ -5,6 +5,8 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { Throttle } from '@nestjs/throttler';
 import { InsightsService } from './insights.service';
 import { InsightsStatsService } from './insights-stats.service';
+import { MarketProfessionService } from './market-profession.service';
+import { InsightsSnapshotService } from './insights-snapshot.service';
 import { parsePage, parseLimit } from '../../common/utils/pagination';
 import {
   CreateInsightFollowDto,
@@ -24,6 +26,8 @@ export class InsightsController {
   constructor(
     private readonly insightsService: InsightsService,
     private readonly statsService: InsightsStatsService,
+    private readonly professionService: MarketProfessionService,
+    private readonly snapshotService: InsightsSnapshotService,
   ) {}
 
   @Get('articles')
@@ -73,6 +77,41 @@ export class InsightsController {
   @Roles('EMPLOYER')
   async employerMarketView(@Request() req: any) {
     return this.statsService.getEmployerMarketView(req.user.id);
+  }
+
+  /**
+   * Trend series (day / week / month / quarter / year-over-year) derived
+   * from the stored MarketSnapshot rows. Aggregate-only; every point keeps
+   * its own sample size and availability.
+   */
+  @Get('market/trends')
+  async marketTrends(
+    @Query('profession') profession?: string,
+    @Query('regionId') regionId?: string,
+    @Query('granularity') granularityQuery?: string,
+  ) {
+    const valid = ['day', 'week', 'month', 'quarter', 'yoy'] as const;
+    const granularity = (valid as readonly string[]).includes(granularityQuery ?? '')
+      ? (granularityQuery as (typeof valid)[number])
+      : 'month';
+    return this.snapshotService.getTrends(profession ?? '', granularity, regionId);
+  }
+
+  // --- Profession taxonomy + skill search (public reference data) ----------
+
+  @Get('professions')
+  async listProfessions(@Query('group') group?: string, @Query('search') search?: string) {
+    return this.professionService.listProfessions({ group, search });
+  }
+
+  @Get('professions/groups')
+  async listProfessionGroups() {
+    return this.professionService.listGroups();
+  }
+
+  @Get('skills')
+  async searchSkills(@Query('q') q?: string, @Query('limit') limit?: string) {
+    return this.professionService.searchSkills(q, parseLimit(limit, 20));
   }
 
   /** Anonymous-safe analytics ingest (pseudonymous sessionKey). */

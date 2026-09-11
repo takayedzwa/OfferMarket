@@ -880,6 +880,24 @@ export interface WorkerMarketOverview {
   relevantEmployers: GatedValue<{ count: number }>;
   relevantOffers: GatedValue<{ count: number }>;
   recentChanges: Array<{ metric: string; change: number; direction: 'up' | 'down' | 'stable' }>;
+  /** Explainable market-value indicator: transparent points rubric, no black box. */
+  marketValue: MarketValueIndicator;
+}
+
+export interface MarketValueComponent {
+  key: 'EXPERIENCE' | 'SKILLS' | 'CERTIFICATIONS' | 'DEMAND' | 'COMPARABLE_OFFERS';
+  points: number;
+  maxPoints: number;
+  detail: Record<string, unknown>;
+  explanationKey: string;
+  explanationParams: Record<string, string | number>;
+}
+
+export interface MarketValueIndicator {
+  scorePct: number;
+  maxScore: number;
+  components: MarketValueComponent[];
+  salaryPercentile: GatedValue<{ percentile: number }>;
 }
 
 export interface EmployerMarketView {
@@ -966,6 +984,13 @@ export const insightsApi = {
   workerMarketOverview: () => api.get<WorkerMarketOverview>('/insights/market/overview'),
   employerMarketView: () => api.get<EmployerMarketView>('/insights/market/employer'),
 
+  // --- market trends + taxonomy (public reference data) ---
+  marketTrends: (params?: { profession?: string; regionId?: string; granularity?: 'day' | 'week' | 'month' | 'quarter' | 'yoy' }) =>
+    api.get('/insights/market/trends', { params }),
+  listProfessions: (params?: { group?: string; search?: string }) => api.get('/insights/professions', { params }),
+  listProfessionGroups: () => api.get('/insights/professions/groups'),
+  searchSkills: (params?: { q?: string; limit?: number }) => api.get('/insights/skills', { params }),
+
   // --- analytics (anonymous-safe; sessionKey is a random per-browser key) ---
   trackEvent: (event: {
     sessionKey: string;
@@ -999,7 +1024,50 @@ export const insightAdminApi = {
   createSource: (data: any) => api.post('/admin/insights/sources', data),
   updateSource: (id: string, data: any) => api.patch(`/admin/insights/sources/${id}`, data),
   deleteSource: (id: string) => api.delete(`/admin/insights/sources/${id}`),
+
+  // --- Market Intelligence administration ---
+  // Dashboard: the composed engine view (totals, gated salary/demand, skills,
+  // regional shortages, pending auto-drafts) with full provenance.
+  getMarketDashboard: () => api.get('/admin/insights/market/dashboard'),
+  // Statistical safeguards: sample-size thresholds (AdminSettings-backed).
+  getThresholds: () => api.get('/admin/insights/market/thresholds'),
+  updateThresholds: (data: Partial<Record<string, number>>) =>
+    api.put('/admin/insights/market/thresholds', data),
+  // Auto-draft generator config + run-now (same rules as the nightly cron).
+  getGeneratorConfig: () => api.get('/admin/insights/market/generator-config'),
+  updateGeneratorConfig: (data: Partial<Record<string, unknown>>) =>
+    api.put('/admin/insights/market/generator-config', data),
+  runGenerator: () => api.post('/admin/insights/market/generate'),
+  // Data-provenance inspection: stored MarketSnapshot rows.
+  listSnapshots: (params?: { profession?: string; regionId?: string; page?: number; limit?: number }) =>
+    api.get('/admin/insights/market/snapshots', { params }),
+  getSnapshot: (id: string) => api.get(`/admin/insights/market/snapshots/${id}`),
+  // Profession taxonomy CRUD (soft-disable only — history is never destroyed).
+  listProfessions: () => api.get('/admin/insights/professions'),
+  createProfession: (data: any) => api.post('/admin/insights/professions', data),
+  updateProfession: (id: string, data: any) => api.patch(`/admin/insights/professions/${id}`, data),
+  deactivateProfession: (id: string) => api.delete(`/admin/insights/professions/${id}`),
 };
+
+export interface MarketDashboard {
+  totals: { activeWorkers: number; activeEmployers: number; offersWindow: number; acceptedOffersWindow: number };
+  salary: GatedValue<{ mean: number; median: number; p25: number; p50: number; p75: number; currency: string }>;
+  demand: GatedValue<{ offers: number; employers: number; growthPct?: number }>;
+  period: { start: string; end: string; windowDays: number };
+  mostInDemandSkills: Array<{ skill: string; offers: number; prevOffers: number; growthPct: number | null }>;
+  fastestGrowingSkills: Array<{ skill: string; offers: number; prevOffers: number; growthPct: number | null }>;
+  regionalShortages: Array<{
+    regionId: string;
+    regionName: string;
+    offers: number;
+    availableCandidates: number;
+    offersPerCandidate: number | null;
+    shortageLevel: 'HIGH' | 'MODERATE' | 'LOW';
+  }>;
+  pendingDrafts: number;
+  generatedAt: string;
+  methodVersion: number;
+}
 
 /** Pseudonymous analytics session key: random, stored per-browser. Never an IP
  * or device fingerprint — the analytics events must carry no personal data. */

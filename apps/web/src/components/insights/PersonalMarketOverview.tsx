@@ -6,6 +6,7 @@ import { Link } from "@/i18n/navigation";
 import { useFormat } from "@/hooks/useFormat";
 import type { WorkerMarketOverview, GatedValue } from "@/lib/api";
 import InsufficientData from "./InsufficientData";
+import MarketValueCard from "./MarketValueCard";
 
 /**
  * The "Your Market" panel — the personalized market overview for a signed-in
@@ -198,6 +199,13 @@ export default function PersonalMarketOverview({ overview }: { overview: WorkerM
           {t("viewDeep")} →
         </Link>
       </div>
+
+      {/* Explainable market-value indicator (P5): transparent points rubric. */}
+      {overview.marketValue && (
+        <div className="px-6 pb-6">
+          <MarketValueCard marketValue={overview.marketValue} />
+        </div>
+      )}
     </section>
   );
 }

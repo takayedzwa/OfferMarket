@@ -2,7 +2,8 @@ import { Injectable, Logger, NotFoundException, BadRequestException } from '@nes
 import { PrismaService } from '../../prisma/prisma.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { ERROR_CODES } from '../../i18n/error-codes';
-import { SAMPLE_SIZES, MAX_PUBLISH_FANOUT } from './insights-settings';
+import { MAX_PUBLISH_FANOUT } from './insights-settings';
+import { InsightsConfigService } from './insights-config.service';
 import {
   CreateInsightArticleDto,
   UpdateInsightArticleDto,
@@ -27,6 +28,7 @@ export class InsightsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly eventEmitter: EventEmitter2,
+    private readonly config: InsightsConfigService,
   ) {}
 
   // ==========================================================================
@@ -482,12 +484,13 @@ export class InsightsService {
     dataPeriodEnd?: Date | null;
   }) {
     if (article.dataClass !== 'EDITORIAL') {
+      const minSample = (await this.config.getThresholds()).MIN_ARTICLE_SAMPLE;
       const sample = article.sampleSize ?? 0;
-      if (sample < SAMPLE_SIZES.MIN_ARTICLE_SAMPLE) {
+      if (sample < minSample) {
         throw new BadRequestException({
           code: ERROR_CODES.INSIGHT_SAMPLE_TOO_SMALL,
-          message: `Non-editorial insights require a sampleSize of at least ${SAMPLE_SIZES.MIN_ARTICLE_SAMPLE}; got ${sample}.`,
-          params: { minSample: SAMPLE_SIZES.MIN_ARTICLE_SAMPLE, sample },
+          message: `Non-editorial insights require a sampleSize of at least ${minSample}; got ${sample}.`,
+          params: { minSample, sample },
         });
       }
       if (!article.dataPeriodStart || !article.dataPeriodEnd) {

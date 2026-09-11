@@ -89,5 +89,125 @@
   "errors": {
     "saveFailed": "Opslaan mislukt — controleer de velden en probeer het opnieuw.",
     "actionFailed": "De actie is mislukt. Probeer het opnieuw."
+  },
+  "market": {
+    "title": "Marktinformatie",
+    "subtitle": "Het samengestelde beeld van de aggregatie-engine: vraag, salarissen, tekorten en de wachtrij met automatisch gegenereerde concepten.",
+    "backToCms": "Terug naar het Insights-CMS",
+    "provenance": "Methodologieversie {methodVersion}",
+    "period": "rollend venster van {days} dagen",
+    "loading": "Marktinformatie laden…",
+    "fetchError": "Kon de marktinfo niet laden.",
+    "saveError": "Kon de instellingen niet opslaan.",
+    "thresholdsSaved": "Drempelwaarden opgeslagen. De engine pakt ze binnen een minuut op.",
+    "generatorSaved": "Generatorinstellingen opgeslagen.",
+    "generatorRun": "Generator klaar: {created} concept(en) aangemaakt, {skipped} bestonden al.",
+    "totals": {
+      "activeWorkers": "Actieve vakmensen",
+      "activeEmployers": "Geverifieerde werkgevers",
+      "offers": "Aanbiedingen (venster)",
+      "accepted": "Geaccepteerd (venster)"
+    },
+    "salary": {
+      "median": "Median marktsalaris",
+      "range": "P25–P75: {p25} – {p75}"
+    },
+    "demand": {
+      "offers": "Aanbiedingen in venster"
+    },
+    "sampleSize": "Steekproef: {sampleSize} aanbiedingen",
+    "skills": {
+      "inDemand": "Meest gevraagde vaardigheden",
+      "growing": "Snelst groeiende vaardigheden",
+      "growingEmpty": "Nog geen meetbare groei (beide vensters hebben genoeg aanbiedingen nodig)."
+    },
+    "shortages": {
+      "title": "Regionale tekorten",
+      "region": "Regio",
+      "offers": "Aanbiedingen",
+      "candidates": "Beschikbare kandidaten",
+      "level": "Niveau",
+      "level.HIGH": "Groot tekort",
+      "level.MODERATE": "Gemiddeld",
+      "level.LOW": "Laag"
+    },
+    "pendingDrafts": "{count, plural, one {# automatisch gegenereerd concept wacht op review} other {# automatisch gegenereerde concepten wachten op review}}",
+    "reviewDrafts": "Concepten beoordelen",
+    "thresholds": {
+      "title": "Statistische waarborgen",
+      "subtitle": "Minimale steekproefgroottes voor elke statistiek. Onder de drempel toont de statistiek 'onvoldoende data' — nooit een gok. Wijzigingen werken binnen een minuut, zonder deploy.",
+      "save": "Drempelwaarden opslaan",
+      "fields": {
+        "SALARY_RANGE": "Salarisrange (aanbiedingen)",
+        "SALARY_TREND": "Salaristrend (aanbiedingen, beide vensters)",
+        "DEMAND_LEVEL": "Vraagclassificatie (aanbiedingen)",
+        "MOST_VALUABLE_SKILLS": "Vaardigheidsstatistieken (aanbiedingen per venster)",
+        "EMPLOYER_COHORT": "Werkgeverscohort (werkgevers)",
+        "TIME_TO_HIRE": "Time-to-hire / cohorten (aanbiedingen)",
+        "MIN_ARTICLE_SAMPLE": "Publiceerbaar artikel (aanbiedingen)",
+        "WINDOW_DAYS": "Aggregatievenster (dagen)",
+        "SNAPSHOT_RETENTION_DAYS": "Snapshot-bewaartermijn (dagen)"
+      }
+    },
+    "generator": {
+      "title": "Conceptgenerator",
+      "subtitle": "Detecteert salarisveranderingen, vraaggroei en effecten van secundaire voorwaarden en schrijft concept-insights. Concepten worden altijd beoordeeld vóór publicatie.",
+      "enabled": "Ingeschakeld",
+      "save": "Instellingen opslaan",
+      "runNow": "Nu uitvoeren",
+      "draftNote": "Gegenereerde insights zijn altijd een CONCEPT — er wordt nooit automatisch gepubliceerd.",
+      "fields": {
+        "salaryChangePct": "Salarisverandering-trigger (%/maand)",
+        "demandGrowthPct": "Vraaggroei-trigger (%)",
+        "benefitMinSample": "Minimale benefitcohort (aanbiedingen)",
+        "benefitMinGapPct": "Benefitverschil-trigger (pp)"
+      }
+    },
+    "snapshots": {
+      "title": "Opgeslagen snapshots (dataprovenance)",
+      "filterPlaceholder": "Vakgebied…",
+      "filter": "Filteren",
+      "date": "Datum",
+      "profession": "Vakgebied",
+      "offers": "Aanbiedingen",
+      "employers": "Werkgevers",
+      "empty": "Nog geen snapshots — de nachtelijke taak vult dit aan."
+    }
+  },
+  "professions": {
+    "title": "Vakgebied-taxonoom",
+    "subtitle": "Door de beheerder beheerde referentiedata. Vrije teksten in profielen en artikelen blijven matchen op naam, Engelse naam of alias — nieuwe vakgebieden toevoegen vraagt nooit een code-aanpassing.",
+    "backToCms": "Terug naar het Insights-CMS",
+    "add": "Vakgebied toevoegen",
+    "saved": "Opgeslagen.",
+    "deactivated": "Vakgebied gedeactiveerd (bestaande data blijft onaangetast).",
+    "loading": "Taxonoom laden…",
+    "fetchError": "Kon vakgebieden niet laden.",
+    "errors": {
+      "slugTaken": "Er bestaat al een vakgebied met deze naam.",
+      "save": "Kon het vakgebied niet opslaan."
+    },
+    "form": {
+      "name": "Naam (Nederlands)",
+      "nameEn": "Naam (Engels)",
+      "group": "Groep",
+      "aliases": "Aliassen",
+      "aliasesPlaceholder": "komma-gescheiden alternatieve schrijfwijzen",
+      "description": "Omschrijving",
+      "saveNew": "Vakgebied aanmaken",
+      "saveEdit": "Wijzigingen opslaan",
+      "cancel": "Annuleren"
+    },
+    "table": {
+      "name": "Naam",
+      "aliases": "Aliassen",
+      "version": "Versie",
+      "status": "Status",
+      "deactivate": "Deactiveren"
+    },
+    "status": {
+      "active": "Actief",
+      "inactive": "Inactief"
+    }
   }
 }

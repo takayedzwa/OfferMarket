@@ -164,5 +164,31 @@
     "registerWorker": "Create a worker profile",
     "registerEmployer": "Hire with structured offers",
     "clickNote": "See the real numbers behind these insights."
+  },
+  "marketValue": {
+    "title": "Market value indicator",
+    "subtitle": "A transparent points score based on your profile and live market data",
+    "howItWorks": "How this score is calculated",
+    "noBlackBox": "No hidden model: every point comes from the rule shown above, computed from your own profile and marketplace aggregates.",
+    "salaryPercentile": "Your desired salary sits at the {percentile}th percentile of comparable offers.",
+    "components": {
+      "experience": "Experience",
+      "skills": "Skills",
+      "certifications": "Certifications",
+      "demand": "Demand for your trade",
+      "comparableOffers": "Offers received"
+    },
+    "experienceBand": "Based on your own {years, plural, one {# year} other {# years}} of experience — worth {points} of 25 points.",
+    "experienceUnknown": "No experience filled in yet, so this component scores 0 — add it on your profile.",
+    "skillsCount": "{count, plural, =0 {No profile skills listed yet} other {# listed skill(s), 5 points each}} — worth {points} of 25 points.",
+    "certsCount": "{count, plural, =0 {No certifications} other {# certification(s), 7.5 points each}} — worth {points} of 15 points.",
+    "certsNone": "No certifications listed, so this component scores 0.",
+    "demandVeryHigh": "Very high demand for your trade right now ({offers} offers in the window) — full 20 points.",
+    "demandHigh": "High demand for your trade right now ({offers} offers in the window) — 15 points.",
+    "demandModerate": "Moderate demand for your trade ({offers} offers in the window) — 10 points.",
+    "demandLow": "Some demand for your trade ({offers} offers in the window) — 5 points.",
+    "demandUnknown": "Not enough marketplace data yet to assess demand for your trade — this component scores 0 and says so.",
+    "offersCount": "Employers sent {count} offer(s) in the last window — 3 points each, capped at 15.",
+    "offersNone": "No offers received in this window yet, so this component scores 0."
   }
 }

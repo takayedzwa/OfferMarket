@@ -51,7 +51,7 @@ editorial analysis — with **four explicitly labeled data classes** that are ne
 /insights/your-market              Full "Your Market" page (deep personalization)
 /admin/insights                    Admin CMS: article list + lifecycle
 /admin/insights/new                Create
-/admin/insights/[id]/edit          Edit + preview + schedule/publish/unpublish/archive
+/admin/insights/[id]/edit          Edit + schedule/publish/unpublish/archive (preview deferred)
 /admin/insights/sources            Source registry CRUD
 /profile/insights (section)        Follows: professions, regions, skills → notification prefs
 ```
@@ -102,7 +102,8 @@ Financial-Times × Bloomberg-terminal × modern SaaS. Deliberately **not** a job
 <Footer>
 
 InsightsHomePage
-├─ <MarketBanner/>             (anonymous: pitch; logged-in: live ticker strip)
+├─ <MarketBanner/>             (not built as a component — shipped as the
+│                               homepage hero + tracked registration CTA)
 ├─ <PersonalMarketOverview/>   (worker): demand, salary range, trend, top skills,
 │                               employer count, offer count, recent changes
 ├─ <EmployerIntelligencePanel/> (employer): hiring difficulty, competitiveness,
@@ -125,7 +126,8 @@ InsightArticlePage
 
 Admin CMS
 ├─ InsightListTable            (status filters, publish date, actions)
-├─ InsightEditor               (all fields; live preview toggle; validation)
+├─ InsightEditor               (all fields; validation — live preview toggle
+│                               deferred, not built)
 ├─ SourceEditor
 └─ StatusBarActions            (schedule → publish → unpublish → archive)
 ```
@@ -155,7 +157,8 @@ New models (all prefixed `Insight*`; see `apps/api/prisma/schema.prisma` for exa
 - **MarketSnapshot** (optional, prepared for later): cached computed aggregates keyed by
   (profession, regionId, snapshotDate) so the dashboard stays fast as data grows.
 
-Sample-size minimums are **config**, not schema: `InsightsService.MIN_*` constants (§12).
+Sample-size minimums are **config**, not schema: originally `InsightsService`
+constants (§12), now admin-editable `AdminSettings` — see Part II, P2.
 
 ---
 
@@ -166,9 +169,11 @@ Sample-size minimums are **config**, not schema: `InsightsService.MIN_*` constan
 GET  /insights/articles                      list (published; filters: category, profession, region, page)
 GET  /insights/articles/:slug                article detail (published only)
 GET  /insights/categories                    the 5 content categories + counts
+                                             (live + tested; UI chips are static for now)
 GET  /insights/market/overview               personalized worker dashboard (auth: WORKER)
 GET  /insights/market/employer               employer intelligence dashboard (auth: EMPLOYER)
 GET  /insights/market/preview                generic (anonymous) market teaser — no numbers below threshold
+                                             (live + tested; no UI consumer yet)
 POST /insights/analytics/event               anonymous-safe event ingest (sessionKey from cookie)
 POST /insights/analytics/conversion          worker/employer registration attribution
 
@@ -188,6 +193,7 @@ POST   /admin/insights/articles/:id/unpublish
 POST   /admin/insights/articles/:id/archive
 DELETE /admin/insights/articles/:id          soft-delete
 POST   /admin/insights/preview               render preview without persisting publish state
+                                             (NOT BUILT — deferred)
 POST   /admin/insights/sources / GET / PATCH /:id / DELETE /:id   source registry CRUD
 ```
 
@@ -293,8 +299,10 @@ Example email/in-app copy (NL): *"Nieuwe salarisdata voor elektriciens in Rotter
   the admin list + a cron-ish sweep on each insights list request — cheap and reliable for MVP).
 - Every CMS mutation writes `AdminAction` audit rows (`entityType: "insight_article"`).
 - Author defaults to the acting admin; free-text override allowed.
-- Preview = render the same article component from admin state, no SEO indexing
-  (`X-Robots-Tag: noindex` on preview route).
+- Preview was designed as "render the same article component from admin state,
+  no SEO indexing (`X-Robots-Tag: noindex` on preview route)" but was **not
+  built** — admin review happens through the CMS edit form. The design stays
+  valid for a future build.
 
 ---
 
@@ -311,7 +319,8 @@ Example email/in-app copy (NL): *"Nieuwe salarisdata voor elektriciens in Rotter
 | Article statistics block | **30** relevant observations | validated at publish |
 
 These thresholds deliberately start high so nothing is published that can't be defended; they're
-constants in one place so they loosen as the marketplace grows.
+constants in one place so they loosen as the marketplace grows. *(As of Part II they are
+admin-editable runtime config with these values as the defaults.)*
 
 ---
 
@@ -357,7 +366,8 @@ left, key stats + sources + share rail right.
 3. **Web**: `Insights` navbar tab (only nav change), homepage dashboard, category hubs, article
    page with TransparencyBox + ShareBar + JSON-LD + OG, sitemap, `Your Market` components,
    anonymous "insufficient data" states.
-4. **Admin CMS**: list/editor/preview/source registry with status actions.
+4. **Admin CMS**: list/editor/source registry with status actions (article
+   preview deferred).
 5. **Tests**: unit tests for the statistics/sample-size service, component tests for new UI,
    updated lucide-react mocks.
 
@@ -382,3 +392,131 @@ forms, multi-country locales beyond EN/NL.
   published number keeps a correction history — trust is the product).
 - **Compliance**: insights data is aggregate-only (no personal data), so GDPR surface stays small;
   analytics events are pseudonymous (sessionKey) with 12-month pruning already in the design.
+
+---
+
+# Part II — Market Intelligence engine (P1–P7, implemented 2026-09-06)
+
+The CMS (Part I) is the editorial surface. The engine below is the **data
+product** underneath it: one aggregation service that is the single definition
+of every metric, point-in-time snapshots, a versioned profession taxonomy, an
+explainable market-value indicator, an auto-draft generator that only ever
+creates DRAFTs for admin review, and the admin Market Intelligence console that
+exposes all of it. Design rule throughout: **trust is the product** — never
+fabricate, never hide sample sizes, never present an estimate as a fact.
+
+## P1 · Aggregation engine — `market-aggregation.service.ts`
+
+- The **single definition** of every market metric (salary range/percentiles,
+  demand level, skill premiums + growth, employer cohorts, time-to-hire,
+  regional shortages). The snapshot engine, the dashboard and the generator
+  all compose this service — no metric is ever recomputed with a second,
+  drifting implementation.
+- Every return is a `GatedValue` (`{ available, reason? 'INSUFFICIENT_DATA',
+  value?, sampleSize? }`); unsupported numbers simply do not exist in the API
+  surface.
+- `MARKET_ACTIVE_STATUSES` is exported from `market-aggregation.service.ts`
+  and defines which offer statuses count toward market aggregates — the
+  snapshot, dashboard, generator and profession services all consume the
+  aggregation engine rather than recomputing anything. The pre-engine
+  on-read personalization path (`insights-stats.service.ts`) keeps an
+  identical private copy of the status list; fold it onto the exported
+  constant if the two ever diverge.
+- Shortage classification per region: offers vs available candidates →
+  `HIGH / MODERATE / LOW`, gated by the demand sample threshold.
+
+## P2 · Admin-configurable statistical safeguards — `insights-config.service.ts`
+
+- The §12 sample-size minimums are now **runtime config**, not code constants:
+  `AdminSettings` rows `insights.thresholds` and `insights.generator`
+  (category `insights`, JSON values).
+- `DEFAULT_THRESHOLDS` mirrors the original `SAMPLE_SIZES` (30/60/5/10/8/20/30)
+  plus `WINDOW_DAYS: 90` and `SNAPSHOT_RETENTION_DAYS: 730`;
+  `DEFAULT_GENERATOR_CONFIG = { enabled: true, salaryChangePct: 3,
+  demandGrowthPct: 15, benefitMinSample: 20, benefitMinGapPct: 5 }`.
+- Typed fallbacks + defensive merge: unknown keys and type-invalid values are
+  ignored; a DB failure degrades to defaults (the engine never fails open on a
+  missing settings row). 60-second in-memory cache with explicit invalidation
+  on update.
+- Every change is audited (`AdminAction` on `admin_settings`).
+
+## P3 · Snapshot + time-series engine — `insights-snapshot.service.ts`
+
+- Nightly cron (`0 30 2 * *`): composes the aggregation engine per
+  (profession, regionId, day) and persists `MarketSnapshot` rows with full
+  provenance — `{ methodVersion, computedAt, thresholds }` — so every number
+  ever published can be reproduced.
+- `METHOD_VERSION = 1` is recorded on all provenance; bump it whenever the
+  methodology changes so historical snapshots stay interpretable.
+- `GET /insights/market/trends?profession&granularity=day|week|month|quarter|yoy`
+  builds series from stored snapshots: day = raw, week/month/quarter = calendar
+  bucketing (last snapshot in bucket wins), `yoy` pairs same-month snapshots
+  across years.
+- `SNAPSHOT_RETENTION_DAYS` prunes old rows on the nightly run.
+- Admin: `GET /admin/insights/market/snapshots` (paged, profession/region
+  filters) + detail — provenance inspection is a first-class admin surface.
+
+## P4 · Profession taxonomy — `market-profession.service.ts` + `Profession` model
+
+- Admin-managed reference data: `slug` (unique), `name`, `nameEn`, `group`,
+  `aliases[]`, `description`, `isActive` (soft-disable only — taxonomy history
+  is never destroyed), `sortOrder`, `version`.
+- **Version bump on definition change**: free-text trades recorded on profiles
+  keep resolving against the taxonomy by slug / name / nameEn / alias, so
+  renaming a profession never silently re-buckets historical data.
+- Seeded with 11 entries (electrician, hvac-technician, industrial-mechanic,
+  welder, plumber, nurse, care-worker, truck-driver, bus-driver,
+  electrical-engineer, mechanical-engineer) with NL names + EN nameEn +
+  aliases; seed upserts use `update: {}` to protect admin edits across re-seeds.
+- Public reads (`/insights/market/professions`, groups, skill search);
+  admin CRUD with `PROFESSION_CREATED / UPDATED / DEACTIVATED` audits;
+  `profession.slug_taken` error surfaced in the admin UI.
+
+## P5 · Explainable market-value indicator — `computeMarketValue` (stats service)
+
+- A transparent **points rubric, max 100**:
+  `EXPERIENCE 25 · SKILLS 25 · DEMAND 20 · CERTIFICATIONS 15 ·
+  COMPARABLE_OFFERS 15`. Each component returns points, maxPoints, raw inputs
+  (`detail`), an `explanationKey` (`MARKET_VALUE.*`) and `explanationParams` —
+  the UI renders exactly those, so "why is this my score" is always answerable.
+- Insufficient data scores **0 for that component and says so** (e.g.
+  `MARKET_VALUE.DEMAND_UNKNOWN`) — never silently skipped.
+- `salaryPercentile` is separately gated: the worker's desired salary position
+  vs the comparable-offer sample, with `sampleSize` shown.
+- Web: `MarketValueCard` (progress bar, per-component rows, expandable
+  explanations, honesty note "no hidden model"), embedded in
+  `PersonalMarketOverview` and i18n'd EN+NL with ICU plurals.
+
+## P6 · Auto-draft insights generator — `insights-generator.service.ts`
+
+- Nightly cron (`0 45 2 * *`, after snapshots) + manual "Run now".
+- Rules over the aggregation engine: salary change (`SALARY_CHANGE`),
+  demand growth (`DEMAND_GROWTH`), benefit competitiveness gap
+  (`BENEFIT_IMPACT`) — each fires only above its configured trigger and
+  sample threshold; below-trigger **silence** (no noise drafts).
+- Output is **always `status: DRAFT`, `autoGenerated: true`** — never
+  auto-published; admins review and publish through the existing CMS lifecycle.
+- Idempotent: `generatedFrom.ruleKey` (e.g.
+  `salary:Electrician:country:2026-07`) is queried before create, so a re-run
+  never duplicates a draft.
+
+## P7 · Admin Market Intelligence console
+
+- API (`/admin/insights/market/*`, AdminGuard, audited): `dashboard` (totals,
+  gated salary + demand with sample sizes, skills, regional shortages,
+  pending drafts, methodVersion + window provenance), `thresholds`
+  GET/PUT, `generator-config` GET/PUT + `generate` POST, `snapshots`,
+  and profession CRUD.
+- Web: `/admin/insights/market` — live dashboard with honest gated states,
+  the 9-threshold safeguards form with dirty tracking, generator config +
+  enabled toggle + run-now with result counts, snapshots table with
+  profession filter; `/admin/insights/professions` — grouped taxonomy table,
+  create/edit form (group datalist, comma-separated aliases), soft-deactivate.
+
+## Engine wiring
+
+- Migration: `20260906000000_add_intelligence_engine` (Profession table +
+  insights fields); seed adds the 11 taxonomy entries and both
+  `insights.*` AdminSettings rows.
+- Web i18n: `marketValue` section in `insights.json`, `market` + `professions`
+  sections in `admin-insights.json` (EN + NL parity enforced).
