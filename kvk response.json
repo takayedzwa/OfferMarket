@@ -1,0 +1,69 @@
+{
+  "pagina": 1,
+  "resultatenPerPagina": 10,
+  "totaal": 3,
+  "resultaten": [
+    {
+      "kvkNummer": "68750110",
+      "naam": "Test BV Donald",
+      "type": "rechtspersoon",
+      "links": [
+        {
+          "rel": "basisprofiel",
+          "href": "https://api.kvk.nl/test/api/v1/basisprofielen/68750110"
+        }
+      ]
+    },
+    {
+      "kvkNummer": "68750110",
+      "vestigingsnummer": "000037178601",
+      "naam": "Test BV Donald Nevenvestiging",
+      "adres": {
+        "binnenlandsAdres": {
+          "type": "bezoekadres",
+          "straatnaam": "Brinkerinckbaan",
+          "plaats": "Diepenveen"
+        }
+      },
+      "type": "nevenvestiging",
+      "links": [
+        {
+          "rel": "basisprofiel",
+          "href": "https://api.kvk.nl/test/api/v1/basisprofielen/68750110"
+        },
+        {
+          "rel": "vestigingsprofiel",
+          "href": "https://api.kvk.nl/test/api/v1/vestigingsprofielen/000037178601"
+        }
+      ]
+    },
+    {
+      "kvkNummer": "68750110",
+      "vestigingsnummer": "000037178598",
+      "naam": "Test BV Donald",
+      "adres": {
+        "binnenlandsAdres": {
+          "type": "bezoekadres",
+          "straatnaam": "Hizzaarderlaan",
+          "plaats": "Lollum"
+        }
+      },
+      "type": "hoofdvestiging",
+      "links": [
+        {
+          "rel": "basisprofiel",
+          "href": "https://api.kvk.nl/test/api/v1/basisprofielen/68750110"
+        },
+        {
+          "rel": "vestigingsprofiel": "https://api.kvk.nl/test/api/v1/vestigingsprofielen/000037178598"
+        }
+      ]
+    }
+  ],
+  "links": [
+    {
+      "rel": "self",
+      "href": "https://api.kvk.nl/test/api/v2/zoeken?kvknummer=68750110&pagina=1&resultatenperpagina=10"
+    }
+  ]
+}

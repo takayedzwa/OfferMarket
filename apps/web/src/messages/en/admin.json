@@ -47,6 +47,10 @@
       "referrals": {
         "label": "Referral program",
         "desc": "Configure the referral program and manage rewards"
+      },
+      "insights": {
+        "label": "Insights CMS",
+        "desc": "Create, schedule and publish labor-market insights"
       }
     },
     "header": {

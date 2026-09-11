@@ -71,6 +71,14 @@
     "not_authorized_withdraw": "Niet geautoriseerd om deze aanbieding in te trekken",
     "cannot_withdraw_state": "Een aanbieding kan niet worden ingetrokken in huidige status: {status}. Alleen actieve aanbiedingen kunnen worden ingetrokken."
   },
+  "insight": {
+    "not_found": "Inzicht niet gevonden.",
+    "slug_taken": "De URL \"{slug}\" is al in gebruik.",
+    "sample_too_small": "Dit inzicht vereist een geverifieerde steekproef van minimaal {minSample} (huidig: {sample}).",
+    "data_period_required": "Datagestuurde inzichten moeten een geldige dataperiode vermelden.",
+    "invalid_transition": "Deze statuswijziging is niet toegestaan.",
+    "follow_empty": "Kies minimaal een vakgebied, regio of vaardigheid om te volgen."
+  },
   "error": {
     "internal": "Interne serverfout",
     "network": "Netwerkfout — controleer je verbinding en probeer het opnieuw.",

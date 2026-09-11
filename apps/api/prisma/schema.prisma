@@ -4,7 +4,7 @@ generator client {
   // openssl-1.1.x engine Prisma generates fails to load at runtime. We pin
   // both arches so the same image runs on arm64 (Apple Silicon, Fly arm) and
   // x64 (CI, Fly x64) without rebuilding.
-  provider     = "prisma-client-js"
+  provider      = "prisma-client-js"
   binaryTargets = ["native", "linux-musl-openssl-3.0.x", "linux-musl-arm64-openssl-3.0.x"]
 }
 
@@ -45,12 +45,12 @@ model User {
   // (nestjs-i18n) and is sent to the client on /auth/me so the frontend can
   // initialize its locale cookie. Defaults to "en". Add new locales to the
   // validation list in the PATCH endpoint + apps/web/src/i18n/routing.ts.
-  preferredLocale          String    @default("en")
+  preferredLocale String @default("en")
 
   // Referral program: this user's personal invite code (null until the user
   // first opens the referral dashboard — generated lazily via crypto.randomBytes
   // from an unambiguous alphabet and assigned under the unique constraint).
-  referralCode             String?   @unique
+  referralCode String? @unique
 
   // Relations
   conversations1       Conversation[]        @relation("ConversationParticipant1")
@@ -77,19 +77,21 @@ model User {
 
   // Referral program relations (referred users keep the row after erasure via
   // SET NULL so reward history stays attributable to the referrer)
-  referralsMade        Referral[]            @relation("ReferralReferrer")
-  referralsReceived    Referral[]            @relation("ReferralReferred")
-  referralRewards      ReferralReward[]
+  referralsMade     Referral[]       @relation("ReferralReferrer")
+  referralsReceived Referral[]       @relation("ReferralReferred")
+  referralRewards   ReferralReward[]
 
   // DSA (Digital Services Act) relations
-  contentReportsFiled     ContentReport[]       @relation("UserContentReportsFiled")
-  contentReportsAssigned  ContentReport[]       @relation("UserContentReportsAssigned")
-  dsaComplaintsFiled      DSAComplaint[]        @relation("UserDSAComplaintsFiled")
-  dsaComplaintsAssigned   DSAComplaint[]        @relation("UserDSAComplaintsAssigned")
-  noticeMisuseRecords     NoticeMisuseRecord[]  @relation("UserNoticeMisuseRecords")
+  contentReportsFiled    ContentReport[]      @relation("UserContentReportsFiled")
+  contentReportsAssigned ContentReport[]      @relation("UserContentReportsAssigned")
+  dsaComplaintsFiled     DSAComplaint[]       @relation("UserDSAComplaintsFiled")
+  dsaComplaintsAssigned  DSAComplaint[]       @relation("UserDSAComplaintsAssigned")
+  noticeMisuseRecords    NoticeMisuseRecord[] @relation("UserNoticeMisuseRecords")
   refreshTokens          RefreshToken[]
   passwordResetTokens    PasswordResetToken[]
-  ticketMessages         TicketMessage[]        @relation("TicketMessageSender")
+  ticketMessages         TicketMessage[]      @relation("TicketMessageSender")
+  insightArticles        InsightArticle[]     @relation("InsightArticleAuthor")
+  insightFollows         InsightFollow[]
 
   @@index([email])
   @@index([role])
@@ -97,15 +99,15 @@ model User {
 
 // Refresh token tracking for token rotation and reuse detection
 model RefreshToken {
-  id          String    @id @default(uuid())
-  userId      String
-  tokenHash   String    @unique                    // SHA-256 hash of the refresh token
-  familyId    String                               // Token family: all rotated tokens share a family
-  isRevoked   Boolean   @default(false)            // Marked true when used/rotated away
-  expiresAt   DateTime
-  createdAt   DateTime  @default(now())
+  id        String   @id @default(uuid())
+  userId    String
+  tokenHash String   @unique // SHA-256 hash of the refresh token
+  familyId  String // Token family: all rotated tokens share a family
+  isRevoked Boolean  @default(false) // Marked true when used/rotated away
+  expiresAt DateTime
+  createdAt DateTime @default(now())
 
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([tokenHash])
@@ -121,7 +123,7 @@ model PasswordResetToken {
   usedAt    DateTime?
   createdAt DateTime  @default(now())
 
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([tokenHash])
   @@index([userId])
@@ -131,13 +133,13 @@ model PasswordResetToken {
 model VerificationCode {
   id        String   @id @default(uuid())
   userId    String
-  type      String   // "EMAIL" or "PHONE"
-  codeHash  String   // SHA-256 hash of the 6-digit OTP code
-  tokenHash String?  // SHA-256 hash of the long magic-link token (EMAIL only)
+  type      String // "EMAIL" or "PHONE"
+  codeHash  String // SHA-256 hash of the 6-digit OTP code
+  tokenHash String? // SHA-256 hash of the long magic-link token (EMAIL only)
   expiresAt DateTime
   createdAt DateTime @default(now())
 
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, type, expiresAt])
   @@index([codeHash])
@@ -151,7 +153,7 @@ model BlacklistedToken {
   expiresAt DateTime
   createdAt DateTime @default(now())
 
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([jti])
   @@index([expiresAt])
@@ -215,6 +217,7 @@ model Worker {
 model Skill {
   id                String          @id @default(uuid())
   name              String
+  nameEn            String? // secondary-language name (NL is primary, EN for i18n)
   slug              String          @unique
   category          String
   subcategory       String?
@@ -224,6 +227,7 @@ model Skill {
   parentSkillId     String?
   isActive          Boolean         @default(true)
   usageCount        Int             @default(0)
+  version           Int             @default(1) // bumped on definition changes; metrics record which version they used
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
   certifications    Certification[]
@@ -254,6 +258,32 @@ model ProfileSkill {
   @@unique([profileId, skillId])
   @@index([profileId])
   @@index([skillId])
+}
+
+// ============================================================================
+// PROFESSION TAXONOMY — reference data, admin-managed (no code changes needed
+// to add professions). Worker.primaryTrade / InsightArticle.profession /
+// InsightFollow.profession remain free text; MarketProfessionService resolves
+// them to taxonomy entries by slug / name / alias so existing strings keep
+// working during the transition.
+// ============================================================================
+
+model Profession {
+  id          String   @id @default(uuid())
+  slug        String   @unique
+  name        String
+  nameEn      String?
+  group       String // e.g. "technical", "healthcare", "transport", "engineering"
+  description String?  @db.Text
+  aliases     String[] @default([]) // legacy free-text spellings mapped to this entry
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  version     Int      @default(1)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([group, isActive])
+  @@index([isActive, sortOrder])
 }
 
 model Certification {
@@ -367,7 +397,7 @@ model Employer {
 }
 
 model Region {
-  id               String     @id @default(uuid())
+  id               String           @id @default(uuid())
   parentId         String?
   name             String
   nameEn           String?
@@ -376,46 +406,49 @@ model Region {
   postalCodePrefix String?
   latitude         Decimal?
   longitude        Decimal?
-  createdAt        DateTime   @default(now())
-  parent           Region?    @relation("RegionHierarchy", fields: [parentId], references: [id])
-  childRegions     Region[]   @relation("RegionHierarchy")
+  createdAt        DateTime         @default(now())
+  parent           Region?          @relation("RegionHierarchy", fields: [parentId], references: [id])
+  childRegions     Region[]         @relation("RegionHierarchy")
   workers          Worker[]
+  insightArticles  InsightArticle[]
+  insightFollows   InsightFollow[]
+  marketSnapshots  MarketSnapshot[]
 
   @@index([parentId])
   @@index([type])
 }
 
 model Offer {
-  id               String         @id @default(uuid())
-  publicId         String         @unique
-  workerId         String
-  employerId       String
-  jobTitle         String
-  department       String?
-  jobDescription   String
-  status           OfferStatus    @default(DRAFT)
-  submittedAt      DateTime?
-  viewedAt         DateTime?
-  expiresAt        DateTime
-  acceptedAt       DateTime?
-  rejectedAt       DateTime?
-  withdrawnAt      DateTime?
-  shortlistedAt    DateTime?
-  counteredAt      DateTime?
-  currentVersionId String?        @unique
-  counterOfferForId String?       @map("counter_offer_for_id")
-  source           String?
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
-  conversation     Conversation?
-  currentVersion   OfferVersion?  @relation("CurrentVersion", fields: [currentVersionId], references: [id])
-  counterOfferFor  Offer?          @relation("CounterOfferChain", fields: [counterOfferForId], references: [id])
-  counterOffers    Offer[]         @relation("CounterOfferChain")
-  employer         Employer       @relation(fields: [employerId], references: [id])
-  worker           Worker         @relation(fields: [workerId], references: [id])
-  versions         OfferVersion[]
-  rating           Rating?
-  invoice          Invoice?
+  id                String         @id @default(uuid())
+  publicId          String         @unique
+  workerId          String
+  employerId        String
+  jobTitle          String
+  department        String?
+  jobDescription    String
+  status            OfferStatus    @default(DRAFT)
+  submittedAt       DateTime?
+  viewedAt          DateTime?
+  expiresAt         DateTime
+  acceptedAt        DateTime?
+  rejectedAt        DateTime?
+  withdrawnAt       DateTime?
+  shortlistedAt     DateTime?
+  counteredAt       DateTime?
+  currentVersionId  String?        @unique
+  counterOfferForId String?        @map("counter_offer_for_id")
+  source            String?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  conversation      Conversation?
+  currentVersion    OfferVersion?  @relation("CurrentVersion", fields: [currentVersionId], references: [id])
+  counterOfferFor   Offer?         @relation("CounterOfferChain", fields: [counterOfferForId], references: [id])
+  counterOffers     Offer[]        @relation("CounterOfferChain")
+  employer          Employer       @relation(fields: [employerId], references: [id])
+  worker            Worker         @relation(fields: [workerId], references: [id])
+  versions          OfferVersion[]
+  rating            Rating?
+  invoice           Invoice?
 
   @@index([workerId])
   @@index([employerId])
@@ -580,7 +613,7 @@ model Rating {
 }
 
 model Notification {
-  id               String    @id @default(uuid())
+  id               String        @id @default(uuid())
   userId           String
   notificationType String
   category         String?
@@ -588,14 +621,14 @@ model Notification {
   body             String
   actionUrl        String?
   actionData       Json?
-  channelEmail     Boolean   @default(false)
-  channelPush      Boolean   @default(false)
-  channelSms       Boolean   @default(false)
-  isRead           Boolean   @default(false)
+  channelEmail     Boolean       @default(false)
+  channelPush      Boolean       @default(false)
+  channelSms       Boolean       @default(false)
+  isRead           Boolean       @default(false)
   readAt           DateTime?
   deliveredAt      DateTime?
-  createdAt        DateTime  @default(now())
-  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt        DateTime      @default(now())
+  user             User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   emailOutbox      EmailOutbox[]
 
   @@index([userId])
@@ -652,7 +685,7 @@ model EmailOutbox {
   updatedAt         DateTime  @updatedAt
 
   notification Notification? @relation(fields: [notificationId], references: [id], onDelete: SetNull)
-  user         User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+  user         User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([status, nextAttemptAt])
   @@index([status, lockedAt])
@@ -675,16 +708,16 @@ model EmailOutbox {
 // user changes their email, an old suppression must not block the new address.
 // ============================================================================
 model EmailSuppression {
-  id               String             @id @default(uuid())
-  email            String // normalized (trim + lower-case) at write time
-  reason           SuppressionReason
+  id                String            @id @default(uuid())
+  email             String // normalized (trim + lower-case) at write time
+  reason            SuppressionReason
   // Brevo event id, stored for correlation with the originating webhook event.
   // Not unique on its own: a (email, reason) row may be refreshed by several
   // retried events with different ids.
-  brevoEventId     String?
+  brevoEventId      String?
   providerMessageId String?
-  createdAt        DateTime           @default(now())
-  updatedAt        DateTime           @updatedAt
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
 
   @@unique([email, reason])
   @@index([email])
@@ -746,48 +779,48 @@ model AuditLog {
 // ============================================================================
 
 model Referral {
-  id             String        @id @default(uuid())
+  id                String         @id @default(uuid())
   // Both user fields are SET NULL on erasure (like EmailOutbox.user): the rows
   // survive GDPR deletion so reward history remains auditable, but erasure is
   // never blocked by a referral row.
-  referrerId     String?
-  referredUserId String?       @unique
-  referralCode   String
-  status         ReferralStatus @default(PENDING)
-  attributedAt   DateTime      @default(now())
-  qualifiedAt    DateTime?
-  invalidatedAt  DateTime?
+  referrerId        String?
+  referredUserId    String?        @unique
+  referralCode      String
+  status            ReferralStatus @default(PENDING)
+  attributedAt      DateTime       @default(now())
+  qualifiedAt       DateTime?
+  invalidatedAt     DateTime?
   invalidatedReason String?
   // IP the invitee registered from (abuse forensics only; not exposed to users)
-  attributedIp   String?
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  attributedIp      String?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
 
-  referrer      User? @relation("ReferralReferrer", fields: [referrerId], references: [id], onDelete: SetNull)
-  referredUser  User? @relation("ReferralReferred", fields: [referredUserId], references: [id], onDelete: SetNull)
+  referrer     User? @relation("ReferralReferrer", fields: [referrerId], references: [id], onDelete: SetNull)
+  referredUser User? @relation("ReferralReferred", fields: [referredUserId], references: [id], onDelete: SetNull)
 
   @@index([referrerId, status])
   @@index([referrerId, attributedAt])
 }
 
 model ReferralReward {
-  id                String             @id @default(uuid())
+  id                String       @id @default(uuid())
   // Nullable: GDPR erasure of the owner nulls this out (SET NULL) but the row
   // itself survives so the reward ledger stays complete for auditing.
-  ownerId           String?            // The referring user who earned the reward
-  sequenceNumber    Int                // 1st / 2nd / 3rd ... threshold milestone
-  rewardType        String             @default("gift_card")
-  amountMinor       Int                // Integer minor units (e.g. cents) — never floats
-  currency          String @default("EUR")
-  thresholdSnapshot Int                // Referral threshold in effect at issuance
-  status            RewardStatus       @default(PENDING)
-  rewardProvider    String @default("manual")
+  ownerId           String? // The referring user who earned the reward
+  sequenceNumber    Int // 1st / 2nd / 3rd ... threshold milestone
+  rewardType        String       @default("gift_card")
+  amountMinor       Int // Integer minor units (e.g. cents) — never floats
+  currency          String       @default("EUR")
+  thresholdSnapshot Int // Referral threshold in effect at issuance
+  status            RewardStatus @default(PENDING)
+  rewardProvider    String       @default("manual")
   providerReference String?
   providerMetadata  Json?
   lastError         String?
-  createdAt         DateTime           @default(now())
+  createdAt         DateTime     @default(now())
   fulfilledAt       DateTime?
-  updatedAt         DateTime           @updatedAt
+  updatedAt         DateTime     @updatedAt
 
   owner User? @relation(fields: [ownerId], references: [id], onDelete: SetNull)
 
@@ -1510,22 +1543,22 @@ model UserGdprFlags {
 }
 
 model DataSubjectRequest {
-  id                   String                   @id @default(uuid())
-  userId               String
-  requestType          DataSubjectRequestType
-  status               DataSubjectRequestStatus @default(PENDING)
-  description          String? // User-provided description
-  rectificationField   String?                 @map("rectification_field") // Art. 16: which field to correct
-  rectificationValue   String?                 @map("rectification_value") // Art. 16: the corrected value
-  adminNotes           String? // Internal notes
-  processedBy          String? // Admin who processed it
-  processedAt          DateTime?
-  completedAt          DateTime?
-  resultData           Json? // For access requests: export location
-  rejectionReason      String?
-  dueDate              DateTime // GDPR 30-day deadline
-  createdAt            DateTime                 @default(now())
-  updatedAt            DateTime                 @updatedAt
+  id                 String                   @id @default(uuid())
+  userId             String
+  requestType        DataSubjectRequestType
+  status             DataSubjectRequestStatus @default(PENDING)
+  description        String? // User-provided description
+  rectificationField String?                  @map("rectification_field") // Art. 16: which field to correct
+  rectificationValue String?                  @map("rectification_value") // Art. 16: the corrected value
+  adminNotes         String? // Internal notes
+  processedBy        String? // Admin who processed it
+  processedAt        DateTime?
+  completedAt        DateTime?
+  resultData         Json? // For access requests: export location
+  rejectionReason    String?
+  dueDate            DateTime // GDPR 30-day deadline
+  createdAt          DateTime                 @default(now())
+  updatedAt          DateTime                 @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -1734,80 +1767,80 @@ model PrivacyPolicyVersion {
 // Content Report — DSA Art. 16: Notice-and-Action Mechanism
 // ---------------------------------------------------------------------------
 model ContentReport {
-  id                   String                @id @default(uuid())
-  publicId             String                @unique @default(cuid()) // human-friendly reference (e.g., "RPT-ABC123")
+  id       String @id @default(uuid())
+  publicId String @unique @default(cuid()) // human-friendly reference (e.g., "RPT-ABC123")
 
   // Who is reporting (null = anonymous report, permitted by DSA Art. 16)
-  reporterId           String?               @map("reporter_id")
-  reporterEmail        String?               @map("reporter_email")    // required for anonymous reporters
-  reporterIp           String?               @map("reporter_ip")      // audit trail
-  reporterUserAgent    String?               @map("reporter_user_agent")
+  reporterId        String? @map("reporter_id")
+  reporterEmail     String? @map("reporter_email") // required for anonymous reporters
+  reporterIp        String? @map("reporter_ip") // audit trail
+  reporterUserAgent String? @map("reporter_user_agent")
 
   // What is being reported
-  targetType           ContentReportTarget   @map("target_type")
-  targetId             String                @map("target_id")
-  targetUrl            String                @map("target_url")         // URL of the reported content
-  targetSnapshot       Json?                 @map("target_snapshot")     // stored copy at time of report
+  targetType     ContentReportTarget @map("target_type")
+  targetId       String              @map("target_id")
+  targetUrl      String              @map("target_url") // URL of the reported content
+  targetSnapshot Json?               @map("target_snapshot") // stored copy at time of report
 
   // Why it's being reported — DSA Art. 16(3)
   category             ContentReportCategory
   illegalContentType   String?               @map("illegal_content_type") // specific type (fraud, harassment, etc.)
-  explanation          String                // DSA Art. 16(3)(a): sufficiently detailed explanation
+  explanation          String // DSA Art. 16(3)(a): sufficiently detailed explanation
   goodFaithDeclaration Boolean               @default(false) @map("good_faith_declaration") // DSA Art. 16(3)(d)
-  evidence             Json?                 // screenshots, URLs, additional evidence
+  evidence             Json? // screenshots, URLs, additional evidence
 
   // Processing workflow
-  status               ContentReportStatus   @default(RECEIVED)
-  priority             ContentReportPriority @default(MEDIUM)
-  assignedToId         String?               @map("assigned_to_id")
+  status       ContentReportStatus   @default(RECEIVED)
+  priority     ContentReportPriority @default(MEDIUM)
+  assignedToId String?               @map("assigned_to_id")
 
   // Assessment
-  assessmentResult    ContentReportAssessment? @map("assessment_result")
-  assessmentNotes     String?                @map("assessment_notes")
-  assessedAt          DateTime?             @map("assessed_at")
-  assessedBy          String?                @map("assessed_by")
+  assessmentResult ContentReportAssessment? @map("assessment_result")
+  assessmentNotes  String?                  @map("assessment_notes")
+  assessedAt       DateTime?                @map("assessed_at")
+  assessedBy       String?                  @map("assessed_by")
 
   // Action taken
-  actionTaken         ContentReportAction?   @map("action_taken")
-  actionDetails       Json?                  @map("action_details")
-  actionTakenAt       DateTime?              @map("action_taken_at")
-  actionTakenBy       String?                @map("action_taken_by")
+  actionTaken   ContentReportAction? @map("action_taken")
+  actionDetails Json?                @map("action_details")
+  actionTakenAt DateTime?            @map("action_taken_at")
+  actionTakenBy String?              @map("action_taken_by")
 
   // Resolution
-  resolution          ContentReportResolution?
-  resolutionNotes    String?                 @map("resolution_notes")
-  resolvedAt         DateTime?               @map("resolved_at")
-  resolvedBy         String?                  @map("resolved_by")
+  resolution      ContentReportResolution?
+  resolutionNotes String?                  @map("resolution_notes")
+  resolvedAt      DateTime?                @map("resolved_at")
+  resolvedBy      String?                  @map("resolved_by")
 
   // DSA-mandated notifications
-  acknowledgedAt      DateTime?              @map("acknowledged_at")    // Art. 16(4): without undue delay
-  notifierNotifiedAt  DateTime?              @map("notifier_notified_at")
-  affectedUserNotifiedAt DateTime?           @map("affected_user_notified_at")
+  acknowledgedAt         DateTime? @map("acknowledged_at") // Art. 16(4): without undue delay
+  notifierNotifiedAt     DateTime? @map("notifier_notified_at")
+  affectedUserNotifiedAt DateTime? @map("affected_user_notified_at")
 
   // Counter-notice (Art. 17(4))
-  counterNoticeReceivedAt DateTime?           @map("counter_notice_received_at")
-  counterNoticeContent    String?            @map("counter_notice_content")
+  counterNoticeReceivedAt DateTime? @map("counter_notice_received_at")
+  counterNoticeContent    String?   @map("counter_notice_content")
 
   // Statement of reasons (DSA Art. 17)
-  statementOfReasonsId String?                @map("statement_of_reasons_id")
-  automatedMeans      Boolean                @default(false) @map("automated_means") // Art. 17(3)(e)
+  statementOfReasonsId String? @map("statement_of_reasons_id")
+  automatedMeans       Boolean @default(false) @map("automated_means") // Art. 17(3)(e)
 
   // Misuse tracking (DSA Art. 23)
-  isFrivolous         Boolean                @default(false) @map("is_frivolous") // manifestly unfounded
+  isFrivolous Boolean @default(false) @map("is_frivolous") // manifestly unfounded
 
   // Criminal referral (DSA Art. 18)
-  referredToAuthorities Boolean               @default(false) @map("referred_to_authorities")
-  authorityReferralNotes String?             @map("authority_referral_notes")
+  referredToAuthorities  Boolean @default(false) @map("referred_to_authorities")
+  authorityReferralNotes String? @map("authority_referral_notes")
 
-  createdAt           DateTime               @default(now()) @map("created_at")
-  updatedAt           DateTime               @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   // Relations
-  reporter            User?                  @relation("UserContentReportsFiled", fields: [reporterId], references: [id])
-  assignedTo          User?                  @relation("UserContentReportsAssigned", fields: [assignedToId], references: [id])
-  statementOfReasons  StatementOfReasons?
-  dsaComplaints       DSAComplaint[]
-  misuseRecords       NoticeMisuseRecord[]
+  reporter           User?                @relation("UserContentReportsFiled", fields: [reporterId], references: [id])
+  assignedTo         User?                @relation("UserContentReportsAssigned", fields: [assignedToId], references: [id])
+  statementOfReasons StatementOfReasons?
+  dsaComplaints      DSAComplaint[]
+  misuseRecords      NoticeMisuseRecord[]
 
   @@index([targetType, targetId])
   @@index([status])
@@ -1825,45 +1858,45 @@ model ContentReport {
 // with a clear and specific statement of reasons.
 // ---------------------------------------------------------------------------
 model StatementOfReasons {
-  id                      String                  @id @default(uuid())
-  contentReportId         String                  @unique @map("content_report_id")
+  id              String @id @default(uuid())
+  contentReportId String @unique @map("content_report_id")
 
   // Restriction details
-  restrictionType         ContentRestrictionType  @map("restriction_type")
-  restrictedContentId     String?                 @map("restricted_content_id")
-  restrictedContentType  String?                 @map("restricted_content_type") // "offer", "profile", "message"
+  restrictionType       ContentRestrictionType @map("restriction_type")
+  restrictedContentId   String?                @map("restricted_content_id")
+  restrictedContentType String?                @map("restricted_content_type") // "offer", "profile", "message"
 
   // The reasons (DSA Art. 17(3))
-  reasons                 String[]               // DSA-compliant reason categories
-  detailedExplanation     String                  @map("detailed_explanation") // human-readable explanation
+  reasons             String[] // DSA-compliant reason categories
+  detailedExplanation String   @map("detailed_explanation") // human-readable explanation
 
   // Source of the decision
-  decisionSource          DecisionSource          @map("decision_source") // USER_REPORT, OWN_INVESTIGATION, AUTHORITY_ORDER, TRUSTED_FLAGGER
+  decisionSource DecisionSource @map("decision_source") // USER_REPORT, OWN_INVESTIGATION, AUTHORITY_ORDER, TRUSTED_FLAGGER
 
   // Legal/contractual ground
-  legalBasis             String?                 @map("legal_basis")      // e.g., "DSA Art. 16", "Nl Wetboek Strafrecht Art. 137c"
-  contractualBasis       String?                 @map("contractual_basis") // e.g., "ToS Section 5.3"
+  legalBasis       String? @map("legal_basis") // e.g., "DSA Art. 16", "Nl Wetboek Strafrecht Art. 137c"
+  contractualBasis String? @map("contractual_basis") // e.g., "ToS Section 5.3"
 
   // Territorial scope (DSA Art. 17(3)(b))
-  territorialScope       String?                 @map("territorial_scope") // e.g., "NL", "EU", "global"
+  territorialScope String? @map("territorial_scope") // e.g., "NL", "EU", "global"
 
   // Duration of restriction
-  restrictionDuration    String?                 @map("restriction_duration") // e.g., "permanent", "30 days"
+  restrictionDuration String? @map("restriction_duration") // e.g., "permanent", "30 days"
 
   // Notification tracking
-  notifiedAt             DateTime?               @map("notified_at")
-  notificationMethod     String?                  @map("notification_method") // "email", "in_app", "both"
+  notifiedAt         DateTime? @map("notified_at")
+  notificationMethod String?   @map("notification_method") // "email", "in_app", "both"
 
   // Appeal tracking (DSA Art. 20)
-  appealDeadline         DateTime?               @map("appeal_deadline")
-  appealFiledAt          DateTime?               @map("appeal_filed_at")
-  appealStatus           AppealStatus?          @map("appeal_status")
+  appealDeadline DateTime?     @map("appeal_deadline")
+  appealFiledAt  DateTime?     @map("appeal_filed_at")
+  appealStatus   AppealStatus? @map("appeal_status")
 
-  createdAt              DateTime                @default(now()) @map("created_at")
-  updatedAt              DateTime                @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   // Relations
-  contentReport          ContentReport           @relation(fields: [contentReportId], references: [id], onDelete: Cascade)
+  contentReport ContentReport @relation(fields: [contentReportId], references: [id], onDelete: Cascade)
 
   @@index([restrictionType])
   @@index([appealStatus])
@@ -1875,55 +1908,55 @@ model StatementOfReasons {
 // DSA Complaint — DSA Art. 20: Internal Complaint-Handling System
 // ---------------------------------------------------------------------------
 model DSAComplaint {
-  id                    String                @id @default(uuid())
-  complaintNumber       String                @unique @default(cuid()) // e.g., "CMP-ABC123"
+  id              String @id @default(uuid())
+  complaintNumber String @unique @default(cuid()) // e.g., "CMP-ABC123"
 
   // Complainant
-  complainantId         String                @map("complainant_id")
-  complainantEmail      String                @map("complainant_email")
+  complainantId    String @map("complainant_id")
+  complainantEmail String @map("complainant_email")
 
   // Related content
-  contentReportId      String?               @map("content_report_id") // links to ContentReport if applicable
-  relatedEntityType    String?               @map("related_entity_type") // "offer", "employer", "worker"
-  relatedEntityId      String?               @map("related_entity_id")
+  contentReportId   String? @map("content_report_id") // links to ContentReport if applicable
+  relatedEntityType String? @map("related_entity_type") // "offer", "employer", "worker"
+  relatedEntityId   String? @map("related_entity_id")
 
   // Complaint details
-  complaintType        DSAComplaintType       @map("complaint_type")
-  description          String
-  resolutionSought    String?                @map("resolution_sought") // what the complainant wants
+  complaintType    DSAComplaintType @map("complaint_type")
+  description      String
+  resolutionSought String?          @map("resolution_sought") // what the complainant wants
 
   // Processing
-  assignedToId         String?                @map("assigned_to_id")
-  status               DSAComplaintStatus     @default(SUBMITTED)
-  priority             TicketPriority        @default(MEDIUM)
+  assignedToId String?            @map("assigned_to_id")
+  status       DSAComplaintStatus @default(SUBMITTED)
+  priority     TicketPriority     @default(MEDIUM)
 
   // Timeline tracking (DSA Art. 20(3): timely, non-discriminatory, diligent handling)
-  submittedAt          DateTime              @default(now()) @map("submitted_at")
-  acknowledgedAt       DateTime?             @map("acknowledged_at") // must be within 24 hours
-  targetResponseAt     DateTime?             @map("target_response_at") // computed deadline
-  respondedAt         DateTime?              @map("responded_at")
-  resolvedAt          DateTime?              @map("resolved_at")
-  resolutionOutcome   String?                @map("resolution_outcome")
+  submittedAt       DateTime  @default(now()) @map("submitted_at")
+  acknowledgedAt    DateTime? @map("acknowledged_at") // must be within 24 hours
+  targetResponseAt  DateTime? @map("target_response_at") // computed deadline
+  respondedAt       DateTime? @map("responded_at")
+  resolvedAt        DateTime? @map("resolved_at")
+  resolutionOutcome String?   @map("resolution_outcome")
 
   // Out-of-court dispute resolution (DSA Art. 21)
-  odrReference         String?                @map("odr_reference")
-  odrStatus            ODRStatus?             @map("odr_status")
+  odrReference String?    @map("odr_reference")
+  odrStatus    ODRStatus? @map("odr_status")
 
   // Appeal tracking
-  isAppealed           Boolean               @default(false) @map("is_appealed")
-  appealDeadline       DateTime?             @map("appeal_deadline")
-  appealDecision       String?               @map("appeal_decision")
-  appealDecidedAt      DateTime?             @map("appeal_decided_at")
-  appealDecidedBy      String?                @map("appeal_decided_by")
+  isAppealed      Boolean   @default(false) @map("is_appealed")
+  appealDeadline  DateTime? @map("appeal_deadline")
+  appealDecision  String?   @map("appeal_decision")
+  appealDecidedAt DateTime? @map("appeal_decided_at")
+  appealDecidedBy String?   @map("appeal_decided_by")
 
-  createdAt            DateTime              @default(now()) @map("created_at")
-  updatedAt            DateTime              @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   // Relations
-  complainant          User                  @relation("UserDSAComplaintsFiled", fields: [complainantId], references: [id])
-  assignedTo          User?                  @relation("UserDSAComplaintsAssigned", fields: [assignedToId], references: [id])
-  contentReport       ContentReport?         @relation(fields: [contentReportId], references: [id])
-  messages            ComplaintMessage[]
+  complainant   User               @relation("UserDSAComplaintsFiled", fields: [complainantId], references: [id])
+  assignedTo    User?              @relation("UserDSAComplaintsAssigned", fields: [assignedToId], references: [id])
+  contentReport ContentReport?     @relation(fields: [contentReportId], references: [id])
+  messages      ComplaintMessage[]
 
   @@index([complainantId])
   @@index([assignedToId])
@@ -1935,15 +1968,15 @@ model DSAComplaint {
 }
 
 model ComplaintMessage {
-  id            String        @id @default(uuid())
-  complaintId   String        @map("complaint_id")
-  senderId      String        @map("sender_id")
-  content       String
-  isInternal    Boolean       @default(false) @map("is_internal") // internal staff notes vs. visible to complainant
-  attachments   Json?
-  createdAt     DateTime      @default(now()) @map("created_at")
+  id          String   @id @default(uuid())
+  complaintId String   @map("complaint_id")
+  senderId    String   @map("sender_id")
+  content     String
+  isInternal  Boolean  @default(false) @map("is_internal") // internal staff notes vs. visible to complainant
+  attachments Json?
+  createdAt   DateTime @default(now()) @map("created_at")
 
-  complaint     DSAComplaint  @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  complaint DSAComplaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
 
   @@index([complaintId])
   @@index([senderId])
@@ -1955,26 +1988,26 @@ model ComplaintMessage {
 // Track users who submit manifestly unfounded notices or manifestly illegal content
 // ---------------------------------------------------------------------------
 model NoticeMisuseRecord {
-  id                String        @id @default(uuid())
-  userId            String        @map("user_id")
-  contentReportId   String?       @map("content_report_id")
+  id              String  @id @default(uuid())
+  userId          String  @map("user_id")
+  contentReportId String? @map("content_report_id")
 
-  misuseType        MisuseType
-  description       String
-  warningLevel      WarningLevel  @default(FIRST_WARNING)
+  misuseType   MisuseType
+  description  String
+  warningLevel WarningLevel @default(FIRST_WARNING)
 
-  actionTaken       String?       @map("action_taken") // "warning", "temporary_suspension", "permanent_ban"
-  actionDetails     Json?         @map("action_details")
+  actionTaken   String? @map("action_taken") // "warning", "temporary_suspension", "permanent_ban"
+  actionDetails Json?   @map("action_details")
 
-  isLifted          Boolean       @default(false) @map("is_lifted")
-  liftedAt         DateTime?     @map("lifted_at")
-  liftedBy         String?        @map("lifted_by")
+  isLifted Boolean   @default(false) @map("is_lifted")
+  liftedAt DateTime? @map("lifted_at")
+  liftedBy String?   @map("lifted_by")
 
-  createdAt        DateTime      @default(now()) @map("created_at")
-  updatedAt        DateTime      @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
-  user              User          @relation("UserNoticeMisuseRecords", fields: [userId], references: [id])
-  contentReport     ContentReport? @relation(fields: [contentReportId], references: [id])
+  user          User           @relation("UserNoticeMisuseRecords", fields: [userId], references: [id])
+  contentReport ContentReport? @relation(fields: [contentReportId], references: [id])
 
   @@index([userId])
   @@index([warningLevel])
@@ -1986,54 +2019,259 @@ model NoticeMisuseRecord {
 // Transparency Report — DSA Arts. 15, 24
 // ---------------------------------------------------------------------------
 model TransparencyReport {
-  id                          String    @id @default(uuid())
-  periodStart                 DateTime  @map("period_start")
-  periodEnd                   DateTime  @map("period_end")
-  publishedAt                 DateTime? @map("published_at")
-  isPublished                 Boolean   @default(false) @map("is_published")
+  id          String    @id @default(uuid())
+  periodStart DateTime  @map("period_start")
+  periodEnd   DateTime  @map("period_end")
+  publishedAt DateTime? @map("published_at")
+  isPublished Boolean   @default(false) @map("is_published")
 
   // Content moderation statistics (DSA Art. 15)
-  totalReportsReceived        Int       @default(0) @map("total_reports_received")
-  reportsFromAuthorities     Int       @default(0) @map("reports_from_authorities")
-  reportsFromTrustedFlaggers  Int       @default(0) @map("reports_from_trusted_flaggers")
-  reportsFromOwnInvestigation Int       @default(0) @map("reports_from_own_investigation")
-  reportsByCategory          Json?      @map("reports_by_category") // { "FRAUD_SCAM": 120, "HARASSMENT": 45, ... }
+  totalReportsReceived        Int   @default(0) @map("total_reports_received")
+  reportsFromAuthorities      Int   @default(0) @map("reports_from_authorities")
+  reportsFromTrustedFlaggers  Int   @default(0) @map("reports_from_trusted_flaggers")
+  reportsFromOwnInvestigation Int   @default(0) @map("reports_from_own_investigation")
+  reportsByCategory           Json? @map("reports_by_category") // { "FRAUD_SCAM": 120, "HARASSMENT": 45, ... }
 
   // Actions taken
-  contentRemoved             Int       @default(0) @map("content_removed")
-  accessDisabled             Int       @default(0) @map("content_access_disabled")
-  accountsSuspended          Int       @default(0) @map("accounts_suspended")
-  accountsTerminated         Int       @default(0) @map("accounts_terminated")
-  noActionTaken              Int       @default(0) @map("no_action_taken")
+  contentRemoved     Int @default(0) @map("content_removed")
+  accessDisabled     Int @default(0) @map("content_access_disabled")
+  accountsSuspended  Int @default(0) @map("accounts_suspended")
+  accountsTerminated Int @default(0) @map("accounts_terminated")
+  noActionTaken      Int @default(0) @map("no_action_taken")
 
   // Processing time
-  avgResponseTimeHours       Float     @default(0) @map("avg_response_time_hours")
-  medianResponseTimeHours    Float     @default(0) @map("median_response_time_hours")
+  avgResponseTimeHours    Float @default(0) @map("avg_response_time_hours")
+  medianResponseTimeHours Float @default(0) @map("median_response_time_hours")
 
   // Automation (DSA Art. 15(1)(c))
-  automatedDetectionCount   Int       @default(0) @map("automated_detection_count")
-  automatedActionCount      Int       @default(0) @map("automated_action_count")
-  automatedActionReversedCount Int     @default(0) @map("automated_action_reversed_count")
+  automatedDetectionCount      Int @default(0) @map("automated_detection_count")
+  automatedActionCount         Int @default(0) @map("automated_action_count")
+  automatedActionReversedCount Int @default(0) @map("automated_action_reversed_count")
 
   // Complaints (DSA Art. 24)
-  complaintsReceived         Int       @default(0) @map("complaints_received")
-  complaintsResolved         Int       @default(0) @map("complaints_resolved")
-  complaintsByOutcome       Json?      @map("complaints_by_outcome")
+  complaintsReceived  Int   @default(0) @map("complaints_received")
+  complaintsResolved  Int   @default(0) @map("complaints_resolved")
+  complaintsByOutcome Json? @map("complaints_by_outcome")
 
   // Misuse (DSA Art. 23)
-  misuseNoticesIssued       Int       @default(0) @map("misuse_notices_issued")
-  accountsSuspendedForMisuse Int       @default(0) @map("accounts_suspended_for_misuse")
+  misuseNoticesIssued        Int @default(0) @map("misuse_notices_issued")
+  accountsSuspendedForMisuse Int @default(0) @map("accounts_suspended_for_misuse")
 
   // Orders from authorities (DSA Art. 15(1)(a))
-  ordersReceived            Int       @default(0) @map("orders_received")
-  ordersComplied            Int       @default(0) @map("orders_complied")
+  ordersReceived Int @default(0) @map("orders_received")
+  ordersComplied Int @default(0) @map("orders_complied")
 
-  createdAt                  DateTime  @default(now()) @map("created_at")
-  updatedAt                  DateTime  @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([periodStart])
   @@index([isPublished])
   @@map("transparency_reports")
+}
+
+// ============================================================================
+// OFFERMARKT INSIGHTS — labor-market intelligence product
+// ----------------------------------------------------------------------------
+// Four data classes are stored explicitly on every article and are never mixed:
+//   OFFERMARKT     — aggregates computed from Offermarket's own verified offers
+//   OFFICIAL      — CBS / UWV / RVO / Dutch government / Eurostat / EC
+//   THIRD_PARTY   — industry reports (summarized + linked, never republished)
+//   EDITORIAL     — editorial analysis, makes no data claims
+// Sample-size minimums that gate what may be published are config, not schema:
+// see modules/insights/insights-stats.service.ts.
+// ============================================================================
+
+enum InsightCategory {
+  SALARY
+  DEMAND
+  EMPLOYER
+  INDUSTRY
+  CAREER
+}
+
+enum InsightStatus {
+  DRAFT
+  SCHEDULED
+  PUBLISHED
+  UNPUBLISHED
+  ARCHIVED
+}
+
+enum InsightDataClass {
+  OFFERMARKT
+  OFFICIAL
+  THIRD_PARTY
+  EDITORIAL
+}
+
+enum InsightSourceType {
+  CBS
+  UWV
+  RVO
+  DUTCH_GOVERNMENT
+  EUROSTAT
+  EUROPEAN_COMMISSION
+  INDUSTRY_REPORT
+  ACADEMIC
+  INTERNAL
+}
+
+// Analytics event types (append-only log; aggregates live on InsightArticle)
+enum InsightEventType {
+  ARTICLE_VIEW
+  UNIQUE_READER
+  CATEGORY_VIEW
+  SHARE
+  REGISTER_CLICK
+  WORKER_REGISTER
+  EMPLOYER_REGISTER
+  RETURNING_READER
+  SEARCH_IMPRESSION
+}
+
+model InsightArticle {
+  id                 String           @id @default(uuid())
+  slug               String           @unique // clean URL: /insights/electrician-salary-rotterdam
+  title              String
+  summary            String           @db.Text
+  category           InsightCategory
+  content            String           @db.Text // markdown main content
+  profession         String? // targeted profession (e.g. "ELECTRICIAN" / free text)
+  regionId           String?
+  skills             String[]         @default([]) // skill slugs this insight covers
+  charts             Json[]           @default([])
+  statistics         Json[]           @default([]) // stat blocks incl. their data class
+  keyStats           Json? // highlight row on the article page
+  methodology        String?          @db.Text
+  dataPeriodStart    DateTime?
+  dataPeriodEnd      DateTime?
+  dataClass          InsightDataClass @default(EDITORIAL)
+  sampleSize         Int? // required for non-editorial data; validated at publish
+  sampleDescription  String? // generated transparency sentence lives on the page
+  authorId           String?
+  authorName         String? // free-text display author
+  seoTitle           String?
+  metaDescription    String?
+  socialTitle        String?
+  status             InsightStatus    @default(DRAFT)
+  publishAt          DateTime? // scheduled publish time
+  publishedAt        DateTime?
+  lastUpdatedAt      DateTime?        @updatedAt
+  // Auto-generated drafts (insights-generator): always DRAFT until an admin
+  // reviews and publishes; generatedFrom records the exact computation inputs.
+  autoGenerated      Boolean          @default(false)
+  generatedFrom      Json?
+  // Aggregate counters maintained by the analytics service (raw events retained
+  // 12 months, these counters are the durable numbers)
+  viewCount          Int              @default(0)
+  uniqueReaderCount  Int              @default(0)
+  shareCount         Int              @default(0)
+  registerClickCount Int              @default(0)
+  registrationCount  Int              @default(0)
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  deletedAt          DateTime?
+
+  author          User?                   @relation("InsightArticleAuthor", fields: [authorId], references: [id])
+  region          Region?                 @relation(fields: [regionId], references: [id])
+  sources         InsightArticleSource[]
+  analyticsEvents InsightAnalyticsEvent[]
+
+  @@index([status, publishAt])
+  @@index([category, status])
+  @@index([profession, status])
+  @@index([regionId])
+  @@index([publishedAt])
+}
+
+model InsightSource {
+  id              String            @id @default(uuid())
+  name            String // display name, e.g. "CBS — Salarisindex"
+  url             String
+  publisher       String
+  publicationDate DateTime?
+  dataDate        DateTime?
+  sourceType      InsightSourceType
+  citation        String?
+  notes           String?           @db.Text
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  articles InsightArticleSource[]
+
+  @@unique([name, url])
+  @@index([sourceType])
+}
+
+model InsightArticleSource {
+  id        String  @id @default(uuid())
+  articleId String
+  sourceId  String
+  isPrimary Boolean @default(false)
+  order     Int     @default(0)
+
+  article InsightArticle @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  source  InsightSource  @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+
+  @@unique([articleId, sourceId])
+  @@index([sourceId])
+}
+
+// A user follows a profession / region / skill (at least one must be set) and is
+// notified when relevant insights are published (fan-out on publish).
+model InsightFollow {
+  id          String   @id @default(uuid())
+  userId      String
+  profession  String?
+  regionId    String?
+  skillSlug   String?
+  notifyEmail Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  region Region? @relation(fields: [regionId], references: [id])
+
+  @@index([profession])
+  @@index([regionId])
+  @@index([skillSlug])
+  @@index([userId])
+}
+
+model InsightAnalyticsEvent {
+  id         String           @id @default(uuid())
+  sessionKey String // pseudonymous per-visitor key (cookie) — never an IP or device id
+  userId     String? // set only when the reader is logged in
+  articleId  String?
+  eventType  InsightEventType
+  path       String?
+  referrer   String?
+  locale     String?
+  metadata   Json?
+  createdAt  DateTime         @default(now())
+
+  article InsightArticle? @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  @@index([eventType, createdAt])
+  @@index([articleId])
+  @@index([sessionKey])
+  @@index([userId])
+}
+
+// Cached computed aggregates per (profession, region, date) — MVP computes on
+// read; this table is where the nightly snapshot engine will write later.
+model MarketSnapshot {
+  id           String   @id @default(uuid())
+  profession   String
+  regionId     String?
+  snapshotDate DateTime @db.Date
+  data         Json
+  createdAt    DateTime @default(now())
+
+  region Region? @relation(fields: [regionId], references: [id])
+
+  @@unique([profession, regionId, snapshotDate])
+  @@index([profession, snapshotDate])
 }
 
 // ============================================================================

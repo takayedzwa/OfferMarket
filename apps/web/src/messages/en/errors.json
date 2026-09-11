@@ -70,6 +70,14 @@
     "not_authorized_withdraw": "Not authorized to withdraw this offer",
     "cannot_withdraw_state": "Cannot withdraw an offer in its current state: {status}. Only active offers can be withdrawn."
   },
+  "insight": {
+    "not_found": "Insight not found.",
+    "slug_taken": "Slug \"{slug}\" is already in use.",
+    "sample_too_small": "This insight needs a verified sample of at least {minSample} observations before it can be published (current: {sample}).",
+    "data_period_required": "Data-driven insights must declare a valid data period.",
+    "invalid_transition": "This status change is not allowed.",
+    "follow_empty": "Choose at least one of profession, region or skill to follow."
+  },
   "error": {
     "internal": "Internal server error",
     "network": "Network error — please check your connection and try again.",

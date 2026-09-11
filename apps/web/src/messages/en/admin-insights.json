@@ -1,0 +1,213 @@
+{
+  "title": "Insights CMS",
+  "subtitle": "Create, schedule and publish labor-market insights",
+  "new": "New insight",
+  "edit": "Edit insight",
+  "sources": "Source registry",
+  "articles": "Articles",
+  "loading": "Loading…",
+  "fetchError": "Could not load insights.",
+  "list": {
+    "title": "Insight articles",
+    "empty": "No articles yet.",
+    "status": "Status",
+    "allStatuses": "All statuses",
+    "category": "Category",
+    "updated": "Updated",
+    "views": "Views",
+    "sources": "Sources",
+    "open": "Open"
+  },
+  "form": {
+    "title": "Title",
+    "slug": "Slug",
+    "slugHint": "Lowercase kebab-case — used in the public URL /insights/{slug}",
+    "category": "Category",
+    "summary": "Summary",
+    "content": "Content (markdown subset: ## heading, **bold**, - list)",
+    "profession": "Profession",
+    "region": "Region",
+    "skills": "Skills (comma-separated)",
+    "dataClass": "Data class",
+    "sampleSize": "Sample size (verified observations)",
+    "sampleDescription": "Sample description",
+    "dataPeriodStart": "Data period start",
+    "dataPeriodEnd": "Data period end",
+    "methodology": "Methodology",
+    "charts": "Charts (JSON array)",
+    "statistics": "Statistics (JSON array)",
+    "keyStats": "Key statistics (JSON array)",
+    "sources": "Sources",
+    "noSources": "No sources registered yet — add them under Sources first.",
+    "authorName": "Author name",
+    "seo": "SEO",
+    "seoTitle": "SEO title (≤70 chars)",
+    "metaDescription": "Meta description (≤170 chars)",
+    "socialTitle": "Social title (≤120 chars)",
+    "save": "Save",
+    "saved": "Saved.",
+    "saving": "Saving…",
+    "invalidJson": "{field}: invalid JSON",
+    "required": "Required"
+  },
+  "actions": {
+    "publish": "Publish",
+    "publishConfirm": "Publish this insight? Followers of the profession/region will be notified.",
+    "unpublish": "Unpublish",
+    "schedule": "Schedule",
+    "schedulePrompt": "Publish at (date and time)",
+    "archive": "Archive",
+    "delete": "Delete",
+    "deleteConfirm": "Delete this insight? It will be archived and hidden.",
+    "cancel": "Cancel"
+  },
+  "status": {
+    "DRAFT": "Draft",
+    "SCHEDULED": "Scheduled",
+    "PUBLISHED": "Published",
+    "UNPUBLISHED": "Unpublished",
+    "ARCHIVED": "Archived"
+  },
+  "sourceForm": {
+    "title": "Source registry",
+    "subtitle": "Official and third-party data sources. Articles cite these entries — never republish copyrighted material: summarize and link.",
+    "name": "Name",
+    "url": "URL",
+    "publisher": "Publisher",
+    "sourceType": "Source type",
+    "publicationDate": "Publication date",
+    "dataDate": "Data date",
+    "citation": "Citation",
+    "notes": "Notes",
+    "add": "Add source",
+    "edit": "Edit",
+    "delete": "Delete",
+    "deleteConfirm": "Delete this source?",
+    "saved": "Source saved.",
+    "empty": "No sources yet."
+  },
+  "errors": {
+    "saveFailed": "Saving failed — check the fields and try again.",
+    "actionFailed": "The action failed. Please try again."
+  },
+  "market": {
+    "title": "Market Intelligence",
+    "subtitle": "The aggregation engine's view of the marketplace: demand, salaries, shortages and the auto-draft queue.",
+    "backToCms": "Back to Insights CMS",
+    "provenance": "Method version {methodVersion}",
+    "period": "rolling {days}-day window",
+    "loading": "Loading market intelligence…",
+    "fetchError": "Could not load market intelligence.",
+    "saveError": "Could not save settings.",
+    "thresholdsSaved": "Thresholds saved. Engine picks them up within a minute.",
+    "generatorSaved": "Generator settings saved.",
+    "generatorRun": "Generator finished: {created} draft(s) created, {skipped} already existed.",
+    "totals": {
+      "activeWorkers": "Active workers",
+      "activeEmployers": "Verified employers",
+      "offers": "Offers (window)",
+      "accepted": "Accepted (window)"
+    },
+    "salary": {
+      "median": "Median market salary",
+      "range": "P25–P75: {p25} – {p75}"
+    },
+    "demand": {
+      "offers": "Offers in window"
+    },
+    "sampleSize": "Sample: {sampleSize} offers",
+    "skills": {
+      "inDemand": "Most in-demand skills",
+      "growing": "Fastest-growing skills",
+      "growingEmpty": "No skill growth measurable yet (both windows need enough offers)."
+    },
+    "shortages": {
+      "title": "Regional shortages",
+      "region": "Region",
+      "offers": "Offers",
+      "candidates": "Available candidates",
+      "level": "Level",
+      "level.HIGH": "High shortage",
+      "level.MODERATE": "Moderate",
+      "level.LOW": "Low"
+    },
+    "pendingDrafts": "{count, plural, one {# auto-generated draft awaiting review} other {# auto-generated drafts awaiting review}}",
+    "reviewDrafts": "Review drafts",
+    "thresholds": {
+      "title": "Statistical safeguards",
+      "subtitle": "Minimum sample sizes for every metric. Below a threshold the metric shows 'insufficient data' — never a guess. Changes take effect within a minute, no deploy needed.",
+      "save": "Save thresholds",
+      "fields": {
+        "SALARY_RANGE": "Salary range (offers)",
+        "SALARY_TREND": "Salary trend (offers, both windows)",
+        "DEMAND_LEVEL": "Demand classification (offers)",
+        "MOST_VALUABLE_SKILLS": "Skill statistics (offers per window)",
+        "EMPLOYER_COHORT": "Employer cohort (employers)",
+        "TIME_TO_HIRE": "Time-to-hire / cohorts (offers)",
+        "MIN_ARTICLE_SAMPLE": "Publishable article sample (offers)",
+        "WINDOW_DAYS": "Aggregation window (days)",
+        "SNAPSHOT_RETENTION_DAYS": "Snapshot retention (days)"
+      }
+    },
+    "generator": {
+      "title": "Auto-draft generator",
+      "subtitle": "Detects salary changes, demand growth and benefit effects and writes draft insights. Drafts are always reviewed before publishing.",
+      "enabled": "Enabled",
+      "save": "Save settings",
+      "runNow": "Run now",
+      "draftNote": "Generated insights are always DRAFT — nothing is auto-published.",
+      "fields": {
+        "salaryChangePct": "Salary change trigger (%/month)",
+        "demandGrowthPct": "Demand growth trigger (%)",
+        "benefitMinSample": "Benefit cohort minimum (offers)",
+        "benefitMinGapPct": "Benefit gap trigger (pp)"
+      }
+    },
+    "snapshots": {
+      "title": "Stored snapshots (data provenance)",
+      "filterPlaceholder": "Profession…",
+      "filter": "Filter",
+      "date": "Date",
+      "profession": "Profession",
+      "offers": "Offers",
+      "employers": "Employers",
+      "empty": "No snapshots yet — the nightly job fills this in."
+    }
+  },
+  "professions": {
+    "title": "Profession taxonomy",
+    "subtitle": "Admin-managed reference data. Free-text trades on profiles and articles keep resolving by name, EN name or alias — adding entries never requires a code change.",
+    "backToCms": "Back to Insights CMS",
+    "add": "Add profession",
+    "saved": "Saved.",
+    "deactivated": "Profession deactivated (existing data is untouched).",
+    "loading": "Loading taxonomy…",
+    "fetchError": "Could not load professions.",
+    "errors": {
+      "slugTaken": "A profession with this name already exists.",
+      "save": "Could not save the profession."
+    },
+    "form": {
+      "name": "Name (Dutch)",
+      "nameEn": "Name (English)",
+      "group": "Group",
+      "aliases": "Aliases",
+      "aliasesPlaceholder": "comma-separated alternative spellings",
+      "description": "Description",
+      "saveNew": "Create profession",
+      "saveEdit": "Save changes",
+      "cancel": "Cancel"
+    },
+    "table": {
+      "name": "Name",
+      "aliases": "Aliases",
+      "version": "Version",
+      "status": "Status",
+      "deactivate": "Deactivate"
+    },
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive"
+    }
+  }
+}

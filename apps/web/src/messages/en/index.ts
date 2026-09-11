@@ -19,7 +19,9 @@ import enums from "./enums.json";
 import legal from "./legal.json";
 import adminList from "./admin-list.json";
 import adminDetail from "./admin-detail.json";
+import adminInsights from "./admin-insights.json";
 import referrals from "./referrals.json";
+import insights from "./insights.json";
 
 const messages = {
   common,
@@ -32,7 +34,9 @@ const messages = {
   admin,
   "admin-list": adminList,
   "admin-detail": adminDetail,
+  "admin-insights": adminInsights,
   referrals,
+  insights,
   support,
   dsa,
   privacy,

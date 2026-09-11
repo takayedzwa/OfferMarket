@@ -1,0 +1,194 @@
+{
+  "meta": {
+    "title": "Insights — arbeidsmarktintellect voor de Nederlandse vaktechniek",
+    "description": "Wat jouw vaardigheden waard zijn, wat werkgevers bieden en waar de vraag naartoe beweegt. Gebaseerd op geverifieerde marktplaatsdata, officiële cijfers en onafhankelijke analyse.",
+    "yourMarketTitle": "Jouw markt",
+    "article": "Inzicht"
+  },
+  "hero": {
+    "eyebrow": "Marktinformatie",
+    "title": "Weet wat jouw vaardigheden waard zijn",
+    "subtitle": "Salarisdata, vraagsignalen en werkgeverinformatie voor vakmensen — gebaseerd op geverifieerde aanbiedingen, officiële statistieken en eerlijke methodiek.",
+    "anonymousCta": "Word lid en zie jouw markt",
+    "anonymousNote": "Gepersonaliseerde marktinzichten voor vakmensen en werkgevers. Registreren is gratis."
+  },
+  "dataClasses": {
+    "title": "Waar onze data vandaan komt",
+    "legend": "Elk cijfer op deze pagina draagt zijn databron:",
+    "OFFERMARKT": "Offermarket-marktplaatsdata",
+    "OFFICIAL": "Officiële openbare data",
+    "THIRD_PARTY": "Industriëdata",
+    "EDITORIAL": "Redactionele analyse",
+    "OFFERMARKT_DESC": "Berekend uit geverifieerde aanbiedingen op Offermarket.",
+    "OFFICIAL_DESC": "CBS, UWV, RVO, Rijksoverheid, Eurostat, Europese Commissie — altijd met link naar de originele bron.",
+    "THIRD_PARTY_DESC": "Onderzoek van derden, samengevat en met bronvermelding — nooit overgenomen.",
+    "EDITORIAL_DESC": "Onze eigen analyse. Doet geen datclaims."
+  },
+  "yourMarket": {
+    "title": "Jouw markt",
+    "subtitle": "Gebaseerd op jouw profiel en actuele marktplaatsactiviteit",
+    "experience": "{years, plural, one {# jaar ervaring} other {# jaar ervaring}}",
+    "demand": "Vraag",
+    "demandLevel": {
+      "VERY_HIGH": "Zeer hoog",
+      "HIGH": "Hoog",
+      "MODERATE": "Gemiddeld",
+      "LOW": "Laag"
+    },
+    "typicalSalary": "Typisch salaris",
+    "typicalSalaryNote": "per jaar",
+    "trend": "Markttrend",
+    "skills": "Relevante vaardigheden",
+    "employers": "Werkgevers aan het werven",
+    "offers": "Relevante aanbiedingen",
+    "recentChanges": "Recente marktveranderingen",
+    "changes": {
+      "offers": "{change, plural, one {# aanbieding} other {# aanbiedingen}} {direction, select, up {meer} down {minder} other {}}",
+      "employers": "{change, plural, one {# werkgever} other {# werkgevers}} {direction, select, up {meer} down {minder} other {}}"
+    },
+    "viewDeep": "Bekijk je volledige marktoverzicht",
+    "noProfile": "Vul je profiel aan met vakgebied en regio om je persoonlijke marktbeeld te ontgrendelen.",
+    "setupProfile": "Stel je profiel in",
+    "scopeNote": {
+      "city": "We tonen je eigen regio.",
+      "province": "Lokale steekproef te klein — we tonen regionale data.",
+      "country": "Lokale en regionale steekproeven te klein — we tonen landelijke data."
+    },
+    "employer": {
+      "title": "Jouw wervingsmarkt",
+      "subtitle": "Geaggregeerde informatie voor jouw voornaamste vakgebied — alleen cohortdata, nooit individuele kandidaten.",
+      "hiringDifficulty": "Wervingsmoeilijkheid",
+      "difficultyLevel": {
+        "VERY_HARD": "Zeer moeilijk",
+        "HARD": "Moeilijk",
+        "MODERATE": "Gemiddeld",
+        "EASY": "Haalbaar"
+      },
+      "salaryCompetitiveness": "Salarisconcurrentiepositie",
+      "competitiveness": {
+        "above": "Boven marktmediaan",
+        "at": "Op marktmediaan",
+        "below": "Onder marktmediaan",
+        "unknown": "Nog geen aanbiedingen om te vergelijken"
+      },
+      "yourMedian": "Jouw mediaanaanbieding",
+      "marketMedian": "Marktmediaan",
+      "competitorRanges": "Aanbiedingsbereiken van concurrenten",
+      "candidateAvailability": "Beschikbaarheid van kandidaten",
+      "candidates": "{count, plural, one {# kandidaat} other {# kandidaten}}",
+      "timeToHire": "Tijd tot aanneming",
+      "medianDays": "{days, plural, one {# dag} other {# dagen}} (mediaan)",
+      "acceptanceRate": "Acceptatiegraad aanbiedingen (markt)",
+      "demandByRegion": "Vraag per regio",
+      "employersInCohort": "{count, plural, one {# werkgever} other {# werkgevers}} in cohort"
+    }
+  },
+  "latest": {
+    "title": "Nieuwste inzichten",
+    "subtitle": "Marktinformatie, vers gepubliceerd",
+    "viewAll": "Bekijk alles",
+    "readMore": "Lees inzicht",
+    "views": "{count, plural, one {# weergave} other {# weergaven}}",
+    "empty": "Nog geen inzichten gepubliceerd in deze categorie. Kom snel terug."
+  },
+  "category": {
+    "SALARY": "Salarisinformatie",
+    "DEMAND": "Vraaginformatie",
+    "EMPLOYER": "Werkgeversinformatie",
+    "INDUSTRY": "Branchnieuws",
+    "CAREER": "Carrière-informatie",
+    "SALARY_DESC": "Wat vaardigheden waard zijn — geverifieerde aanbiedingsbereiken en officiële loonstatistieken.",
+    "DEMAND_DESC": "Waar de vraag het grootst is en hoe die verschuift.",
+    "EMPLOYER_DESC": "Welke werkgevers concurrerend zijn en hoe zij werven.",
+    "INDUSTRY_DESC": "Regelgeving, technologie en arbeidsmarktontwikkelingen.",
+    "CAREER_DESC": "Vaardigheden die opleveren, certificeringen die tellen, stappen die slagen.",
+    "browse": "Bekijk {category}"
+  },
+  "article": {
+    "published": "Gepubliceerd",
+    "updated": "Laatst bijgewerkt",
+    "dataPeriod": "Dataperiode",
+    "by": "Door",
+    "editorialTeam": "Offermarket Redactie",
+    "transparency": {
+      "title": "Over deze data",
+      "sampleSize": "Steekproefomvang",
+      "observations": "{count, plural, one {# waarneming} other {# waarnemingen}}",
+      "dataPeriod": "Dataperiode",
+      "scope": "Geografische dekking",
+      "profession": "Vakgebied",
+      "methodology": "Methodiek",
+      "dataClass": "Databron",
+      "noSample": "Dit is redactionele analyse — er worden geen datclaims gedaan."
+    },
+    "keyStats": "Kerncijfers",
+    "sources": {
+      "title": "Bronnen",
+      "publisher": "Uitgever",
+      "published": "Gepubliceerd",
+      "dataDate": "Datum van de data",
+      "viewOriginal": "Bekijk originele bron"
+    },
+    "share": {
+      "title": "Deel dit inzicht",
+      "linkedin": "Deel op LinkedIn",
+      "facebook": "Deel op Facebook",
+      "whatsapp": "Deel op WhatsApp",
+      "copyLink": "Kopieer link",
+      "copied": "Link gekopieerd"
+    },
+    "related": "Gerelateerde inzichten",
+    "notFound": "Dit inzicht bestaat niet of is niet langer gepubliceerd."
+  },
+  "insufficient": {
+    "title": "Onvoldoende data",
+    "body": "We tonen alleen cijfers als de geverifieerde steekproef groot genoeg is om betekenisvol te zijn. Voor deze statistiek is eerst meer marktplaatsactiviteit nodig.",
+    "sample": "{count, plural, one {# geverifieerde aanbieding tot nu toe} other {# geverifieerde aanbiedingen tot nu toe}}"
+  },
+  "follow": {
+    "title": "Blijf op de hoogte",
+    "body": "Volg een vakgebied, regio of vaardigheid en we laten het weten wanneer nieuwe inzichten verschijnen.",
+    "followProfession": "Volg dit vakgebied",
+    "followRegion": "Volg deze regio",
+    "following": "Volgend ✓",
+    "signInToFollow": "Inloggen om te volgen",
+    "unfollow": "Ontvolgen",
+    "myFollows": "Je volgt",
+    "noFollows": "Je volgt nog niets. Volg een vakgebied, regio of vaardigheid vanuit een inzicht.",
+    "profession": "Vakgebied",
+    "region": "Regio",
+    "skill": "Vaardigheid",
+    "email": "E-mailnotificaties"
+  },
+  "cta": {
+    "registerWorker": "Maak een vakmansprofiel",
+    "registerEmployer": "Werv met gestructureerde aanbiedingen",
+    "clickNote": "Zie de echte cijfers achter deze inzichten."
+  },
+  "marketValue": {
+    "title": "Marktwaarde-indicator",
+    "subtitle": "Een transparant puntensysteem op basis van jouw profiel en live marktinformatie",
+    "howItWorks": "Hoe deze score tot stand komt",
+    "noBlackBox": "Geen verborgen model: elk punt komt uit de hierboven getoonde regel, berekend uit je eigen profiel en marktstatistieken.",
+    "salaryPercentile": "Jouw gewenste salaris ligt op de {percentile}e percentiel van vergelijkbare aanbiedingen.",
+    "components": {
+      "experience": "Werkervaring",
+      "skills": "Vaardigheden",
+      "certifications": "Certificeringen",
+      "demand": "Vraag naar jouw vak",
+      "comparableOffers": "Ontvangen aanbiedingen"
+    },
+    "experienceBand": "Gebaseerd op je eigen {years, plural, one {# jaar} other {# jaar}} werkervaring — goed voor {points} van 25 punten.",
+    "experienceUnknown": "Werkervaring is nog niet ingevuld, dit onderdeel scoort daarom 0 — vul het in op je profiel.",
+    "skillsCount": "{count, plural, =0 {Nog geen profielvaardigheden ingevuld} other {# ingevulde vaardigheid(en), 5 punten per stuk}} — goed voor {points} van 25 punten.",
+    "certsCount": "{count, plural, =0 {Geen certificeringen} other {# certificering(en), 7,5 punt per stuk}} — goed voor {points} van 15 punten.",
+    "certsNone": "Geen certificeringen ingevuld, dit onderdeel scoort daarom 0.",
+    "demandVeryHigh": "Zeer hoge vraag naar jouw vak op dit moment ({offers} aanbiedingen in de periode) — volledige 20 punten.",
+    "demandHigh": "Hoge vraag naar jouw vak op dit moment ({offers} aanbiedingen in de periode) — 15 punten.",
+    "demandModerate": "Gemiddelde vraag naar jouw vak ({offers} aanbiedingen in de periode) — 10 punten.",
+    "demandLow": "Beperkte vraag naar jouw vak ({offers} aanbiedingen in de periode) — 5 punten.",
+    "demandUnknown": "Nog te weinig marktinformatie om de vraag naar jouw vak te bepalen — dit onderdeel scoort 0 en zegt dat expliciet.",
+    "offersCount": "Werkgevers stuurden {count} aanbieding(en) in de laatste periode — 3 punten per stuk, tot maximaal 15.",
+    "offersNone": "Nog geen aanbiedingen ontvangen in deze periode, dit onderdeel scoort daarom 0."
+  }
+}
