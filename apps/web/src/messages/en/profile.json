@@ -163,7 +163,17 @@
     "privacyGuarantee": "Privacy Guarantee",
     "privacy1": "✓ Your identity is hidden until you accept an offer",
     "privacy2": "✓ Employers only see anonymized profile data",
-    "privacy3": "✓ Your contact info is never shared automatically"
+    "privacy3": "✓ Your contact info is never shared automatically",
+    "credentialHint": "Add your credentials here — for example your BIG registration, VOG or professional liability insurance. Our team verifies them manually before employers see them as verified.",
+    "credentialPresetBig": "BIG-registration",
+    "credentialPresetVog": "VOG (Certificate of Good Conduct)",
+    "credentialPresetInsurance": "Professional liability insurance",
+    "credentialHintBig": "Your BIG registration must be renewed every 5 years — set the expiry date so employers can see it is current.",
+    "credentialHintVog": "A VOG is a snapshot: employers typically want one issued within the last 3 months. Leave \"no expiry\" unchecked and re-declare a fresh one periodically.",
+    "statusPending": "Pending review",
+    "statusVerified": "Verified",
+    "statusRejected": "Rejected",
+    "statusExpired": "Expired"
   },
   "editCompany": {
     "loading": "Loading...",
@@ -250,7 +260,7 @@
     "addSkill": "Add Skill",
     "selectTrade": "Select your trade",
     "comingSoon": "(Coming Soon)",
-    "tradeNote": "Currently available for Electricians. More trades coming soon.",
+    "tradeNote": "Currently available for Electricians and Nurses. More trades coming soon.",
     "labelCountry": "Country",
     "labelProvince": "Province",
     "labelCity": "City",

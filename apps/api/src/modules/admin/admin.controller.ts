@@ -4,6 +4,7 @@ import { AdminGuard } from '../../guards/admin.guard';
 import { AdminService } from './admin.service';
 import { UpdateSettingsDto } from './dto/update-settings.dto';
 import { VerifyEmployerDto, RejectEmployerDto } from './dto/verify-employer.dto';
+import { VerifyCredentialDto, RejectCredentialDto } from './dto/verify-credential.dto';
 import { CreateStaffUserDto } from './dto/create-staff-user.dto';
 import { parsePage, parseLimit } from '../../common/utils/pagination';
 
@@ -151,6 +152,39 @@ export class AdminController {
     // A-H4: validate the body via a DTO class so a rejection reason is always
     // present and recorded in the audit trail.
     return this.adminService.rejectEmployer(id, req.user.id, dto.reason);
+  }
+
+  // ============================================================================
+  // WORKER CREDENTIAL REVIEW (certifications: BIG-registration, VOG, insurance)
+  // ============================================================================
+
+  @Get('certifications/pending')
+  async listPendingCertifications(
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.adminService.listPendingCertifications(
+      parsePage(page),
+      parseLimit(limit),
+    );
+  }
+
+  @Post('certifications/:id/verify')
+  async verifyCertification(
+    @Param('id') id: string,
+    @Request() req: any,
+    @Body() dto: VerifyCredentialDto,
+  ) {
+    return this.adminService.verifyCertification(id, req.user.id, dto.notes);
+  }
+
+  @Post('certifications/:id/reject')
+  async rejectCertification(
+    @Param('id') id: string,
+    @Request() req: any,
+    @Body() dto: RejectCredentialDto,
+  ) {
+    return this.adminService.rejectCertification(id, req.user.id, dto.reason);
   }
 
   // ============================================================================

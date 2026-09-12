@@ -11,6 +11,8 @@
 
 **Beachhead:** Electricians in the Netherlands
 
+**Second vertical (Sept 2026):** Nurses (verpleegkundigen) — enabled alongside electricians. Nursing is a BIG-regulated profession, so this vertical ships with platform credential verification: workers declare BIG registration, VOG and professional liability insurance, admins verify them manually against the public BIG-register before a "Verified" badge is shown on public profiles. See [vertical-playbook.md](./vertical-playbook.md) for the per-trade enablement process.
+
 **Launch Timeline:** 6 weeks to MVP
 
 **Target (Year 1):** €1.2M ARR, 150 employers, 5,000 workers

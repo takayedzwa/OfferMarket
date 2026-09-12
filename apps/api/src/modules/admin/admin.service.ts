@@ -1,5 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../../prisma/prisma.service';
+import { NotificationEventType, CredentialReviewedPayload } from '../notifications/notification.types';
 import { UpdateSettingsDto } from './dto/update-settings.dto';
 import { CreateStaffUserDto } from './dto/create-staff-user.dto';
 import { isCommonPassword } from '../auth/password-blocklist';
@@ -7,7 +9,10 @@ import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class AdminService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private eventEmitter: EventEmitter2,
+  ) {}
 
   // ============================================================================
   // DASHBOARD STATISTICS
@@ -516,6 +521,173 @@ export class AdminService {
     });
 
     return { success: true, message: 'Employer verification rejected' };
+  }
+
+  // ============================================================================
+  // WORKER CREDENTIAL REVIEW
+  // ============================================================================
+  // Nurses (and future regulated trades) declare credentials as Certifications
+  // (BIG-registration, VOG, professional liability insurance). Admins verify
+  // them manually — e.g. against the public BIG-register — via these methods.
+  // ============================================================================
+
+  async listPendingCertifications(page: number = 1, limit: number = 20) {
+    const skip = (page - 1) * limit;
+
+    const [certifications, total] = await Promise.all([
+      this.prisma.certification.findMany({
+        where: { verificationStatus: 'PENDING' },
+        skip,
+        take: limit,
+        include: {
+          profile: {
+            include: {
+              user: {
+                select: { id: true, firstName: true, lastName: true, email: true },
+              },
+            },
+          },
+        },
+        orderBy: { createdAt: 'asc' },
+      }),
+      this.prisma.certification.count({ where: { verificationStatus: 'PENDING' } }),
+    ]);
+
+    return {
+      certifications,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  async verifyCertification(certificationId: string, adminUserId: string, notes?: string) {
+    const certification = await this.prisma.certification.findUnique({
+      where: { id: certificationId },
+      select: {
+        id: true,
+        name: true,
+        verificationStatus: true,
+        profileId: true,
+        profile: { select: { user: { select: { id: true } } } },
+      },
+    });
+
+    if (!certification) {
+      throw new NotFoundException('Certification not found');
+    }
+
+    // Atomic, idempotent transition: only update rows still in PENDING —
+    // see verifyEmployer for rationale.
+    const result = await this.prisma.certification.updateMany({
+      where: { id: certificationId, verificationStatus: 'PENDING' },
+      data: {
+        verificationStatus: 'VERIFIED',
+        verifiedAt: new Date(),
+        verifiedBy: adminUserId,
+        verificationMethod: 'MANUAL_REVIEW',
+      },
+    });
+
+    if (result.count === 0) {
+      throw new BadRequestException(
+        `Certification cannot be verified in status: ${certification.verificationStatus}`,
+      );
+    }
+
+    await this.prisma.adminAction.create({
+      data: {
+        actorId: adminUserId,
+        action: 'CREDENTIAL_VERIFIED',
+        entityType: 'certification',
+        entityId: certificationId,
+        details: {
+          notes,
+          certificationName: certification.name,
+          workerProfileId: certification.profileId,
+          previousStatus: certification.verificationStatus,
+          newStatus: 'VERIFIED',
+        },
+      },
+    });
+
+    // notes are internal admin annotations — never forwarded to the worker.
+    this.emitCredentialReviewed(certification, true);
+
+    return { success: true, message: 'Certification verified' };
+  }
+
+  async rejectCertification(certificationId: string, adminUserId: string, reason: string) {
+    const certification = await this.prisma.certification.findUnique({
+      where: { id: certificationId },
+      select: {
+        id: true,
+        name: true,
+        verificationStatus: true,
+        profileId: true,
+        profile: { select: { user: { select: { id: true } } } },
+      },
+    });
+
+    if (!certification) {
+      throw new NotFoundException('Certification not found');
+    }
+
+    // Atomic, idempotent transition — see rejectEmployer for rationale.
+    const result = await this.prisma.certification.updateMany({
+      where: { id: certificationId, verificationStatus: 'PENDING' },
+      data: {
+        verificationStatus: 'REVOKED',
+      },
+    });
+
+    if (result.count === 0) {
+      throw new BadRequestException(
+        `Certification cannot be rejected in status: ${certification.verificationStatus}`,
+      );
+    }
+
+    await this.prisma.adminAction.create({
+      data: {
+        actorId: adminUserId,
+        action: 'CREDENTIAL_REJECTED',
+        entityType: 'certification',
+        entityId: certificationId,
+        details: {
+          reason,
+          certificationName: certification.name,
+          workerProfileId: certification.profileId,
+          previousStatus: certification.verificationStatus,
+          newStatus: 'REVOKED',
+        },
+      },
+    });
+
+    this.emitCredentialReviewed(certification, false, reason);
+
+    return { success: true, message: 'Certification rejected' };
+  }
+
+  /** Notify the worker that their credential was reviewed (best-effort). */
+  private emitCredentialReviewed(
+    certification: { name: string; profile?: { user?: { id: string } } },
+    approved: boolean,
+    reason?: string,
+  ) {
+    const workerUserId = certification.profile?.user?.id;
+    if (!workerUserId) return;
+    const payload: CredentialReviewedPayload = {
+      recipientUserId: workerUserId,
+      workerUserId,
+      certificationName: certification.name,
+      approved,
+      ...(reason ? { reason } : {}),
+      actionUrl: '/profile/edit',
+    };
+    this.eventEmitter.emit(NotificationEventType.CREDENTIAL_REVIEWED, payload);
   }
 
   // ============================================================================

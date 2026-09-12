@@ -41,7 +41,7 @@ export class InsightsGeneratorService {
   ) {}
 
   /** Runs nightly after the snapshot job (2:30) — drafts land before morning. */
-  @Cron('0 45 2 * *')
+  @Cron('45 2 * * *')
   async nightlyGenerate() {
     await this.generateDrafts();
   }

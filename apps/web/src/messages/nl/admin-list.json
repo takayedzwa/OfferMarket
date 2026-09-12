@@ -60,7 +60,14 @@
     "placeholderVerify": "Voeg verificatienotities toe (optioneel)...",
     "placeholderReject": "Voer afwijzingsreden in...",
     "alertVerifyFailed": "Werkgever verifiëren mislukt",
-    "alertRejectFailed": "Werkgever afwijzen mislukt"
+    "alertRejectFailed": "Werkgever afwijzen mislukt",
+    "credentialsTitle": "Registraties van vakmensen",
+    "credentialsSubtitle": "Ingevoerde registraties die handmatig gecontroleerd moeten worden (BIG-registratie, VOG, beroepsaansprakelijkheidsverzekering). Controleer bij BIG-registratie het BIG-nummer op bigregister.nl.",
+    "credentialsEmpty": "Geen registraties in behandeling",
+    "submittedOn": "Ingediend {date}",
+    "viewWorker": "Profiel bekijken",
+    "alertCredentialFailed": "Kon registratie niet bijwerken",
+    "rejectCredentialPrompt": "Reden voor afkeuring van deze registratie:"
   },
   "trust": {
     "title": "Vertrouwen & Fraude",

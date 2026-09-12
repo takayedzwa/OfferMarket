@@ -163,7 +163,17 @@
     "privacyGuarantee": "Privacygarantie",
     "privacy1": "✓ Je identiteit is verborgen tot je een aanbod accepteert",
     "privacy2": "✓ Werkgevers zien alleen geanonimiseerde profielgegevens",
-    "privacy3": "✓ Je contactgegevens worden nooit automatisch gedeeld"
+    "privacy3": "✓ Je contactgegevens worden nooit automatisch gedeeld",
+    "credentialHint": "Voeg hier je registraties toe — bijvoorbeeld je BIG-registratie, VOG of beroepsaansprakelijkheidsverzekering. Ons team controleert ze handmatig voordat werkgevers ze als gecontroleerd zien.",
+    "credentialPresetBig": "BIG-registratie",
+    "credentialPresetVog": "VOG (Verklaring Omtrent Gedrag)",
+    "credentialPresetInsurance": "Beroepsaansprakelijkheidsverzekering",
+    "credentialHintBig": "Je BIG-registratie moet elke 5 jaar verlengd worden — vul de vervaldatum in zodat werkgevers zien dat hij actueel is.",
+    "credentialHintVog": "Een VOG is een momentopname: werkgevers willen er doorgaans één die niet ouder is dan 3 maanden. Vink \"geen vervaldatum\" niet aan en geef regelmatig een nieuwe op.",
+    "statusPending": "In beoordeling",
+    "statusVerified": "Gecontroleerd",
+    "statusRejected": "Afgekeurd",
+    "statusExpired": "Verlopen"
   },
   "editCompany": {
     "loading": "Laden...",
@@ -250,7 +260,7 @@
     "addSkill": "Vaardigheid toevoegen",
     "selectTrade": "Selecteer je vak",
     "comingSoon": "(Binnenkort)",
-    "tradeNote": "Momenteel beschikbaar voor elektriciens. Meer vakken binnenkort.",
+    "tradeNote": "Momenteel beschikbaar voor elektriciens en verpleegkundigen. Meer vakken binnenkort.",
     "labelCountry": "Land",
     "labelProvince": "Provincie",
     "labelCity": "Stad",

@@ -297,6 +297,16 @@ export const adminApi = {
     lastName: string;
     phone?: string;
   }) => api.post('/admin/users/staff', data),
+
+  // Worker credential review (certifications: BIG-registration, VOG, insurance)
+  getPendingCertifications: (params?: { page?: number; limit?: number }) =>
+    api.get('/admin/certifications/pending', { params }),
+
+  verifyCertification: (id: string, notes?: string) =>
+    api.post(`/admin/certifications/${id}/verify`, { notes }),
+
+  rejectCertification: (id: string, reason: string) =>
+    api.post(`/admin/certifications/${id}/reject`, { reason }),
 };
 
 // ============================================================================

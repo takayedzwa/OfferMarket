@@ -23,6 +23,12 @@ export class WorkersService {
   // GET AVAILABLE TRADES
   // ============================================================================
 
+  // The `Specialization` enum is electrician-specific; until per-trade
+  // specialization sets exist, only electrical trades may carry them.
+  private isElectricalTrade(trade?: string | null): boolean {
+    return !!trade && trade.toLowerCase().includes('electric');
+  }
+
   async getAvailableTrades() {
     const trades = [
       { value: 'Electrician', label: 'Electrician', available: true },
@@ -31,6 +37,7 @@ export class WorkersService {
       { value: 'Residential Electrician', label: 'Residential Electrician', available: true },
       { value: 'Commercial Electrician', label: 'Commercial Electrician', available: true },
       { value: 'Electrical Technician', label: 'Electrical Technician', available: true },
+      { value: 'Nurse', label: 'Nurse', available: true },
       { value: 'HVAC Technician', label: 'HVAC Technician', available: false, comingSoon: true },
       { value: 'Solar Installer', label: 'Solar Installer', available: false, comingSoon: true },
       { value: 'Plumber', label: 'Plumber', available: false, comingSoon: true },
@@ -287,7 +294,9 @@ export class WorkersService {
             primaryTrade: createDto.primaryTrade,
             headline: createDto.headline,
             summary: createDto.summary,
-            specializations: (createDto.specializations || []) as Specialization[],
+            specializations: (this.isElectricalTrade(createDto.primaryTrade)
+              ? (createDto.specializations || [])
+              : []) as Specialization[],
             availability: createDto.availability as Availability || Availability.NOT_AVAILABLE,
             noticePeriodDays: createDto.noticePeriodDays,
             desiredSalaryMin: createDto.desiredSalaryMin,
@@ -485,7 +494,12 @@ export class WorkersService {
     if (updateDto.primaryTrade !== undefined) updateData.primaryTrade = updateDto.primaryTrade;
     if (updateDto.headline !== undefined) updateData.headline = updateDto.headline;
     if (updateDto.summary !== undefined) updateData.summary = updateDto.summary;
-    if (updateDto.specializations !== undefined) updateData.specializations = updateDto.specializations as Specialization[];
+    if (updateDto.specializations !== undefined) {
+      const effectiveTrade = updateDto.primaryTrade ?? worker.primaryTrade;
+      updateData.specializations = (this.isElectricalTrade(effectiveTrade)
+        ? updateDto.specializations
+        : []) as Specialization[];
+    }
     if (updateDto.availability !== undefined) updateData.availability = updateDto.availability as Availability;
     if (updateDto.noticePeriodDays !== undefined) updateData.noticePeriodDays = updateDto.noticePeriodDays;
     if (updateDto.desiredSalaryMin !== undefined) updateData.desiredSalaryMin = updateDto.desiredSalaryMin;
@@ -682,6 +696,17 @@ export class WorkersService {
     if (dto.validUntil !== undefined) updateData.validUntil = dto.validUntil ? new Date(dto.validUntil) : null;
     if (dto.isLifetime !== undefined) updateData.isLifetime = dto.isLifetime;
     if (dto.documentUrl !== undefined) updateData.documentUrl = dto.documentUrl;
+
+    // Any change to a credential's substance invalidates a previous admin
+    // verification — it must be reviewed again against the new content.
+    const contentChanged = ['name', 'certificationNumber', 'issuingBody', 'validUntil', 'documentUrl']
+      .some((field) => (dto as any)[field] !== undefined);
+    if (contentChanged && existing.verificationStatus === 'VERIFIED') {
+      updateData.verificationStatus = 'PENDING';
+      updateData.verifiedAt = null;
+      updateData.verifiedBy = null;
+      updateData.verificationMethod = null;
+    }
 
     const result = await this.prisma.certification.update({
       where: { id: certificationId },
@@ -1289,6 +1314,12 @@ export class WorkersService {
       if (certNames.some((n: string) => n.includes('First Aid') || n.includes('BHV') || n.includes('EHBO'))) {
         badges.push('FIRST_AID_CERTIFIED');
       }
+      if (certNames.some((n: string) => /big[-\s]?regist/i.test(n))) {
+        badges.push('BIG_REGISTERED');
+      }
+      if (certNames.some((n: string) => n.toUpperCase().includes('VOG'))) {
+        badges.push('VOG_VERIFIED');
+      }
       if (verifiedCerts.length >= 2) {
         badges.push('MULTIPLE_CERTIFIED');
       }
@@ -1376,6 +1407,26 @@ export class WorkersService {
       }
     });
     if (firstAidCerts > 0) score += 10;
+
+    // BIG-registration (regulated healthcare): 25 points
+    const bigCerts = await this.prisma.certification.count({
+      where: {
+        profileId: workerId,
+        name: { contains: 'BIG', mode: 'insensitive' },
+        verificationStatus: 'VERIFIED',
+      }
+    });
+    if (bigCerts > 0) score += 25;
+
+    // VOG (Certificate of Good Conduct): 15 points
+    const vogCerts = await this.prisma.certification.count({
+      where: {
+        profileId: workerId,
+        name: { contains: 'VOG', mode: 'insensitive' },
+        verificationStatus: 'VERIFIED',
+      }
+    });
+    if (vogCerts > 0) score += 15;
 
     // Driving licence: 10 points
     const worker = await this.prisma.worker.findUnique({ where: { id: workerId } });

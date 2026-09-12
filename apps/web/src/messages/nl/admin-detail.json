@@ -141,7 +141,12 @@
     "banPlaceholder": "Voer reden voor blokkering in...",
     "banUserBtn": "Gebruiker blokkeren",
     "failedSuspend": "Gebruiker schorsen mislukt",
-    "failedBan": "Gebruiker blokkeren mislukt"
+    "failedBan": "Gebruiker blokkeren mislukt",
+    "credentials": "Registraties",
+    "verifyCta": "Goedkeuren",
+    "rejectCta": "Afkeuren",
+    "rejectCredentialPrompt": "Reden voor afkeuring van deze registratie:",
+    "failedCredential": "Kon registratie niet bijwerken"
   },
   "invoiceDetail": {
     "invoiceNotFound": "Factuur niet gevonden",
