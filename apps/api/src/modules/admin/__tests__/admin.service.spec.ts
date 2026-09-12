@@ -1,7 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { AdminService } from '../admin.service';
 import { PrismaService } from '../../../prisma/prisma.service';
+import { NotificationEventType } from '../../../modules/notifications/notification.types';
 
 /**
  * Mock PrismaService for AdminService.createStaffUser. The method runs inside
@@ -40,6 +42,7 @@ describe('AdminService — createStaffUser', () => {
       providers: [
         AdminService,
         { provide: PrismaService, useValue: prisma },
+        { provide: EventEmitter2, useValue: { emit: jest.fn() } },
       ],
     }).compile();
     service = module.get<AdminService>(AdminService);
@@ -240,6 +243,7 @@ class MockCredentialPrismaService {
 describe('AdminService — worker credential review', () => {
   let service: AdminService;
   let prisma: MockCredentialPrismaService;
+  let eventEmitter: { emit: jest.Mock };
   const adminUserId = 'admin-1';
 
   const pendingCert = {
@@ -247,14 +251,17 @@ describe('AdminService — worker credential review', () => {
     name: 'BIG-registratie',
     verificationStatus: 'PENDING',
     profileId: 'worker-1',
+    profile: { user: { id: 'user-1' } },
   };
 
   beforeEach(async () => {
     prisma = new MockCredentialPrismaService();
+    eventEmitter = { emit: jest.fn() };
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AdminService,
         { provide: PrismaService, useValue: prisma },
+        { provide: EventEmitter2, useValue: eventEmitter },
       ],
     }).compile();
     service = module.get<AdminService>(AdminService);
@@ -308,6 +315,24 @@ describe('AdminService — worker credential review', () => {
         }),
       );
       expect(result).toEqual({ success: true, message: 'Certification verified' });
+      expect(eventEmitter.emit).toHaveBeenCalledWith(
+        NotificationEventType.CREDENTIAL_REVIEWED,
+        expect.objectContaining({
+          workerUserId: 'user-1',
+          certificationName: 'BIG-registratie',
+          approved: true,
+        }),
+      );
+    });
+
+    it('does not forward admin notes into the worker notification', async () => {
+      prisma.certification.findUnique.mockResolvedValue(pendingCert);
+      prisma.certification.updateMany.mockResolvedValue({ count: 1 });
+
+      await service.verifyCertification('cert-1', adminUserId, 'internal annotation');
+
+      const [, payload] = eventEmitter.emit.mock.calls[0];
+      expect(payload.reason).toBeUndefined();
     });
 
     it('throws BadRequest when the certification is no longer PENDING', async () => {
@@ -351,6 +376,14 @@ describe('AdminService — worker credential review', () => {
         }),
       );
       expect(result).toEqual({ success: true, message: 'Certification rejected' });
+      expect(eventEmitter.emit).toHaveBeenCalledWith(
+        NotificationEventType.CREDENTIAL_REVIEWED,
+        expect.objectContaining({
+          workerUserId: 'user-1',
+          approved: false,
+          reason: 'not in BIG-register',
+        }),
+      );
     });
 
     it('throws BadRequest when the certification is no longer PENDING', async () => {

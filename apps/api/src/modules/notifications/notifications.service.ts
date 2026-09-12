@@ -24,6 +24,7 @@ import {
   ReferralRewardEarnedPayload,
   ReferralRewardFulfilledPayload,
   InsightPublishedPayload,
+  CredentialReviewedPayload,
 } from './notification.types';
 
 // ============================================================================
@@ -78,6 +79,7 @@ export class NotificationsService {
     this.eventEmitter.on(NotificationEventType.REFERRAL_REWARD_EARNED, this.handleReferralRewardEarned.bind(this));
     this.eventEmitter.on(NotificationEventType.REFERRAL_REWARD_FULFILLED, this.handleReferralRewardFulfilled.bind(this));
     this.eventEmitter.on(NotificationEventType.INSIGHT_PUBLISHED, this.handleInsightPublished.bind(this));
+    this.eventEmitter.on(NotificationEventType.CREDENTIAL_REVIEWED, this.handleCredentialReviewed.bind(this));
   }
 
   // ============================================================================
@@ -633,6 +635,30 @@ export class NotificationsService {
       channelEmail: true,
       channelPush: true,
       channelSms: false,
+    });
+  }
+
+  // ============================================================================
+  // WORKER CREDENTIAL EVENT HANDLERS
+  // ============================================================================
+
+  private async handleCredentialReviewed(payload: CredentialReviewedPayload) {
+    await this.createAndDeliver({
+      userId: payload.workerUserId,
+      notificationType: 'credential_reviewed',
+      category: 'account',
+      title: payload.approved ? '✓ Credential verified' : 'Credential review completed',
+      body: payload.approved
+        ? `Your ${payload.certificationName} has been verified. Employers can now see it as verified.`
+        : `Your ${payload.certificationName} could not be verified.${payload.reason ? ` Reason: ${payload.reason}` : ''}`,
+      actionData: {
+        certificationName: payload.certificationName,
+        approved: payload.approved,
+        reason: payload.reason,
+      },
+      actionUrl: '/profile/edit',
+      channelEmail: true,
+      channelPush: true,
     });
   }
 }

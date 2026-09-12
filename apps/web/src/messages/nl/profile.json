@@ -168,6 +168,8 @@
     "credentialPresetBig": "BIG-registratie",
     "credentialPresetVog": "VOG (Verklaring Omtrent Gedrag)",
     "credentialPresetInsurance": "Beroepsaansprakelijkheidsverzekering",
+    "credentialHintBig": "Je BIG-registratie moet elke 5 jaar verlengd worden — vul de vervaldatum in zodat werkgevers zien dat hij actueel is.",
+    "credentialHintVog": "Een VOG is een momentopname: werkgevers willen er doorgaans één die niet ouder is dan 3 maanden. Vink \"geen vervaldatum\" niet aan en geef regelmatig een nieuwe op.",
     "statusPending": "In beoordeling",
     "statusVerified": "Gecontroleerd",
     "statusRejected": "Afgekeurd",

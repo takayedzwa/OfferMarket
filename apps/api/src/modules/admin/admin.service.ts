@@ -1,5 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../../prisma/prisma.service';
+import { NotificationEventType, CredentialReviewedPayload } from '../notifications/notification.types';
 import { UpdateSettingsDto } from './dto/update-settings.dto';
 import { CreateStaffUserDto } from './dto/create-staff-user.dto';
 import { isCommonPassword } from '../auth/password-blocklist';
@@ -7,7 +9,10 @@ import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class AdminService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private eventEmitter: EventEmitter2,
+  ) {}
 
   // ============================================================================
   // DASHBOARD STATISTICS
@@ -562,7 +567,13 @@ export class AdminService {
   async verifyCertification(certificationId: string, adminUserId: string, notes?: string) {
     const certification = await this.prisma.certification.findUnique({
       where: { id: certificationId },
-      select: { id: true, name: true, verificationStatus: true, profileId: true },
+      select: {
+        id: true,
+        name: true,
+        verificationStatus: true,
+        profileId: true,
+        profile: { select: { user: { select: { id: true } } } },
+      },
     });
 
     if (!certification) {
@@ -603,13 +614,22 @@ export class AdminService {
       },
     });
 
+    // notes are internal admin annotations — never forwarded to the worker.
+    this.emitCredentialReviewed(certification, true);
+
     return { success: true, message: 'Certification verified' };
   }
 
   async rejectCertification(certificationId: string, adminUserId: string, reason: string) {
     const certification = await this.prisma.certification.findUnique({
       where: { id: certificationId },
-      select: { id: true, name: true, verificationStatus: true, profileId: true },
+      select: {
+        id: true,
+        name: true,
+        verificationStatus: true,
+        profileId: true,
+        profile: { select: { user: { select: { id: true } } } },
+      },
     });
 
     if (!certification) {
@@ -646,7 +666,28 @@ export class AdminService {
       },
     });
 
+    this.emitCredentialReviewed(certification, false, reason);
+
     return { success: true, message: 'Certification rejected' };
+  }
+
+  /** Notify the worker that their credential was reviewed (best-effort). */
+  private emitCredentialReviewed(
+    certification: { name: string; profile?: { user?: { id: string } } },
+    approved: boolean,
+    reason?: string,
+  ) {
+    const workerUserId = certification.profile?.user?.id;
+    if (!workerUserId) return;
+    const payload: CredentialReviewedPayload = {
+      recipientUserId: workerUserId,
+      workerUserId,
+      certificationName: certification.name,
+      approved,
+      ...(reason ? { reason } : {}),
+      actionUrl: '/profile/edit',
+    };
+    this.eventEmitter.emit(NotificationEventType.CREDENTIAL_REVIEWED, payload);
   }
 
   // ============================================================================

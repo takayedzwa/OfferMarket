@@ -584,7 +584,15 @@ export default function EditWorkerProfile() {
     if (!newCert.name || !newCert.issuingBody) return;
     try {
       setSavingSection("certifications");
-      await workersApi.addCertification(newCert);
+      // Strip empty strings: the API's @IsDateString + @IsOptional only skips
+      // validation for undefined/null, so an empty date string fails validation.
+      // A lifetime certification has no expiry — never send validUntil.
+      const certPayload = Object.fromEntries(
+        Object.entries(newCert).filter(
+          ([k, v]) => v !== "" && !(newCert.isLifetime && k === "validUntil"),
+        ),
+      );
+      await workersApi.addCertification(certPayload);
       const res = await workersApi.getMyProfile();
       setCertifications(res.data.certifications || []);
       setShowAddCert(false);
@@ -1305,10 +1313,10 @@ export default function EditWorkerProfile() {
                 <div className="p-4 bg-blue-50 rounded-lg space-y-3">
                   {formData.primaryTrade === "Nurse" && (
                     <div className="flex flex-wrap gap-2">
-                      <button type="button" onClick={() => setNewCert((prev) => ({ ...prev, name: t("credentialPresetBig"), issuingBody: "CIBG" }))} className="px-3 py-1.5 text-xs font-medium bg-white border border-blue-200 text-blue-700 rounded-lg hover:bg-blue-50">
+                      <button type="button" onClick={() => setNewCert((prev) => ({ ...prev, name: t("credentialPresetBig"), issuingBody: "CIBG", validUntil: "", isLifetime: false }))} className="px-3 py-1.5 text-xs font-medium bg-white border border-blue-200 text-blue-700 rounded-lg hover:bg-blue-50">
                         + {t("credentialPresetBig")}
                       </button>
-                      <button type="button" onClick={() => setNewCert((prev) => ({ ...prev, name: t("credentialPresetVog"), issuingBody: "Justis" }))} className="px-3 py-1.5 text-xs font-medium bg-white border border-blue-200 text-blue-700 rounded-lg hover:bg-blue-50">
+                      <button type="button" onClick={() => setNewCert((prev) => ({ ...prev, name: t("credentialPresetVog"), issuingBody: "Justis", validUntil: "", isLifetime: false }))} className="px-3 py-1.5 text-xs font-medium bg-white border border-blue-200 text-blue-700 rounded-lg hover:bg-blue-50">
                         + {t("credentialPresetVog")}
                       </button>
                       <button type="button" onClick={() => setNewCert((prev) => ({ ...prev, name: t("credentialPresetInsurance") }))} className="px-3 py-1.5 text-xs font-medium bg-white border border-blue-200 text-blue-700 rounded-lg hover:bg-blue-50">
@@ -1340,6 +1348,12 @@ export default function EditWorkerProfile() {
                       <input type="date" value={newCert.validUntil} onChange={(e) => setNewCert((prev) => ({ ...prev, validUntil: e.target.value }))} className="w-full px-4 py-2 border border-gray-300 rounded-lg outline-none" />
                     </div>
                   </div>
+                  {newCert.name === t("credentialPresetBig") && (
+                    <p className="text-xs text-gray-500">{t("credentialHintBig")}</p>
+                  )}
+                  {newCert.name === t("credentialPresetVog") && (
+                    <p className="text-xs text-gray-500">{t("credentialHintVog")}</p>
+                  )}
                   <label className="flex items-center gap-2 text-sm text-gray-700">
                     <input type="checkbox" checked={newCert.isLifetime} onChange={(e) => setNewCert((prev) => ({ ...prev, isLifetime: e.target.checked }))} className="w-4 h-4 text-blue-600 border-gray-300 rounded" />
                     {t("lifetimeCert")}

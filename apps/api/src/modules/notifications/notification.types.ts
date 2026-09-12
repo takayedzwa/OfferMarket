@@ -37,6 +37,9 @@ export enum NotificationEventType {
 
   // Insights (modules/insights) — a followed profession/region/skill got new data.
   INSIGHT_PUBLISHED = 'insight.published',
+
+  // Worker credentials (modules/admin) — an admin reviewed a declared credential.
+  CREDENTIAL_REVIEWED = 'credential.reviewed',
 }
 
 // ============================================================================
@@ -216,6 +219,18 @@ export interface InsightPublishedPayload extends BaseNotificationPayload {
   articleSlug: string;
   category: string;
   profession?: string;
+}
+
+// ============================================================================
+// Worker credential payloads (modules/admin)
+// ============================================================================
+
+/** An admin reviewed (verified or rejected) a worker's declared credential. */
+export interface CredentialReviewedPayload extends BaseNotificationPayload {
+  workerUserId: string;
+  certificationName: string;
+  approved: boolean;
+  reason?: string;
 }
 
 // ============================================================================

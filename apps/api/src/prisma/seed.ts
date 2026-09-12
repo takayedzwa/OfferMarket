@@ -214,6 +214,57 @@ async function main() {
   }
   console.log(`✅ Seeded ${professionSeed.length} profession taxonomy entries`);
 
+  // --------------------------------------------------------------------
+  // Skill catalog. The table starts empty and workers currently create
+  // ad-hoc rows with category 'Other' when picking skills by name —
+  // seeding a day-one catalog means those names resolve to proper,
+  // categorized rows instead of polluting the taxonomy. Categories align
+  // with the profession groups above. isCertification rows point at the
+  // issuing body so the UI can hint "this counts as a credential".
+  // --------------------------------------------------------------------
+  const skillSeed: Array<{
+    slug: string; name: string; nameEn?: string; category: string;
+    subcategory?: string; description?: string;
+    isCertification?: boolean; certificationBody?: string;
+  }> = [
+    // electrical / technical
+    { slug: 'installatietechniek', name: 'Installatietechniek', nameEn: 'Installation technology', category: 'technical', description: 'Elektrische installaties aanleggen en onderhouden' },
+    { slug: 'nen-3140', name: 'NEN 3140', nameEn: 'NEN 3140', category: 'technical', description: 'Bedrijfsveiligheid en inspectie van elektrische installaties', isCertification: true, certificationBody: 'SCIOS' },
+    { slug: 'scios-scope-12', name: 'SCIOS Scope 12', nameEn: 'SCIOS Scope 12', category: 'technical', description: 'Onderhoud brandveiligheidssystemen (storing- en storingbeheersing)', isCertification: true, certificationBody: 'SCIOS' },
+    { slug: 'zonnepanelen', name: 'Zonnepanelen installeren', nameEn: 'Solar panel installation', category: 'technical', description: 'PV-systemen ontwerpen, installeren en in bedrijf stellen' },
+    { slug: 'laadpalen', name: 'Laadpalen installeren', nameEn: 'EV charging installation', category: 'technical', description: 'AC/DC-laadinfrastructuur voor elektrische voertuigen' },
+    { slug: 'domotica', name: 'Domotica', nameEn: 'Smart home / domotics', category: 'technical', description: 'Slimme woninginstallaties en automatisering' },
+    { slug: 'groepenkasten', name: 'Groepenkasten en meterkasten', nameEn: 'Distribution boards', category: 'technical', description: 'Aanpassen, vervangen en keuren van verdelingskasten' },
+    // nursing / healthcare
+    { slug: 'wondzorg', name: 'Wondzorg', nameEn: 'Wound care', category: 'healthcare', description: 'Beoordelen en behandelen van acute en complexe wonden' },
+    { slug: 'medicatietoediening', name: 'Medicatietoediening', nameEn: 'Medication administration', category: 'healthcare', description: 'Veilig voorbereiden en toedienen van medicatie (BMV)' },
+    { slug: 'injecteren', name: 'Injecteren', nameEn: 'Injections', category: 'healthcare', description: 'Subcutane, intramusculaire en intraveneuze injecties' },
+    { slug: 'iv-therapie', name: 'Intraveneuze therapie', nameEn: 'IV therapy', category: 'healthcare', description: 'Infusen, port-a-caths en PICC-lijnen verzorgen' },
+    { slug: 'diabeteszorg', name: 'Diabeteszorg', nameEn: 'Diabetes care', category: 'healthcare', description: 'Begeleiden en behandelen van mensen met diabetes' },
+    { slug: 'palliatieve-zorg', name: 'Palliatieve zorg', nameEn: 'Palliative care', category: 'healthcare', description: 'Zorg en comfort in de laatste levensfase' },
+    { slug: 'geriatrische-zorg', name: 'Geriatrische zorg', nameEn: 'Geriatric care', category: 'healthcare', description: 'Zorg voor ouderen, inclusief dementie en valpreventie' },
+    { slug: 'reanimatie', name: 'Reanimatie (BLS)', nameEn: 'Resuscitation (BLS)', category: 'healthcare', description: 'Basale reanimatie en AED-gebruik', isCertification: true, certificationBody: 'Nederlandse Reanimatieraad' },
+    { slug: 'thuiszorg', name: 'Thuiszorg', nameEn: 'Home care', category: 'healthcare', description: 'Zelfstandig zorgen in de thuissituatie van de cliënt' },
+  ];
+  for (const skill of skillSeed) {
+    await prisma.skill.upsert({
+      where: { slug: skill.slug },
+      create: {
+        name: skill.name,
+        nameEn: skill.nameEn,
+        slug: skill.slug,
+        category: skill.category,
+        subcategory: skill.subcategory,
+        description: skill.description,
+        isCertification: skill.isCertification ?? false,
+        certificationBody: skill.certificationBody,
+        isActive: true,
+      },
+      update: {},
+    });
+  }
+  console.log(`✅ Seeded ${skillSeed.length} skill catalog entries`);
+
   const insightsSettings = [
     {
       key: 'insights.thresholds',

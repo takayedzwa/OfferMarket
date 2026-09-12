@@ -168,6 +168,8 @@
     "credentialPresetBig": "BIG-registration",
     "credentialPresetVog": "VOG (Certificate of Good Conduct)",
     "credentialPresetInsurance": "Professional liability insurance",
+    "credentialHintBig": "Your BIG registration must be renewed every 5 years — set the expiry date so employers can see it is current.",
+    "credentialHintVog": "A VOG is a snapshot: employers typically want one issued within the last 3 months. Leave \"no expiry\" unchecked and re-declare a fresh one periodically.",
     "statusPending": "Pending review",
     "statusVerified": "Verified",
     "statusRejected": "Rejected",
