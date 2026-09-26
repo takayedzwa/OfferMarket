@@ -87,10 +87,11 @@ export default function Navbar() {
     }
   }
 
-  // Hamburger only makes sense when there are links beyond Home (i.e. an
-  // authenticated user with role-gated destinations). Unauthenticated visitors
-  // keep the existing Sign In / Get Started buttons.
-  const showHamburger = !authLoading && isAuthenticated && navLinks.length > 1;
+  // Hamburger when there is anything to put in the drawer: an authenticated
+  // user with role-gated destinations, or an unauthenticated visitor (whose
+  // Report / Privacy / Sign In links only fit the bar on md+ screens — on
+  // mobile they overflow past the right edge, so they live in the drawer).
+  const showHamburger = !authLoading && (navLinks.length > 1 || !isAuthenticated);
 
   const mobileLinkClass = (path: string) =>
     `flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
@@ -181,28 +182,31 @@ export default function Navbar() {
               </>
             ) : (
               <>
+                {/* Legal links and Sign In only fit the bar from md up; on
+                    mobile they move into the hamburger drawer below so the
+                    row cannot overflow past the right edge. */}
                 <Link
                   href="/dsa/report"
-                  className="text-red-600 hover:text-red-700 px-3 py-2 text-sm font-medium flex items-center gap-1"
+                  className="hidden md:flex text-red-600 hover:text-red-700 px-3 py-2 text-sm font-medium items-center gap-1"
                 >
                   <Flag className="w-4 h-4" />
                   {t("report")}
                 </Link>
                 <Link
                   href="/privacy"
-                  className="text-gray-500 hover:text-gray-900 px-3 py-2 text-sm font-medium"
+                  className="hidden md:block text-gray-500 hover:text-gray-900 px-3 py-2 text-sm font-medium"
                 >
                   {t("privacy")}
                 </Link>
                 <Link
                   href="/login"
-                  className="text-gray-600 hover:text-gray-900 px-4 py-2 text-sm font-medium"
+                  className="hidden md:block text-gray-600 hover:text-gray-900 px-4 py-2 text-sm font-medium"
                 >
                   {t("signIn")}
                 </Link>
                 <Link
                   href="/register"
-                  className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+                  className="bg-blue-600 text-white px-3 md:px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
                 >
                   {t("getStarted")}
                 </Link>
@@ -212,7 +216,8 @@ export default function Navbar() {
         </div>
 
         {/* Mobile navigation drawer (md:hidden). Same link list as the
-            desktop bar; closes on navigation. */}
+            desktop bar, plus the unauthenticated links that don't fit the
+            mobile bar; closes on navigation. */}
         {mobileOpen && showHamburger && (
           <nav className="md:hidden border-t border-gray-200 py-3 space-y-1">
             {navLinks.map(({ href, label, Icon }) => (
@@ -226,6 +231,39 @@ export default function Navbar() {
                 {t(label)}
               </Link>
             ))}
+            {!isAuthenticated && (
+              <>
+                <Link
+                  href="/dsa/report"
+                  onClick={() => setMobileOpen(false)}
+                  className={mobileLinkClass("/dsa/report")}
+                >
+                  <Flag className="w-4 h-4" />
+                  {t("report")}
+                </Link>
+                <Link
+                  href="/privacy"
+                  onClick={() => setMobileOpen(false)}
+                  className={mobileLinkClass("/privacy")}
+                >
+                  {t("privacy")}
+                </Link>
+                <Link
+                  href="/login"
+                  onClick={() => setMobileOpen(false)}
+                  className={mobileLinkClass("/login")}
+                >
+                  {t("signIn")}
+                </Link>
+                <Link
+                  href="/register"
+                  onClick={() => setMobileOpen(false)}
+                  className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+                >
+                  {t("getStarted")}
+                </Link>
+              </>
+            )}
           </nav>
         )}
       </div>

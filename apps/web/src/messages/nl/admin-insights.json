@@ -127,9 +127,9 @@
       "offers": "Aanbiedingen",
       "candidates": "Beschikbare kandidaten",
       "level": "Niveau",
-      "level.HIGH": "Groot tekort",
-      "level.MODERATE": "Gemiddeld",
-      "level.LOW": "Laag"
+      "level_HIGH": "Groot tekort",
+      "level_MODERATE": "Gemiddeld",
+      "level_LOW": "Laag"
     },
     "pendingDrafts": "{count, plural, one {# automatisch gegenereerd concept wacht op review} other {# automatisch gegenereerde concepten wachten op review}}",
     "reviewDrafts": "Concepten beoordelen",

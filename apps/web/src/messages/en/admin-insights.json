@@ -127,9 +127,9 @@
       "offers": "Offers",
       "candidates": "Available candidates",
       "level": "Level",
-      "level.HIGH": "High shortage",
-      "level.MODERATE": "Moderate",
-      "level.LOW": "Low"
+      "level_HIGH": "High shortage",
+      "level_MODERATE": "Moderate",
+      "level_LOW": "Low"
     },
     "pendingDrafts": "{count, plural, one {# auto-generated draft awaiting review} other {# auto-generated drafts awaiting review}}",
     "reviewDrafts": "Review drafts",
