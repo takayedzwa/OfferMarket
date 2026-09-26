@@ -332,6 +332,53 @@ describe('Navbar', () => {
       expect(screen.queryByText('Admin')).not.toBeInTheDocument();
       expect(screen.queryByText('Search Workers')).not.toBeInTheDocument();
     });
+
+    // MOBILE: the Report / Privacy / Sign In links only fit the bar on md+
+    // screens; on phones they move into the hamburger drawer so the header
+    // row cannot overflow and push Sign In off-screen.
+    it('should open the mobile menu for unauthenticated visitors with all drawer links', async () => {
+      mockUseAuth.mockReturnValue({
+        user: null,
+        loading: false,
+        logout: mockLogout,
+        refreshUser: jest.fn(),
+      });
+
+      renderWithIntl(<Navbar />);
+
+      // Drawer starts closed; the hamburger is available to visitors.
+      expect(screen.queryByRole('button', { name: /close menu/i })).not.toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', { name: /open menu/i }));
+
+      // Drawer now holds the links hidden from the mobile bar. jsdom does not
+      // apply the `hidden md:*` classes, so the bar copies still match too —
+      // assert on duplicate counts rather than unique finds. Icon-bearing
+      // links are matched by accessible name since the icon mock renders as
+      // text (e.g. "FlagIconReport").
+      expect(screen.getAllByText('Sign In')).toHaveLength(2);
+      expect(screen.getAllByText('Get Started')).toHaveLength(2);
+      expect(screen.getAllByRole('link', { name: /report/i })).toHaveLength(2);
+      expect(screen.getAllByText('Privacy')).toHaveLength(2);
+      expect(screen.getAllByRole('link', { name: /insights/i })).toHaveLength(2);
+    });
+
+    it('should close the mobile menu when a drawer link is clicked', async () => {
+      mockUseAuth.mockReturnValue({
+        user: null,
+        loading: false,
+        logout: mockLogout,
+        refreshUser: jest.fn(),
+      });
+
+      renderWithIntl(<Navbar />);
+
+      await userEvent.click(screen.getByRole('button', { name: /open menu/i }));
+      await userEvent.click(screen.getAllByRole('link', { name: /report/i })[1]); // drawer copy
+
+      // Drawer unmounts; only the (CSS-hidden) bar copy of "Report" remains.
+      expect(screen.getAllByRole('link', { name: /report/i })).toHaveLength(1);
+      expect(screen.queryByRole('button', { name: /close menu/i })).not.toBeInTheDocument();
+    });
   });
 
   // ============================================================================

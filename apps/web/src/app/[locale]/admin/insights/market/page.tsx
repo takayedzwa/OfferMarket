@@ -285,7 +285,7 @@ export default function AdminMarketIntelligencePage() {
                                 : "bg-gray-100 text-gray-600"
                           }`}
                         >
-                          {t(`shortages.level.${r.shortageLevel}`)}
+                          {t(`shortages.level_${r.shortageLevel}`)}
                         </span>
                       </td>
                     </tr>
