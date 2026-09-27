@@ -239,7 +239,8 @@ export default function AdminProfessionsPage() {
           <div className="px-6 py-3 border-b border-gray-100 bg-gray-50">
             <h2 className="text-sm font-semibold text-gray-900">{group}</h2>
           </div>
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[640px]">
             <thead>
               <tr className="text-left text-xs text-gray-500 uppercase tracking-wide">
                 <th className="px-6 py-2">{t("table.name")}</th>
@@ -302,7 +303,8 @@ export default function AdminProfessionsPage() {
                   </tr>
                 ))}
             </tbody>
-          </table>
+            </table>
+          </div>
         </section>
       ))}
     </main>

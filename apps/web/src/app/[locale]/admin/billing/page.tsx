@@ -247,8 +247,8 @@ export default function AdminBillingPage() {
                 <h3 className="text-lg font-medium text-gray-900">{t("emptyInvoices")}</h3>
               </div>
             ) : (
-              <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
-                <table className="w-full">
+              <div className="bg-white rounded-xl border shadow-sm overflow-x-auto">
+                <table className="w-full min-w-[640px]">
                   <thead>
                     <tr className="border-b bg-gray-50">
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t("table.invoice")}</th>

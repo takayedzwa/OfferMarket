@@ -140,11 +140,11 @@ export default function AdminTrustPage() {
           ))}
         </div>
 
-        <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
+        <div className="bg-white rounded-xl border shadow-sm overflow-x-auto">
           <div className="px-6 py-4 border-b">
             <h2 className="font-semibold text-gray-900">{t("recentTitle")}</h2>
           </div>
-          <table className="w-full">
+          <table className="w-full min-w-[640px]">
             <thead className="bg-gray-50 border-b">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t("table.activity")}</th>
