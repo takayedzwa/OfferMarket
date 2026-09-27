@@ -175,13 +175,13 @@ export default function AdminSettingsPage() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex gap-6">
-          {/* Sidebar */}
-          <div className="w-64 flex-shrink-0">
-            <div className="bg-white rounded-xl border shadow-sm p-4 space-y-2">
+        <div className="flex flex-col gap-4 lg:flex-row lg:gap-6">
+          {/* Sidebar — horizontal scrollable tab row on mobile, fixed column on desktop */}
+          <div className="lg:w-64 lg:flex-shrink-0">
+            <div className="bg-white rounded-xl border shadow-sm p-2 lg:p-4 flex gap-1 lg:flex-col lg:gap-2 overflow-x-auto">
               <button
                 onClick={() => setActiveTab('general')}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left ${
+                className={`flex-shrink-0 flex items-center gap-3 px-4 py-3 rounded-lg text-left whitespace-nowrap ${
                   activeTab === 'general' ? 'bg-blue-50 text-blue-600' : 'hover:bg-gray-50'
                 }`}
               >
@@ -190,7 +190,7 @@ export default function AdminSettingsPage() {
               </button>
               <button
                 onClick={() => setActiveTab('financial')}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left ${
+                className={`flex-shrink-0 flex items-center gap-3 px-4 py-3 rounded-lg text-left whitespace-nowrap ${
                   activeTab === 'financial' ? 'bg-blue-50 text-blue-600' : 'hover:bg-gray-50'
                 }`}
               >
@@ -199,7 +199,7 @@ export default function AdminSettingsPage() {
               </button>
               <button
                 onClick={() => setActiveTab('verification')}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left ${
+                className={`flex-shrink-0 flex items-center gap-3 px-4 py-3 rounded-lg text-left whitespace-nowrap ${
                   activeTab === 'verification' ? 'bg-blue-50 text-blue-600' : 'hover:bg-gray-50'
                 }`}
               >
@@ -208,7 +208,7 @@ export default function AdminSettingsPage() {
               </button>
               <button
                 onClick={() => setActiveTab('system')}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left ${
+                className={`flex-shrink-0 flex items-center gap-3 px-4 py-3 rounded-lg text-left whitespace-nowrap ${
                   activeTab === 'system' ? 'bg-blue-50 text-blue-600' : 'hover:bg-gray-50'
                 }`}
               >

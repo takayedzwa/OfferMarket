@@ -241,8 +241,8 @@ export default function AdminUsersPage() {
         </div>
 
         {/* Users Table */}
-        <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
-          <table className="w-full">
+        <div className="bg-white rounded-xl border shadow-sm overflow-x-auto">
+          <table className="w-full min-w-[768px]">
             <thead className="bg-gray-50 border-b">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t("table.user")}</th>

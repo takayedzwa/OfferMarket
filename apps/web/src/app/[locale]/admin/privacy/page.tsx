@@ -117,12 +117,12 @@ export default function AdminPrivacyPage() {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         {/* Data Subject Requests */}
-        <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
+        <div className="bg-white rounded-xl border shadow-sm overflow-x-auto">
           <div className="px-6 py-4 border-b flex items-center gap-2">
             <LifeBuoy className="w-5 h-5 text-gray-500" />
             <h2 className="font-semibold text-gray-900">{t("dsrTitle")}</h2>
           </div>
-          <table className="w-full">
+          <table className="w-full min-w-[640px]">
             <thead className="bg-gray-50 border-b">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t("table.type")}</th>
@@ -159,12 +159,12 @@ export default function AdminPrivacyPage() {
         </div>
 
         {/* Data Breach Notifications */}
-        <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
+        <div className="bg-white rounded-xl border shadow-sm overflow-x-auto">
           <div className="px-6 py-4 border-b flex items-center gap-2">
             <ShieldCheck className="w-5 h-5 text-gray-500" />
             <h2 className="font-semibold text-gray-900">{t("breachTitle")}</h2>
           </div>
-          <table className="w-full">
+          <table className="w-full min-w-[640px]">
             <thead className="bg-gray-50 border-b">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t("table.title")}</th>
