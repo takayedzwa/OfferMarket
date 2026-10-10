@@ -31,13 +31,15 @@ export class InternalActivateWorkerDto {
   // (IMMEDIATE / ALL_VERIFIED, applied in the service).
   @IsOptional()
   @IsString()
-  @Transform(({ value }) => value?.toUpperCase())
+  // typeof guard: a non-string value must reach IsString and become a clean
+  // 400, not crash the transform with "toUpperCase is not a function" (500).
+  @Transform(({ value }) => (typeof value === 'string' ? value.toUpperCase() : value))
   @IsIn(AVAILABILITY_VALUES)
   availability?: string;
 
   @IsOptional()
   @IsString()
-  @Transform(({ value }) => value?.toUpperCase())
+  @Transform(({ value }) => (typeof value === 'string' ? value.toUpperCase() : value))
   @IsIn(PROFILE_VISIBILITY_VALUES)
   profileVisibility?: string;
 }
