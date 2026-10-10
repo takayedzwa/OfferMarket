@@ -191,6 +191,19 @@ model Worker {
   safetyScore             Int                 @default(0) @map("safety_score")
   immigrationConsentGiven Boolean?            @default(false) @map("immigration_consent_given")
   immigrationConsentAt    DateTime?           @map("immigration_consent_at")
+  // Acquisition boundary (service-to-service, e.g. offermarket-ai-acquisition)
+  acquisitionIdempotencyKey String?           @unique @map("acquisition_idempotency_key")
+  acquisitionSource         String?            @map("acquisition_source")
+  // Ad platform (META today; GOOGLE/TIKTOK/ORGANIC later) + ad-object names.
+  // Ids come from the webhook; names are filled by the acquisition service's
+  // enrichment step when it fetches them from the ad platform's API.
+  acquisitionPlatform       String?            @map("acquisition_platform")
+  acquisitionCampaignName   String?            @map("acquisition_campaign_name")
+  acquisitionAdSetName      String?            @map("acquisition_ad_set_name")
+  acquisitionAdName         String?            @map("acquisition_ad_name")
+  acquisitionCampaignId     String?            @map("acquisition_campaign_id")
+  acquisitionAdId           String?            @map("acquisition_ad_id")
+  acquisitionAdSetId        String?            @map("acquisition_ad_set_id")
   createdAt               DateTime            @default(now())
   updatedAt               DateTime            @updatedAt
   deletedAt               DateTime?
@@ -212,6 +225,10 @@ model Worker {
   @@index([availability])
   @@index([profileVisibility])
   @@index([publicId])
+  // Reportable joins on the acquisition dimensions (self-service signups are
+  // NULL everywhere, so these indexes stay tiny).
+  @@index([acquisitionCampaignId])
+  @@index([acquisitionPlatform])
 }
 
 model Skill {

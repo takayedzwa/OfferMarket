@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, UnauthorizedException, ForbiddenException, Logger } from '@nestjs/common';
+import { Injectable, BadRequestException, UnauthorizedException, ForbiddenException, ConflictException, Logger } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { ERROR_CODES } from '../../i18n/error-codes';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -126,6 +126,103 @@ export class AuthService {
     await this.sendRegistrationVerificationEmail(result.user.id);
 
     return result;
+  }
+
+  // ============================================================================
+  // REGISTER WORKER (ACQUISITION / SERVICE-TO-SERVICE)
+  // ============================================================================
+
+  /**
+   * Create a WORKER account on behalf of an external acquisition service
+   * (offermarket-ai-acquisition) for a person onboarded via WhatsApp.
+   *
+   * Deliberately distinct from registerWorker: these workers have no email or
+   * password of their own yet. We generate a cryptographically random password
+   * (never logged, never returned) so `passwordHash` and the normal login/
+   * reset flows stay intact, and a placeholder email derived from the (already
+   * unique) phone number because `User.email @unique` requires one. If the
+   * worker later onboards themselves with a real email, that becomes a second
+   * account — a known MVP trade-off.
+   *
+   * Reuses the same protections as registerWorker: phone uniqueness, trust
+   * layer rapid-account-creation detection, bcrypt hashing. No JWTs are issued
+   * (the worker isn't logged in) and no verification email is sent — the
+   * acquisition WhatsApp conversation is the verification channel for now.
+   */
+  async registerWorkerFromAcquisition(payload: {
+    phone: string;
+    email?: string;
+    firstName?: string;
+    lastName?: string;
+    ipAddress?: string;
+  }) {
+    const email = payload.email ?? `wa-${payload.phone.replace(/[^0-9]/g, '')}@acquisition.placeholder`;
+
+    // Same trust hook as registerWorker. Note: all acquisition traffic arrives
+    // from the acquisition service, so `ipAddress` may be the SAME service IP
+    // for hundreds of real workers — this can produce suspicious-activity rows.
+    // Intentional: the reports are investigated, not auto-blocking.
+    await this.warnIfSuspiciousRapidCreation(payload.ipAddress);
+
+    const password = crypto.randomBytes(32).toString('hex');
+
+    try {
+      const user = await this.prisma.user.create({
+        data: {
+          email,
+          passwordHash: await bcrypt.hash(password, 10),
+          role: 'WORKER',
+          phone: payload.phone,
+          firstName: payload.firstName,
+          lastName: payload.lastName,
+          emailVerified: false,
+          phoneVerified: false,
+          lastLoginIp: payload.ipAddress,
+        },
+      });
+      return {
+        user: {
+          id: user.id,
+          email: user.email,
+          phone: user.phone,
+          role: user.role,
+          emailVerified: user.emailVerified,
+        },
+      };
+    } catch (error: any) {
+      // DB-level @unique constraints (checked here too so a concurrent
+      // duplicate still produces a clean 409/400 rather than Prisma noise).
+      if (error?.code === 'P2002') {
+        if (error?.meta?.target?.includes('email')) {
+          throw new ConflictException({ code: ERROR_CODES.AUTH_EMAIL_ALREADY_REGISTERED, message: 'Email already registered' });
+        }
+        if (error?.meta?.target?.includes('phone')) {
+          throw new ConflictException({ code: ERROR_CODES.AUTH_PHONE_ALREADY_REGISTERED, message: 'Phone number already registered' });
+        }
+      }
+      throw error;
+    }
+  }
+
+  /** Best-effort trust-layer check (mirrors registerWorker, minus the throw). */
+  private async warnIfSuspiciousRapidCreation(ipAddress?: string) {
+    if (!ipAddress) return;
+    try {
+      const rapidCreation = await this.trustService.detectRapidAccountCreation(ipAddress, 60);
+      if (rapidCreation.isSuspicious) {
+        await this.trustService.reportSuspiciousActivity({
+          entityType: 'USER',
+          activityType: 'RAPID_ACCOUNT_CREATION',
+          severity: 'HIGH',
+          description: `Rapid account creation detected from IP ${ipAddress} (acquisition service)`,
+          ipAddress,
+        });
+      }
+    } catch (e) {
+      // Trust detection failing must never block account creation for the
+      // acquisition boundary — record and continue.
+      this.logger.warn(`Trust check failed during acquisition registration: ${e}`);
+    }
   }
 
   // ============================================================================
