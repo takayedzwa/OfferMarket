@@ -82,5 +82,10 @@
     "internal": "Internal server error",
     "network": "Network error — please check your connection and try again.",
     "unknown": "Something went wrong. Please try again."
+  },
+  "internal": {
+    "unauthorized": "Missing or invalid internal API key",
+    "worker_not_found": "Worker not found",
+    "worker_phone_conflict": "An account with this phone number already exists"
   }
 }

@@ -6,6 +6,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { WorkersModule } from './modules/workers/workers.module';
+import { InternalModule } from './modules/internal/internal.module';
 import { EmployersModule } from './modules/employers/employers.module';
 import { OffersModule } from './modules/offers/offers.module';
 import { MessagesModule } from './modules/messages/messages.module';
@@ -55,6 +56,9 @@ import { ProcessingRestrictionGuard } from './guards/processing-restriction.guar
     PrismaModule,
     AuthModule,
     WorkersModule,
+    // Acquisition boundary — service-to-service endpoints (x-api-key auth) for
+    // external services like offermarket-ai-acquisition. No user-facing routes.
+    InternalModule,
     EmployersModule,
     OffersModule,
     MessagesModule,

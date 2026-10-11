@@ -89,6 +89,11 @@ export const ERROR_CODES = {
   GUARD_SUPPORT_REQUIRED: 'guard.support_required',
   GUARD_PROCESSING_RESTRICTED: 'guard.processing_restricted',
 
+  // --- modules/internal (service-to-service acquisition boundary) ---
+  INTERNAL_UNAUTHORIZED: 'internal.unauthorized',
+  INTERNAL_WORKER_NOT_FOUND: 'internal.worker_not_found',
+  INTERNAL_WORKER_PHONE_CONFLICT: 'internal.worker_phone_conflict',
+
   // --- referrals.service.ts ---
   REFERRAL_NOT_FOUND: 'referral.not_found',
   REFERRAL_ALREADY_INVALIDATED: 'referral.already_invalidated',

@@ -83,5 +83,10 @@
     "internal": "Interne serverfout",
     "network": "Netwerkfout — controleer je verbinding en probeer het opnieuw.",
     "unknown": "Er is iets misgegaan. Probeer het opnieuw."
+  },
+  "internal": {
+    "unauthorized": "Ontbrekende of ongeldige interne API-sleutel",
+    "worker_not_found": "Vakman niet gevonden",
+    "worker_phone_conflict": "Er bestaat al een account met dit telefoonnummer"
   }
 }

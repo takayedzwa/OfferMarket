@@ -260,7 +260,7 @@ export class WorkersService {
   // CREATE WORKER PROFILE
   // ============================================================================
 
-  async createWorkerProfile(userId: string, createDto: CreateWorkerDto) {
+  async createWorkerProfile(userId: string, createDto: CreateWorkerDto, opts?: { acquisition?: { idempotencyKey?: string; source?: string; platform?: string; campaignId?: string; campaignName?: string; adId?: string; adName?: string; adSetId?: string; adSetName?: string } }) {
     // Check if worker profile already exists for this user (fast-fail for normal case)
     const existing = await this.prisma.worker.findUnique({ where: { userId } });
     if (existing) {
@@ -311,6 +311,19 @@ export class WorkersService {
             industryPrefs: (createDto.industryPrefs || []) as IndustryType[],
             careerPriorities: (createDto.careerPriorities || []) as CareerPriority[],
             profileVisibility: createDto.profileVisibility as ProfileVisibility || ProfileVisibility.ALL_VERIFIED,
+            // Acquisition provenance — only set when an external acquisition
+            // service creates the worker (service-to-service boundary). The
+            // idempotency key is unique at DB level, which collapses retries
+            // into a single worker (P2002 → mapped by the caller).
+            acquisitionIdempotencyKey: opts?.acquisition?.idempotencyKey,
+            acquisitionSource: opts?.acquisition?.source,
+            acquisitionPlatform: opts?.acquisition?.platform,
+            acquisitionCampaignName: opts?.acquisition?.campaignName,
+            acquisitionAdSetName: opts?.acquisition?.adSetName,
+            acquisitionAdName: opts?.acquisition?.adName,
+            acquisitionCampaignId: opts?.acquisition?.campaignId,
+            acquisitionAdId: opts?.acquisition?.adId,
+            acquisitionAdSetId: opts?.acquisition?.adSetId,
             isProfileComplete: completeness >= 90,
             profileCompletenessPct: completeness,
           },
