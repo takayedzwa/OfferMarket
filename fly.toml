@@ -55,3 +55,10 @@ primary_region = "ams"
 # the image's node_modules (see apps/api/Dockerfile note).
 [deploy]
   release_command = "npx --no-install prisma migrate deploy"
+
+# Machine resources, pinned so every deploy keeps them (matching the live
+# `fly scale` state): Nest + Prisma + Socket.IO idles above the 256 MB default.
+# Always-on at this size ≈ $7–8/month.
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "1gb"
