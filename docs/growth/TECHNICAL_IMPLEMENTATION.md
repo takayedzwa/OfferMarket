@@ -1,7 +1,7 @@
 # TECHNICAL_IMPLEMENTATION
 
-**Version:** v1 — proposed developer tickets (NOT yet approved for implementation)
-**Source:** technical-seo audit (2026-11-05), see [AUDIT_REPORT.md](./AUDIT_REPORT.md)
+**Version:** v2 — T1–T9 complete (2026-11-09) + T10–T12 scoped (2026-11-15, /market phase)
+**Source:** technical-seo audit (2026-11-05) + marketplace-architect Δ4 + quality M-N4/Q12; grounded in code inspection 2026-11-15 (insights module: nightly MarketSnapshot cron `@Cron('30 2 * * *')` with provenance payloads; public unguarded routes `market/preview|trends`; AdminSettings key/value store)
 **Note:** each ticket is a proposed, smallest-coherent change. T9 includes a CTO product decision. Nothing here has been implemented.
 
 ## T1 — Per-domain canonical site URL (request-host derived)
@@ -56,3 +56,32 @@ T1 → T2 (T2 needs T1's per-host URL) · T3, T4, T5, T7 independent · T6 after
 
 ## Review flow (per repo rules)
 All code tickets: standard review flow, focused tests, human approval before touching production. T9's editorial batch should go through the dutch-content agent once keyword clusters (KEYWORD_DATABASE) and the approved architecture (URL_ARCHITECTURE) are confirmed.
+
+---
+
+# /MARKET PHASE (scoped 2026-11-15 — implementation pending approval)
+
+Grounding (code-verified 2026-11-15): `InsightsSnapshotService.writeDailySnapshots()` writes per-(profession, region, day) MarketSnapshot rows with provenance (thresholds, method version, computedAt); public unguarded API routes exist for `market/preview` and `market/trends`; `AdminSettings` is a validated key/value store used the same way by referral knobs. The unified gate (Q12 ruling) = salary sample ≥ **30** indexable / < **20** twice consecutively = exit (hysteresis), display thresholds stay engine-side.
+
+## T11 — Gate machinery + stable public data endpoint (API, M)
+Owner: backend. No schema change (quality M3/M-N4 constraints — sign-off + hysteresis state live in `AdminSettings` key `market_page_gates`).
+1. **Public endpoint** `GET /insights/market/public/:profession` (and `/:profession/:citySlug`): returns exactly the GatedValue payload (sampleSize, percentiles, demand level, methodVersion, computedAt, provenance.thresholds) + `{ indexable: boolean, citySlug? }`. Permissive CORS + `Cache-Control` with documented revalidate — this is simultaneously the D2.4 public data feed (Dataset `contentUrl` target) and the web page's data source. Guard-free like `market/preview`; no per-worker data (internal-workers controller stays out).
+2. **Gate service** `MarketPageGateService` (pure evaluation fn + persistence): input = latest N=2 monthly snapshot sampleSizes + sign-off entry; output = indexable | 404-eligible. Unit-tested as pure fn (threshold pass, hysteresis enter @30, exit after 2 consecutive <20, sign-off required for city pages only, ≥2-employer condition = OFF by default pending aggregation query feasibility).
+3. **Admin sign-off endpoints**: `GET/POST/DELETE /admin/market/gate-signoffs` on AdminSettings (`{profession, citySlug, signedOffBy, signedOffAt}`), reusing the referral-knob validation pattern + admin guard/roles.
+4. **Hysteresis job**: extend the existing daily snapshot cron tail with a monthly-rolling log entry per (profession, city) so the 2-consecutive-months rule has data.
+Acceptance: pure-fn tests cover enter/exit/missing-sign-off; endpoint contract test (no auth 200, payload shape, provenance fields present); admin CRUD test; gate state change logged.
+
+## T10 — /market web pages (web, M)
+Owner: frontend. Server components (T3 pattern — constants server-safe, clients only for CTAs).
+1. **`/market/[profession]`** (elektricien only at launch): editorial intro (T+E) + salary-range module (from T11 endpoint, gated display) + demand gauge + **provenance label** (window + sample size + method version) + Occupation JSON-LD (`estimatedSalary` from snapshot aggregates **+ `occupationLocation` NL** — quality's missing-field note) + Dataset JSON-LD (`distribution` → T11 endpoint) + BreadcrumbList + canonical-only alternates (Δ5 row 2: **no hreflang** — NL-market content) + worker register CTA + `/for-employers` link.
+2. **`/market/[profession]/[citySlug]`**: server gate check on render (T11 service via endpoint response) → `notFound()` when gate fails (404, not a noindex shell — Δ4 doctrine). Content: city data modules (province-fallback ladder display-only, "distinct-source check": city row must differ from province) + city-unique editorial block (sign-off prerequisite; ≥40% city-unique body per Δ4) + Place JSON-LD only if `Region.lat/lng` non-null (F-N1: import seed-geography coordinates or omit geo) + M6 bucketed counts ("20+") only.
+3. **`/market` hub index**: lists gate-passing (profession, city) pages server-side; noindex until ≥1 profession ships if empty.
+4. **Sitemap integration**: sitemap.ts reads gate-passing (profession, city) set from T11 endpoint and emits those URLs + hub.
+5. **Per-page specs**: dutch-content fills the Δ7 template (16 fields) for `/market/elektricien` + first city pages before build — the B1 owner-row ("wat verdient/uurloon → /market") is the enforcement point.
+Acceptance: gate-failing city URL returns 404 (not 200-noindex); page HTML contains provenance labels + Occupation JSON-LD; verify-script checks added (canonical, 404-on-gate-fail, JSON-LD presence); jest test for gate→notFound behavior.
+
+## T12 — Insights ↔ market cross-links (small, after T10)
+One-line addition to the insights article module: when `Article.profession`/`regionId` resolve, inject the "related market data" module linking to `/market/{profession}(/{city})`. Only links to gate-passing pages.
+
+## Sequencing & conditions
+T11 → T10 → T12. **Do NOT ship `/market/verpleegkundige` until the outstanding BIG/VOG/Wkkgz legal review closes (Q8).** Current supply reality means many city pages will stay 404 initially — per design (M2), template ships, pages follow data. Effort: T11 ≈ M (3–5 sessions), T10 ≈ M (3–5 + editorial content), T12 ≈ S.
