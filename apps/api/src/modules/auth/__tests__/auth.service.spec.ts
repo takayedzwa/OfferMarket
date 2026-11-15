@@ -6,6 +6,7 @@ import { PrismaService } from '../../../prisma/prisma.service';
 import { TrustService } from '../../trust/trust.service';
 import { MailService } from '../../mail/mail.service';
 import { ReferralsService } from '../../referrals/referrals.service';
+import { OpsAlertService } from '../../mail/ops-alert.service';
 
 /**
  * Mock PrismaService. `sendVerificationCode` uses the top-level `user` and
@@ -64,6 +65,9 @@ describe('AuthService', () => {
           reportSuspiciousActivity: jest.fn().mockResolvedValue(undefined),
         } },
         { provide: MailService, useValue: mailService },
+        // Concierge verification SLA (E10) — notifyNewEmployer hook, mocked;
+        // the service itself is covered by ops-alert.service.spec.ts.
+        { provide: OpsAlertService, useValue: { notifyNewEmployer: jest.fn().mockResolvedValue(undefined) } },
       ],
     }).compile();
 

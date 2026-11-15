@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { MailService } from './mail.service';
+import { OpsAlertService } from './ops-alert.service';
 import { EmailOutboxService } from './dispatcher/email-outbox.service';
 import { EmailDeliveryGate } from './dispatcher/email-delivery-gate';
 import { EmailDispatcher } from './dispatcher/email-dispatcher.service';
@@ -42,11 +43,12 @@ import { createTransport } from './transports/transport.factory';
       inject: [EMAIL_CONFIG_TOKEN],
     },
     MailService,
+    OpsAlertService,
     EmailOutboxService,
     EmailDeliveryGate,
     EmailDispatcher,
   ],
   controllers: [BrevoWebhookController],
-  exports: [MailService, EmailOutboxService, EmailDeliveryGate],
+  exports: [MailService, OpsAlertService, EmailOutboxService, EmailDeliveryGate],
 })
 export class MailModule {}

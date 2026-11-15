@@ -4,6 +4,7 @@ import { ERROR_CODES } from '../../i18n/error-codes';
 import { PrismaService } from '../../prisma/prisma.service';
 import { TrustService } from '../trust/trust.service';
 import { MailService } from '../mail/mail.service';
+import { OpsAlertService } from '../mail/ops-alert.service';
 import { ReferralsService } from '../referrals/referrals.service';
 import { isCommonPassword } from './password-blocklist';
 import * as bcrypt from 'bcrypt';
@@ -31,6 +32,7 @@ export class AuthService {
     private trustService: TrustService,
     private mailService: MailService,
     private referralsService: ReferralsService,
+    private opsAlertService: OpsAlertService,
   ) {}
 
   // ============================================================================
@@ -472,6 +474,20 @@ export class AuthService {
       // Send the email verification code AFTER the transaction commits (same
       // rationale as registerWorker — best-effort, never fails registration).
       await this.sendRegistrationVerificationEmail(result.user.id);
+
+      // CONCIERGE SLA (E10): alert ops that a new employer awaits verification.
+      // Best-effort and non-blocking: never fails registration; runs after the
+      // commit so we only alert for employers that actually exist (with their
+      // real generated tokens — no email content re-derivation issues).
+      this.opsAlertService
+        .notifyNewEmployer({
+          companyName: company.name,
+          kvkNumber: company.kvkNumber,
+          email,
+        })
+        .catch((err) => {
+          this.logger.warn(`Ops alert for new employer ${company.name} failed: ${err}`);
+        });
 
       return result;
     } catch (error: any) {
