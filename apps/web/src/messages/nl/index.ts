@@ -22,6 +22,8 @@ import adminDetail from "./admin-detail.json";
 import adminInsights from "./admin-insights.json";
 import referrals from "./referrals.json";
 import insights from "./insights.json";
+import pricing from "./pricing.json";
+import landing from "./landing.json";
 
 const messages = {
   common,
@@ -45,6 +47,8 @@ const messages = {
   conversations,
   enums,
   legal,
+  pricing,
+  landing,
 };
 
 export default messages;

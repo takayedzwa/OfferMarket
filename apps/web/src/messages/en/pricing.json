@@ -1,0 +1,54 @@
+{
+  "meta": {
+    "title": "Pricing — €499 per accepted introduction, nothing before",
+    "description": "You pay €499 only when a candidate accepts your offer. Compare: recruitment agencies charge 20-25% of annual salary with 6-12 week lead times."
+  },
+  "hero": {
+    "title": "One clear price",
+    "highlight": "€499",
+    "titleSuffix": "per accepted introduction",
+    "subtitle": "No subscription. No retainer. No fee for posting or searching. The employer pays €499 only when the candidate accepts — never before."
+  },
+  "included": {
+    "title": "What's included",
+    "item1": "Full access to verified electrician profiles with skills, certifications and availability",
+    "item2": "Structured offers with salary, hours and benefits stated up front",
+    "item3": "Direct conversations with candidates — no middleman, no mark-up",
+    "item4": "€0 for candidates, always — employers fund the marketplace"
+  },
+  "compare": {
+    "title": "How €499 compares",
+    "subtitle": "Verified benchmarks for hiring an electrician in the Netherlands (checked November 2025)",
+    "row1": {
+      "label": "Recruitment & search agencies",
+      "price": "20–25% of annual salary",
+      "note": "No cure no pay, plus 6–12 weeks pipeline before a placement"
+    },
+    "row2": {
+      "label": "ZZP mediation platforms",
+      "price": "9–10% of the hourly rate",
+      "note": "Charged on every hour worked, for as long as the contract runs"
+    },
+    "row3": {
+      "label": "Niche job boards",
+      "price": "€250–425 per posting",
+      "note": "Per 30–60 days per vacancy — whether or not anyone applies"
+    },
+    "row4": {
+      "label": "OfferMarket",
+      "price": "€499 per accepted introduction",
+      "note": "Charged only on acceptance — one number, no surcharge"
+    }
+  },
+  "guarantee": {
+    "title": "Why employers like this model",
+    "line1": "You see the candidate's real, verified profile before you commit a single euro",
+    "line2": "Your offer states salary, hours and benefits — candidates decide with the full picture",
+    "line3": "An anonymous candidate can block your company by name — competition happens on the offer, not the brand"
+  },
+  "cta": {
+    "primary": "Start hiring",
+    "secondary": "See how it works",
+    "candidateNote": "Are you an electrician? OfferMarket is free for you — employers pay."
+  }
+}

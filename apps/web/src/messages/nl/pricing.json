@@ -1,0 +1,54 @@
+{
+  "meta": {
+    "title": "Tarieven — €499 per geaccepteerde introductie, nooit eerder",
+    "description": "Je betaalt €499 pas als een kandidaat jouw aanbod accepteert. Ter vergelijking: werving- en selectiebureaus rekenen 20 á 25% van het jaarsalaris met 6-12 weken doorlooptijd."
+  },
+  "hero": {
+    "title": "Eén helder tarief",
+    "highlight": "€499",
+    "titleSuffix": "per geaccepteerde introductie",
+    "subtitle": "Geen abonnement. Geen retainer. Geen kosten voor zoeken of plaatsen. De werkgever betaalt €499 pas als de kandidaat ja zegt — nooit eerder."
+  },
+  "included": {
+    "title": "Wat je krijgt",
+    "item1": "Volledige toegang tot geverifieerde elektricienprofielen met vaardigheden, certificaten en beschikbaarheid",
+    "item2": "Gestructureerde voorstellen met salaris, uren en arbeidsvoorwaarden vooraf vermeld",
+    "item3": "Direct contact met kandidaten — geen tussenpersoon, geen opslag",
+    "item4": "€0 voor kandidaten, altijd — werkgevers dragen de marktplaats"
+  },
+  "compare": {
+    "title": "Hoe €499 zich verhoudt",
+    "subtitle": "Gecontroleerde benchmarks voor het aannemen van een elektricien (november 2025)",
+    "row1": {
+      "label": "Werving- & selectiebureaus",
+      "price": "20–25% van het jaarsalaris",
+      "note": "No cure no pay, plus 6–12 weken doorlooptijd tot plaatsing"
+    },
+    "row2": {
+      "label": "ZZP-bemiddelingsplatforms",
+      "price": "9–10% van het uurtarief",
+      "note": "Berekend op elk gewerkt uur, zolang het contract loopt"
+    },
+    "row3": {
+      "label": "Niche vacatureplatforms",
+      "price": "€250–425 per vacature",
+      "note": "Per 30–60 dagen per vacature — ook als niemand reageert"
+    },
+    "row4": {
+      "label": "OfferMarket",
+      "price": "€499 per geaccepteerde introductie",
+      "note": "Alleen bij acceptatie — één bedrag, geen toeslagen"
+    }
+  },
+  "guarantee": {
+    "title": "Waarom werkgevers dit model waarderen",
+    "line1": "Je ziet het echte, geverifieerde profiel van de kandidaat voordat je één euro uitgeeft",
+    "line2": "Je voorstel noemt salaris, uren en voorwaarden — de kandidaat beslist met het volledige beeld",
+    "line3": "Een anonieme kandidaat kan jouw bedrijf bij naam blokkeren — geconcurreerd wordt op het aanbod, niet op het merk"
+  },
+  "cta": {
+    "primary": "Begin met werven",
+    "secondary": "Zo werkt het",
+    "candidateNote": "Ben je elektricien? OfferMarket is gratis voor jou — werkgevers betalen."
+  }
+}
