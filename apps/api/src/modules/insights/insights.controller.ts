@@ -7,6 +7,7 @@ import { InsightsService } from './insights.service';
 import { InsightsStatsService } from './insights-stats.service';
 import { MarketProfessionService } from './market-profession.service';
 import { InsightsSnapshotService } from './insights-snapshot.service';
+import { MarketPageGateService } from './market-page-gate.service';
 import { parsePage, parseLimit } from '../../common/utils/pagination';
 import {
   CreateInsightFollowDto,
@@ -28,6 +29,7 @@ export class InsightsController {
     private readonly statsService: InsightsStatsService,
     private readonly professionService: MarketProfessionService,
     private readonly snapshotService: InsightsSnapshotService,
+    private readonly marketGateService: MarketPageGateService,
   ) {}
 
   @Get('articles')
@@ -61,6 +63,74 @@ export class InsightsController {
   @Get('market/preview')
   async marketPreview(@Query('profession') profession?: string) {
     return this.statsService.getMarketPreview(profession);
+  }
+
+  // ==========================================================================
+  // PUBLIC MARKET PAGE DATA (T11) — the /market/* page data source AND the
+  // stable public data feed (Dataset contentUrl target; URL_ARCHITECTURE Δ3d +
+  // AI_SEARCH_STRATEGY D2.4). Aggregate-only: reads the daily MarketSnapshot
+  // rows (already sample-gated, provenance-carrying) — never per-worker or
+  // per-offer data. Indexability gate: 30/20 with hysteresis (Q12/Δ4); city
+  // pages additionally require an editorial sign-off.
+  // ==========================================================================
+
+  /** Profession-level page data + indexability gate for /market/{profession}. */
+  @Get('market/public/:profession')
+  async marketPageProfession(@Param('profession') profession: string) {
+    return this.marketGateResponse(profession, null);
+  }
+
+  /** City-level page data + gate for /market/{profession}/{citySlug}. */
+  @Get('market/public/:profession/:citySlug')
+  async marketPageCity(
+    @Param('profession') profession: string,
+    @Param('citySlug') citySlug: string,
+  ) {
+    return this.marketGateResponse(profession, citySlug);
+  }
+
+  /**
+   * Assemble the gated public payload: gate verdict + the latest snapshot's
+   * aggregate blocks + provenance. Everything below `snapshot` originates
+   * from the snapshot service's gated aggregation (small cells suppressed).
+   */
+  private async marketGateResponse(profession: string, citySlug: string | null) {
+    const result = await this.marketGateService.evaluatePage(profession, citySlug);
+    const data = (result.snapshotData ?? {}) as {
+      salary?: unknown;
+      demand?: unknown;
+      skills?: unknown;
+      benefits?: unknown;
+      provenance?: unknown;
+    };
+    return {
+      profession: profession.toLowerCase(),
+      citySlug: citySlug ?? null,
+      indexable: result.indexable,
+      verdict: result.verdict,
+      gate: {
+        indexableMinSamples: 30,
+        exitMinSamples: 20,
+        hysteresisMonths: 2,
+        sampleSize: result.sampleSize,
+      },
+      region:
+        citySlug && result.snapshotData
+          ? await this.regionForCitySlug(citySlug)
+          : null,
+      snapshot: result.snapshotData
+        ? {
+            date: result.snapshotDate,
+            data,
+          }
+        : null,
+    };
+  }
+
+  private async regionForCitySlug(citySlug: string) {
+    const city = await this.marketGateService.findCityRegionForSlug(citySlug);
+    if (!city) return null;
+    return { id: city.id, name: city.name, nameEn: city.nameEn ?? null };
   }
 
   /** Personalized "Your Market" for workers. */

@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { MarketPageGateService } from '../../insights/market-page-gate.service';
 import { AdminService } from '../admin.service';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { NotificationEventType } from '../../../modules/notifications/notification.types';
@@ -43,6 +44,9 @@ describe('AdminService — createStaffUser', () => {
         AdminService,
         { provide: PrismaService, useValue: prisma },
         { provide: EventEmitter2, useValue: { emit: jest.fn() } },
+        // T11 gate sign-off dependency — mocked; the service itself is covered
+        // by insights/__tests__/market-page-gate.service.spec.ts.
+        { provide: MarketPageGateService, useValue: { listSignOffs: jest.fn(), addSignOff: jest.fn(), removeSignOff: jest.fn() } },
       ],
     }).compile();
     service = module.get<AdminService>(AdminService);
@@ -262,6 +266,7 @@ describe('AdminService — worker credential review', () => {
         AdminService,
         { provide: PrismaService, useValue: prisma },
         { provide: EventEmitter2, useValue: eventEmitter },
+        { provide: MarketPageGateService, useValue: { listSignOffs: jest.fn(), addSignOff: jest.fn(), removeSignOff: jest.fn() } },
       ],
     }).compile();
     service = module.get<AdminService>(AdminService);
