@@ -30,5 +30,8 @@
   "notFound": {
     "title": "Deze marktpagina bestaat (nog) niet",
     "text": "Marktpagina's gaan live zodra er genoeg geverifieerde offers zijn. Deze pagina is nog niet geactiveerd."
+  },
+  "related": {
+    "title": "Gerelateerde marktdata"
   }
 }

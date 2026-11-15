@@ -5,6 +5,7 @@ import { insightsApi, type InsightArticleDetail } from "@/lib/api";
 import { ogImages, twitterImages } from "@/lib/metadata";
 import { siteUrlForLocale } from "@/i18n/routing";
 import { buildArticleJsonLd, articleBreadcrumbJsonLd } from "@/lib/structured-data";
+import RelatedMarketData from "@/components/insights/RelatedMarketData";
 import ArticleView from "./ArticleView";
 
 // T8 — article TTFB: uncached per-request API fetch was the audit F12b
@@ -106,6 +107,9 @@ export default async function InsightArticlePage({
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }}
       />
+      {/* T12: "related market data" cross-link — renders only when the
+          article's profession maps to a gate-passing /market page. */}
+      <RelatedMarketData article={article} locale={locale} />
       <ArticleView article={article} />
     </>
   );

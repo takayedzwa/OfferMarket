@@ -30,5 +30,8 @@
   "notFound": {
     "title": "This market page doesn't exist (yet)",
     "text": "Market pages go live once enough verified offers exist. This page is not active yet."
+  },
+  "related": {
+    "title": "Related market data"
   }
 }
