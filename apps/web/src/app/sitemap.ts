@@ -23,6 +23,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${siteUrl}/for-workers`, changeFrequency: "weekly", priority: 0.8 },
     { url: `${siteUrl}/for-employers`, changeFrequency: "weekly", priority: 0.8 },
     { url: `${siteUrl}/market`, changeFrequency: "weekly", priority: 0.6 },
+    { url: `${siteUrl}/guide`, changeFrequency: "weekly", priority: 0.7 },
+    { url: `${siteUrl}/insights/developers`, changeFrequency: "monthly", priority: 0.5 },
     { url: `${siteUrl}/pricing`, changeFrequency: "monthly", priority: 0.7 },
     { url: `${siteUrl}/register`, changeFrequency: "monthly", priority: 0.7 },
     // Legal / DSA pages — indexable, low priority.

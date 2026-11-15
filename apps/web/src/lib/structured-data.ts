@@ -208,3 +208,21 @@ export function buildDatasetJsonLd(args: {
     ],
   };
 }
+
+/** DefinedTermSet for certification explainers (guide modules; AI-paraphrase targets). */
+export function buildDefinedTermSetJsonLd(
+  terms: Array<{ name: string; description: string }>,
+  setUrl: string,
+): JsonLd {
+  return {
+    "@context": "https://schema.org",
+    "@type": "DefinedTermSet",
+    name: "Vaktermen installatietechniek",
+    url: setUrl,
+    hasDefinedTerm: terms.map((t) => ({
+      "@type": "DefinedTerm",
+      name: t.name,
+      description: t.description,
+    })),
+  };
+}

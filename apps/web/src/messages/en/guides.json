@@ -1,0 +1,12 @@
+{
+  "hub": {
+    "eyebrow": "Guides",
+    "title": "Understanding the trade",
+    "subtitle": "Practical explainers for electricians and employers: routes into the trade, certifications and verification. Every claim here is only what can be verified — figures come from live market data once available."
+  },
+  "marketLink": {
+    "title": "Live market data",
+    "note": "Current earnings and demand, computed from real structured salary offers.",
+    "cta": "See the current figures"
+  }
+}

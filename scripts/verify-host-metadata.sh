@@ -39,7 +39,10 @@ fetch() { # $1=url $2=host(optional)
 
 fail=0
 check() { # $1=desc $2=html $3=regex (ERE, case-insensitive grep)
-  if printf '%s' "$2" | grep -qiE "$3"; then
+  # Here-string, not `printf | grep -q`: with pipefail, grep -q exiting early
+  # on a match kills the writer (SIGPIPE) and the pipeline reports failure on
+  # large pages — the exact bug that made big-page checks flaky.
+  if grep -qiE "$3" <<< "$2"; then
     echo "PASS  $1"
   else
     echo "FAIL  $1"
@@ -126,6 +129,19 @@ GATE_CODE=$(curl -s -o /dev/null -w "%{http_code}" -H "Host: ${EU_HOST:-offermar
 check "EU /market/elektricien is 404 while gate closed (Δ4 no-shell)" "$GATE_CODE" "^404$"
 GATE_C=$(curl -s -o /dev/null -w "%{http_code}" -H "Host: ${EU_HOST:-offermarket.eu}" "$EU_FETCH_URL/market/no-such-profession")
 check "EU /market/no-such-profession is 404" "$GATE_C" "^404$"
+
+# --- /guide family (AI-search content layer) --------------------------------
+EU_GUIDE=$(fetch "$EU_FETCH_URL/guide" "$EU_HOST")
+NL_GUIDE_HOE=$(fetch "$NL_FETCH_URL/guide/hoe-word-je-elektricien" "$NL_HOST")
+check "EU /guide hub emits self-canonical" "$EU_GUIDE" "<link rel=\"canonical\" href=\"${EN_T}/guide\""
+check "EU /guide hub lists 3 guides" "$EU_GUIDE" "guide/hoe-word-je-elektricien.*guide/elektricien-certificaten-uitleg"
+check "NL guide article emits self-canonical + hreflang x-default" "$NL_GUIDE_HOE" "hrefLang=\"x-default\" href=\"${EN_T}/guide/hoe-word-je-elektricien\""
+check "NL guide article renders h1 server-side" "$NL_GUIDE_HOE" "<h1"
+
+# --- /insights/developers docs page (AI data feed documentation) -------------
+EU_DEV=$(fetch "$EU_FETCH_URL/insights/developers" "$EU_HOST")
+check "EU /insights/developers emits self-canonical" "$EU_DEV" "<link rel=\"canonical\" href=\"${EN_T}/insights/developers\""
+check "EU developers page documents the market/public endpoint" "$EU_DEV" "insights/market/public"
 
 if [ "$fail" = "1" ]; then
   echo "----------"
