@@ -179,7 +179,7 @@ export const GUIDES: GuideDefinition[] = [
     },
   },
   {
-    slug: "gekwalificeerde-elektricien-verifiëren",
+    slug: "gekwalificeerde-elektricien-verificeren",
     title: {
       nl: "Een gekwalificeerde elektricien verifiëren — checklist",
       en: "How to verify a qualified electrician — a checklist",
