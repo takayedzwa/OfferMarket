@@ -4,7 +4,8 @@ import { NextIntlClientProvider } from "next-intl";
 import { getMessages, getTranslations, setRequestLocale } from "next-intl/server";
 import { hasLocale } from "next-intl";
 import { notFound } from "next/navigation";
-import { routing } from "@/i18n/routing";
+import { routing, siteUrlForLocale } from "@/i18n/routing";
+import { buildOrganizationJsonLd, buildWebSiteJsonLd } from "@/lib/structured-data";
 import "../globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
 import CookieConsentBanner from "@/components/consent/CookieConsentBanner";
@@ -36,6 +37,13 @@ export async function generateMetadata({
   return {
     title: t("title"),
     description: t("description"),
+    // Per-domain URL base (T1/T2): locale authority maps to its domain
+    // statically — keeps per-locale prerendering intact (no request-time API).
+    metadataBase: new URL(siteUrlForLocale(locale as "en" | "nl")),
+    // og:image / twitter:image themselves are injected site-wide by the
+    // opengraph-image file convention (see app/opengraph-image.tsx).
+    openGraph: { siteName: "OfferMarket" },
+    twitter: { card: "summary_large_image" },
   };
 }
 
@@ -65,6 +73,21 @@ export default async function LocaleLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-50`}
       >
+        {/* Site-wide structured data (T6): Organization + WebSite. No
+            SearchAction (retired rich result), no Persona/JobPosting — the
+            rationale lives in lib/structured-data.ts. Locale-anchored URLs. */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(buildOrganizationJsonLd(locale as "en" | "nl")),
+          }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(buildWebSiteJsonLd(locale as "en" | "nl")),
+          }}
+        />
         <NextIntlClientProvider locale={locale} messages={messages}>
           <AuthProvider>
             <PostHogProvider>

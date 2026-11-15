@@ -1,74 +1,42 @@
-"use client";
-
-import { useEffect, useState } from "react";
-import { useTranslations } from "next-intl";
+import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
-import { useAuth } from "@/contexts/AuthContext";
-import {
-  insightsApi,
-  type InsightArticleCard,
-  type WorkerMarketOverview,
-  type EmployerMarketView,
-} from "@/lib/api";
-import { useInsightsTrackView, trackInsightEvent } from "@/components/insights/useInsightsTracking";
+import { insightsApi, type InsightArticleCard } from "@/lib/api";
 import CategoryChips from "@/components/insights/CategoryChips";
 import LatestInsightsGrid from "@/components/insights/LatestInsightsGrid";
-import PersonalMarketOverview from "@/components/insights/PersonalMarketOverview";
-import EmployerIntelligencePanel from "@/components/insights/EmployerIntelligencePanel";
+import { AnonymousCta, InsightsViewTracker, PersonalPanels } from "@/components/insights/InsightsClient";
+import { buildSharedAlternates } from "@/lib/metadata";
 
 /**
- * Insights homepage: the personalized market overview for signed-in workers /
- * employers, the data-class legend (the product's credibility anchor), the
- * five category chips and the latest published insights. Anonymous visitors
- * get the hero + categories + latest grid and a registration CTA — the
- * personalized panel is the reason to join.
+ * Insights homepage (SERVER-RENDERED, T3): hero, the data-class legend (the
+ * product's credibility anchor), the five category chips and the latest
+ * published insights are present in the initial HTML — this page is in the
+ * sitemap, so crawlers get the real article links. The personalized market
+ * overview / employer intelligence panels, the anonymous CTA and view
+ * tracking remain client-side (see InsightsClient.tsx).
  */
-export default function InsightsHomePage() {
-  const t = useTranslations("insights");
-  const { user } = useAuth();
-  useInsightsTrackView();
 
-  const [articles, setArticles] = useState<InsightArticleCard[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [workerOverview, setWorkerOverview] = useState<WorkerMarketOverview | null>(null);
-  const [employerView, setEmployerView] = useState<EmployerMarketView | null>(null);
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  return {
+    alternates: buildSharedAlternates(locale as "en" | "nl", "/insights"),
+  };
+}
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await insightsApi.listArticles({ limit: 6 });
-        if (!cancelled) setArticles(res.data.items ?? []);
-      } catch {
-        // Empty grid renders the honest "nothing published yet" state.
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+export default async function InsightsHomePage() {
+  const t = await getTranslations("insights");
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        if (user?.role === "WORKER") {
-          const res = await insightsApi.workerMarketOverview();
-          if (!cancelled) setWorkerOverview(res.data);
-        } else if (user?.role === "EMPLOYER") {
-          const res = await insightsApi.employerMarketView();
-          if (!cancelled) setEmployerView(res.data);
-        }
-      } catch {
-        // No profile / insufficient permissions — the panel simply stays hidden.
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [user?.role]);
+  let articles: InsightArticleCard[] = [];
+  try {
+    const res = await insightsApi.listArticles({ limit: 6 });
+    articles = res.data.items ?? [];
+  } catch {
+    // Empty grid renders the honest "nothing published yet" state.
+  }
 
   return (
     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -92,51 +60,21 @@ export default function InsightsHomePage() {
         </div>
       </section>
 
-      {/* Personalized market overview — workers */}
-      {workerOverview && (
-        <section className="mb-10">
-          <PersonalMarketOverview overview={workerOverview} />
-        </section>
-      )}
+      {/* Client-only view tracking (no SSR output) */}
+      <InsightsViewTracker />
 
-      {/* Personalized intelligence — employers */}
-      {employerView && (
-        <section className="mb-10">
-          <EmployerIntelligencePanel view={employerView} />
-        </section>
-      )}
+      {/* Personalized market overview / employer intelligence (browser only) */}
+      <PersonalPanels />
 
-      {/* Anonymous CTA */}
-      {!user && (
-        <section className="mb-10 rounded-xl border border-blue-200 bg-blue-50 p-6 text-center">
-          <h2 className="text-lg font-bold text-gray-900">{t("hero.anonymousCta")}</h2>
-          <p className="mt-1 text-sm text-gray-600">{t("hero.anonymousNote")}</p>
-          <div className="mt-4 flex justify-center gap-3 flex-wrap">
-            <Link
-              href="/register?role=WORKER"
-              onClick={() => trackInsightEvent("REGISTER_CLICK")}
-              className="bg-blue-600 text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
-            >
-              {t("cta.registerWorker")}
-            </Link>
-            <Link
-              href="/register?role=EMPLOYER"
-              onClick={() => trackInsightEvent("REGISTER_CLICK")}
-              className="bg-white border border-blue-300 text-blue-700 px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-blue-100 transition-colors"
-            >
-              {t("cta.registerEmployer")}
-            </Link>
-          </div>
-          <p className="mt-3 text-xs text-gray-500">{t("cta.clickNote")}</p>
-        </section>
-      )}
+      {/* Anonymous CTA (client-gated on auth state) */}
+      <AnonymousCta />
 
       {/* Categories */}
       <section className="mb-10">
         <CategoryChips />
       </section>
 
-      {/* Latest insights */}
+      {/* Latest insights — server-fetched: article links are in the HTML */}
       <section>
         <div className="flex items-center justify-between gap-4 mb-4">
           <div>
@@ -147,15 +85,7 @@ export default function InsightsHomePage() {
             {t("latest.viewAll")} →
           </Link>
         </div>
-        {loading ? (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {[0, 1, 2].map((i) => (
-              <div key={i} className="h-40 rounded-xl bg-gray-100 animate-pulse" />
-            ))}
-          </div>
-        ) : (
-          <LatestInsightsGrid articles={articles} />
-        )}
+        <LatestInsightsGrid articles={articles} />
       </section>
     </main>
   );

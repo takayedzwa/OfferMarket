@@ -1,82 +1,96 @@
-"use client";
-
-import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
-import { useTranslations } from "next-intl";
+import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { insightsApi, type InsightArticleCard } from "@/lib/api";
-import { useInsightsTrackView } from "@/components/insights/useInsightsTracking";
+import { INSIGHT_CATEGORIES, type InsightCategory } from "@/components/insights/categories";
 import LatestInsightsGrid from "@/components/insights/LatestInsightsGrid";
-import CategoryChips, { INSIGHT_CATEGORIES } from "@/components/insights/CategoryChips";
+import CategoryChips from "@/components/insights/CategoryChips";
+import { InsightsViewTracker } from "@/components/insights/InsightsClient";
+import { buildSharedAlternates } from "@/lib/metadata";
 
 /**
- * Category browse page: /insights/category/salary (plus demand, employer,
- * industry, career — and `all` for the full archive). Clean URLs, no query
- * params, so each category is separately indexable.
+ * Category browse page (SERVER-RENDERED, T3): /insights/category/salary (plus
+ * demand, employer, industry, career — and `all` for the full archive). Clean
+ * URLs, no query params, so each category is separately indexable. The
+ * article grid is server-fetched: links are in the initial HTML.
+ *
+ * An unknown category falls back to the full archive and canonicalises to the
+ * /all URL (same content, one canonical).
  */
-export default function InsightCategoryPage() {
-  const params = useParams<{ category: string }>();
-  const raw = (params.category ?? "all").toUpperCase();
-  const category = INSIGHT_CATEGORIES.includes(raw as (typeof INSIGHT_CATEGORIES)[number]) ? raw : null;
-  const isAll = category === null;
+type CategoryPageProps = {
+  params: Promise<{ locale: string; category: string }>;
+};
 
-  const t = useTranslations("insights");
-  useInsightsTrackView({ category: isAll ? undefined : category! });
+function resolveCategory(rawCategory: string | undefined | null): "ALL" | InsightCategory {
+  const raw = (rawCategory ?? "all").toUpperCase();
+  return INSIGHT_CATEGORIES.includes(raw as InsightCategory)
+    ? (raw as InsightCategory)
+    : "ALL";
+}
 
-  const [articles, setArticles] = useState<InsightArticleCard[]>([]);
-  const [loading, setLoading] = useState(true);
+export async function generateMetadata({
+  params,
+}: CategoryPageProps): Promise<Metadata> {
+  const { locale, category } = await params;
+  // Unknown categories render the archive — canonicalise to the /all URL.
+  const raw = (category ?? "all").toUpperCase();
+  const known = INSIGHT_CATEGORIES.includes(raw as InsightCategory);
+  const path = known ? `/insights/category/${lower(category)}` : "/insights/category/all";
+  return { alternates: buildSharedAlternates(locale as "en" | "nl", path) };
+}
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      setLoading(true);
-      try {
-        const res = await insightsApi.listArticles({
-          limit: 24,
-          category: isAll ? undefined : category!,
-        });
-        setArticles(res.data.items ?? []);
-      } catch {
-        setArticles([]);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [category, isAll]);
+function lower(v: string) {
+  return v.toLowerCase();
+}
+
+export default async function InsightCategoryPage({ params }: CategoryPageProps) {
+  const { locale, category } = await params;
+  const resolved = resolveCategory(category);
+  const isAll = resolved === "ALL";
+
+  const t = await getTranslations({ locale, namespace: "insights" });
+
+  let articles: InsightArticleCard[] = [];
+  try {
+    const res = await insightsApi.listArticles({
+      limit: 24,
+      category: isAll ? undefined : (resolved as InsightCategory),
+    });
+    articles = res.data.items ?? [];
+  } catch {
+    // Empty grid renders the honest "nothing published yet" state.
+  }
 
   return (
     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <InsightsViewTracker category={isAll ? undefined : resolved} />
+
       <nav className="mb-6 text-sm">
         <Link href="/insights" className="text-blue-600 hover:text-blue-700">
           Insights
         </Link>
         <span className="mx-2 text-gray-400">/</span>
-        <span className="text-gray-600">{isAll ? t("latest.title") : t(`category.${category! as "SALARY"}`)}</span>
+        <span className="text-gray-600">
+          {isAll ? t("latest.title") : t(`category.${resolved as "SALARY"}`)}
+        </span>
       </nav>
 
       <header className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900">
-          {isAll ? t("latest.title") : t(`category.${category! as "SALARY"}`)}
+          {isAll ? t("latest.title") : t(`category.${resolved as "SALARY"}`)}
         </h1>
-        {!isAll && <p className="mt-2 max-w-2xl text-gray-600">{t(`category.${category! as "SALARY"}_DESC`)}</p>}
+        {!isAll && (
+          <p className="mt-2 max-w-2xl text-gray-600">
+            {t(`category.${resolved as "SALARY"}_DESC`)}
+          </p>
+        )}
       </header>
 
       <section className="mb-8">
         <CategoryChips />
       </section>
 
-      {loading ? (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {[0, 1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="h-40 rounded-xl bg-gray-100 animate-pulse" />
-          ))}
-        </div>
-      ) : (
-        <LatestInsightsGrid articles={articles} />
-      )}
+      <LatestInsightsGrid articles={articles} />
     </main>
   );
 }

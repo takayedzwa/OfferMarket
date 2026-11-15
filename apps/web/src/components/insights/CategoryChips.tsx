@@ -2,13 +2,18 @@
 
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
+import { INSIGHT_CATEGORIES } from "./categories";
 
 /**
  * The five content categories as browse chips + the legend sentence that
  * anchors the data-class promise ("Every number on this page carries its data
  * class"). Used on the Insights homepage and category pages.
+ *
+ * The category list itself has moved to ./categories (server-safe). It is
+ * re-exported here for client-side/test consumers only — server components
+ * must import from ./categories directly.
  */
-export const INSIGHT_CATEGORIES = ["SALARY", "DEMAND", "EMPLOYER", "INDUSTRY", "CAREER"] as const;
+export { INSIGHT_CATEGORIES };
 
 export default function CategoryChips() {
   const t = useTranslations("insights");

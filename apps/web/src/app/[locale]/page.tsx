@@ -1,7 +1,45 @@
+import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
+import { siteUrlForLocale } from "@/i18n/routing";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { buildSharedAlternates, ogImages, twitterImages } from "@/lib/metadata";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "common.site" });
+  // Title/description inherit from the [locale] layout (brand strings);
+  // this page adds per-domain canonical/hreflang (T2) and full OG/Twitter
+  // tags (T5: og:image itself comes from the opengraph-image convention).
+  const title = t("title");
+  const description = t("description");
+  return {
+    title,
+    description,
+    alternates: buildSharedAlternates(locale as "en" | "nl", "/"),
+    openGraph: {
+      siteName: "OfferMarket",
+      title,
+      description,
+      url: siteUrlForLocale(locale as "en" | "nl", "/"),
+      locale: locale === "nl" ? "nl_NL" : "en_GB",
+      // Page-level openGraph replaces the convention-injected object —
+      // include the /opengraph-image explicitly (T5).
+      images: ogImages(),
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: twitterImages(),
+    },
+  };
+}
 
 export default async function Home() {
   const t = await getTranslations("common.home");

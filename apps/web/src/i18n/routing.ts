@@ -33,10 +33,18 @@ export const routing = defineRouting({
   localeDetection: false,
 });
 
-// Build a full URL for `locale` on its canonical domain, preserving the current
-// path. Used by LanguageSwitcher to switch domains. No localized pathname
-// mappings exist today, so the path is passed through unchanged.
+// Build a full URL for `locale` on its canonical domain, preserving the
+// current path. Used by LanguageSwitcher to switch domains. No localized
+// pathname mappings exist today, so the path is passed through unchanged.
 export function localeUrl(locale: AppLocale, pathname: string): string {
   const proto = isDev ? 'http' : 'https';
   return `${proto}://${DOMAIN_FOR_LOCALE[locale]}${pathname}`;
+}
+
+// Canonical site URL of a locale's domain for a given path. Used by metadata
+// (canonical/hreflang) so that per-domain URLs are derived statically from the
+// locale param — no request-time API, preserving per-locale prerendering.
+export function siteUrlForLocale(locale: AppLocale, path: string = '/'): string {
+  const clean = path.startsWith('/') ? path : `/${path}`;
+  return localeUrl(locale, clean);
 }
