@@ -24,6 +24,7 @@ import referrals from "./referrals.json";
 import insights from "./insights.json";
 import pricing from "./pricing.json";
 import landing from "./landing.json";
+import market from "./market.json";
 
 const messages = {
   common,
@@ -49,6 +50,7 @@ const messages = {
   legal,
   pricing,
   landing,
+  market,
 };
 
 export default messages;

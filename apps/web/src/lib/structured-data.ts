@@ -128,3 +128,83 @@ function slug_lower(categoryName: string): string {
   // (e.g. "salary"); be forgiving with any upper-cased display value.
   return categoryName.toLowerCase();
 }
+
+// ============================================================================
+// /market page builders (T10) — per market-elektricien-page-spec.md
+// ============================================================================
+
+export interface SalaryGatedPayload {
+  available?: boolean;
+  reason?: string;
+  value?: {
+    p25?: number;
+    p50?: number;
+    p75?: number;
+    currency?: string;
+  };
+  sampleSize?: number;
+}
+
+/**
+ * Occupation node for a /market/{profession} page. Google's semantic
+ * requirements include `occupationLocation` (quality re-review's missing-field
+ * note). estimatedSalary is included ONLY when the snapshot's salary gate
+ * allows it (real offer-derived aggregates; never invented).
+ */
+export function buildOccupationJsonLd(args: {
+  professionName: string;
+  occupationalCategory?: string;
+  salary: SalaryGatedPayload;
+  pageUrl: string;
+}): JsonLd {
+  const node: JsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Occupation",
+    name: args.professionName,
+    occupationLocation: [{ "@type": "Country", name: "Nederland" }],
+    url: args.pageUrl,
+  };
+  if (args.professionName) node.occupationalCategory = args.occupationalCategory ?? args.professionName;
+
+  if (args.salary.available && args.salary.value?.p50) {
+    const v = args.salary.value;
+    const distribution = {
+      "@type": "MonetaryAmountDistribution",
+      currency: v.currency ?? "EUR",
+      median: v.p50,
+      ...(v.p25 ? { p25: v.p25 } : {}),
+      ...(v.p75 ? { p75: v.p75 } : {}),
+    };
+    node.estimatedSalary = [distribution];
+  }
+  return node;
+}
+
+/**
+ * Dataset node describing the public market-data feed. `contentUrl` points at
+ * the T11 public endpoint — the stable, permissively-fetchable answer object
+ * AI_SEARCH_STRATEGY D2.4 specifies (Google Dataset Search surface).
+ */
+export function buildDatasetJsonLd(args: {
+  datasetName: string;
+  description: string;
+  endpointUrl: string;
+  spatialCoverage?: string;
+}): JsonLd {
+  return {
+    "@context": "https://schema.org",
+    "@type": "Dataset",
+    name: args.datasetName,
+    description: args.description,
+    creator: { "@type": "Organization", name: SITE_NAME },
+    isAccessibleForFree: true,
+    spatialCoverage: args.spatialCoverage ?? "Nederland",
+    distribution: [
+      {
+        "@type": "DataDownload",
+        encodingFormat: "application/json",
+        contentUrl: args.endpointUrl,
+      },
+    ],
+  };
+}

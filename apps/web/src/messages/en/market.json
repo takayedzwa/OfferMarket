@@ -1,0 +1,34 @@
+{
+  "hero": {
+    "eyebrow": "Market data",
+    "title": "What does an electrician earn?",
+    "subtitle": "Earnings and demand computed from real structured salary offers on the marketplace — with period and sample size, never estimated figures."
+  },
+  "definition": {
+    "title": "What does an electrician do?",
+    "text": "An electrician installs, maintains and repairs electrical installations — from homes and offices to industrial systems and charging stations. NEN 1010/3140 apply, and safety certifications such as VCA are standard requirements."
+  },
+  "modules": {
+    "salaryTitle": "Earnings (from real offers)",
+    "demandTitle": "Demand for electricians",
+    "p25": "Lower quarter (p25)",
+    "p50": "Median (p50)",
+    "p75": "Top quarter (p75)",
+    "noData": "There are (not yet) enough verified offers to show a trustworthy figure. Once the threshold is met, median earnings appear here with their period and sample size.",
+    "provenance": "Period: {window}. Sample: {samples} real offers. Method: {method}."
+  },
+  "cta": {
+    "workerTitle": "Receive offers with salary stated up front",
+    "workerNote": "€0 for tradespeople — employers fund the marketplace.",
+    "primary": "Create your anonymous profile",
+    "employerLink": "An employer? See how to find electricians →"
+  },
+  "empty": {
+    "title": "No market pages live yet",
+    "text": "A market page only goes live once there are enough real offers to show trustworthy figures. That is how every number here stays traceable."
+  },
+  "notFound": {
+    "title": "This market page doesn't exist (yet)",
+    "text": "Market pages go live once enough verified offers exist. This page is not active yet."
+  }
+}

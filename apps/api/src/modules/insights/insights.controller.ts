@@ -74,6 +74,12 @@ export class InsightsController {
   // pages additionally require an editorial sign-off.
   // ==========================================================================
 
+  /** Indexable (profession, city) slugs for the /market hub + sitemap. */
+  @Get('market/public/indexable')
+  async marketPublicIndexable() {
+    return this.marketGateService.listIndexable();
+  }
+
   /** Profession-level page data + indexability gate for /market/{profession}. */
   @Get('market/public/:profession')
   async marketPageProfession(@Param('profession') profession: string) {

@@ -982,6 +982,29 @@ export interface InsightFollow {
   notifyEmail: boolean;
 }
 
+export interface MarketPublicPagePayload {
+  profession: string;
+  citySlug: string | null;
+  indexable: boolean;
+  verdict: string;
+  gate: { indexableMinSamples: number; exitMinSamples: number; hysteresisMonths: number; sampleSize: number | null };
+  region: { id: string; name: string; nameEn?: string | null } | null;
+  snapshot: {
+    date: string;
+    data: {
+      salary?: { available?: boolean; sampleSize?: number; value?: { p25?: number; p50?: number; p75?: number; currency?: string } };
+      demand?: { available?: boolean; sampleSize?: number; value?: { offers?: number; employers?: number } };
+      provenance?: { windowDays?: number; computedAt?: string; methodVersion?: string };
+      [key: string]: unknown;
+    } | null;
+  };
+}
+
+export interface IndexableMarketPage {
+  profession: string;
+  citySlug: string | null;
+}
+
 export const insightsApi = {
   // --- public reads ---
   listArticles: (params?: { page?: number; limit?: number; category?: string; profession?: string; regionId?: string }) =>
@@ -989,6 +1012,11 @@ export const insightsApi = {
   getArticle: (slug: string) => api.get(`/insights/articles/${slug}`),
   getCategories: () => api.get('/insights/categories'),
   marketPreview: (profession?: string) => api.get('/insights/market/preview', { params: { profession } }),
+
+  // --- public /market page data + gate (T11 endpoints) ---
+  marketPublicPage: (profession: string, citySlug?: string) =>
+    api.get(`/insights/market/public/${profession}${citySlug ? `/${citySlug}` : ''}`),
+  marketPublicIndexable: () => api.get('/insights/market/public/indexable'),
 
   // --- personalized market intelligence ---
   workerMarketOverview: () => api.get<WorkerMarketOverview>('/insights/market/overview'),

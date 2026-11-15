@@ -32,6 +32,19 @@ export function buildSharedAlternates(
   };
 }
 
+/**
+ * Self-canonical only (Δ5 row 2) for NL-market content families (/market/*):
+ * these pages exist only in the NL market at launch — no EN twin may be
+ * manufactured just for hreflang, and emitting en↔nl pairs on a single-locale
+ * content set is mis-signalling (audit M4).
+ */
+export function buildSelfCanonical(
+  locale: AppLocale,
+  path: string,
+): NonNullable<Metadata["alternates"]> {
+  return { canonical: siteUrlForLocale(locale, path) };
+}
+
 // ============================================================================
 // OG/Twitter image defaults (T5)
 // ----------------------------------------------------------------------------

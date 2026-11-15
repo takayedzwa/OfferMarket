@@ -1,0 +1,34 @@
+{
+  "hero": {
+    "eyebrow": "Marktdata",
+    "title": "Wat verdient een elektricien?",
+    "subtitle": "Verdiensten en vraag, berekend uit echte gestructureerde salarisoffers op de marktplaats — met periode en sample size, nooit geschatte cijfers."
+  },
+  "definition": {
+    "title": "Wat doet een elektricien?",
+    "text": "Een elektricien installeert, onderhoudt en repareert elektrische installaties — van woningen en kantoren tot industriële systemen en laadpalen. Werk gebeurt volgens NEN 1010/3140 en veiligheidscertificaten zoals VCA zijn standaard vereist."
+  },
+  "modules": {
+    "salaryTitle": "Verdiensten (uit echte offers)",
+    "demandTitle": "Vraag naar elektriciens",
+    "p25": "Begripvolle onderkant (p25)",
+    "p50": "Middelste (p50)",
+    "p75": "Verdienen bovenkant (p75)",
+    "noData": "Er zijn (nog) niet genoeg geverifieerde offers om een betrouwbaar cijfer te tonen. Zodra de drempel is gehaald, verschijnen hier mediane verdiensten met hun periode en sample size.",
+    "provenance": "Periode: {window}. Sample: {samples} echte offers. Methode: {method}."
+  },
+  "cta": {
+    "workerTitle": "Ontvang boden met salaris vooraf",
+    "workerNote": "€0 voor vakmensen — werkgevers dragen de marktplaats.",
+    "primary": "Maak je anonieme profiel",
+    "employerLink": "Werkgever? Bekijk hoe je elektriciens vindt →"
+  },
+  "empty": {
+    "title": "Nog geen marktpagina's actief",
+    "text": "Een marktpagina verschijnt pas zodra er genoeg echte offers zijn om betrouwbare cijfers te tonen. Zo houden we elk getal hier traceerbaar."
+  },
+  "notFound": {
+    "title": "Deze marktpagina bestaat (nog) niet",
+    "text": "Marktpagina's gaan live zodra er genoeg geverifieerde offers zijn. Deze pagina is nog niet geactiveerd."
+  }
+}

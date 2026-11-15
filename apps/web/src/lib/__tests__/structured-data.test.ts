@@ -88,3 +88,41 @@ describe('structured data builders', () => {
     ]);
   });
 });
+
+// T10 — /market builders
+import { buildOccupationJsonLd, buildDatasetJsonLd } from '../structured-data';
+
+describe('/market structured-data builders', () => {
+  it('Occupation: includes occupationLocation (re-review required field) + gated estimatedSalary', () => {
+    const withSalary = buildOccupationJsonLd({
+      professionName: 'Elektricien',
+      salary: { available: true, sampleSize: 42, value: { p25: 20, p50: 26, p75: 32, currency: 'EUR' } },
+      pageUrl: 'https://offermarket.nl/market/elektricien',
+    });
+    expect(withSalary['@type']).toBe('Occupation');
+    expect(withSalary.occupationLocation).toEqual([{ "@type": "Country", name: "Nederland" }]);
+    expect(withSalary.estimatedSalary).toEqual([{ "@type": "MonetaryAmountDistribution", currency: 'EUR', median: 26, p25: 20, p75: 32 }]);
+    expect(withSalary.url).toBe('https://offermarket.nl/market/elektricien');
+
+    const withoutSalary = buildOccupationJsonLd({
+      professionName: 'Elektricien',
+      salary: { available: false, reason: 'INSUFFICIENT_DATA' },
+      pageUrl: 'https://offermarket.nl/market/elektricien',
+    });
+    expect(withoutSalary.estimatedSalary).toBeUndefined();
+  });
+
+  it('Dataset: creator OfferMarket, free access, distribution → endpoint contentUrl', () => {
+    const ds = buildDatasetJsonLd({
+      datasetName: 'OfferMarket marktdataset elektricien',
+      description: 'Gated marktcijfers.',
+      endpointUrl: 'https://api.offermarket.eu/api/v1/insights/market/public/elektricien',
+    }) as Record<string, unknown>;
+    expect(ds['@type']).toBe('Dataset');
+    expect((ds.creator as Record<string, unknown>).name).toBe('OfferMarket');
+    expect(ds.isAccessibleForFree).toBe(true);
+    const dist = (ds.distribution as Array<Record<string, unknown>>)[0];
+    expect(dist['@type']).toBe('DataDownload');
+    expect(dist.contentUrl).toContain('/insights/market/public/elektricien');
+  });
+});

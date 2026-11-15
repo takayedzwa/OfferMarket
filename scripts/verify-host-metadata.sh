@@ -48,6 +48,13 @@ check() { # $1=desc $2=html $3=regex (ERE, case-insensitive grep)
   fi
 }
 
+# Guard: fail fast (exit 2) when the target server is unreachable, so a down
+# dev server can never read as "N FAILs" masquerading as contract regressions.
+if ! curl -fsS -o /dev/null --max-time 10 "$EU_FETCH_URL/robots.txt"; then
+  echo "SKIP  server unreachable at $EU_FETCH_URL — start it or use PROD=1"
+  exit 2
+fi
+
 # --- robots.txt / sitemap.xml per host (T1/T4 acceptance; prod URLs) --------
 EU_ROBOTS=$(fetch "$EU_FETCH_URL/robots.txt" "$EU_HOST")
 NL_ROBOTS=$(fetch "$NL_FETCH_URL/robots.txt" "$NL_HOST")
@@ -109,6 +116,16 @@ check "EU /for-employers emits self-canonical" "$EU_FE" "<link rel=\"canonical\"
 check "EU /for-employers states €499-on-acceptance" "$EU_FE" "€499|&#x20AC;499|499"
 check "NL /for-employers emits self-canonical" "$NL_FE" "<link rel=\"canonical\" href=\"${NL_T}/for-employers\""
 check "sitemap includes both landings (EU)" "$EU_SITEMAP" "offermarket\.eu/for-employers<"
+
+# --- /market family (T10) — gate-driven routes --------------------------------
+EU_MARKET=$(fetch "$EU_FETCH_URL/market" "$EU_HOST")
+check "EU /market hub renders" "$EU_MARKET" "<h1"
+check "EU /market hub emits self-canonical" "$EU_MARKET" "<link rel=\"canonical\" href=\"${EN_T}/market\""
+# Gate-closed page (or unknown profession) must 404 — the Δ4 no-shell doctrine.
+GATE_CODE=$(curl -s -o /dev/null -w "%{http_code}" -H "Host: ${EU_HOST:-offermarket.eu}" "$EU_FETCH_URL/market/elektricien")
+check "EU /market/elektricien is 404 while gate closed (Δ4 no-shell)" "$GATE_CODE" "^404$"
+GATE_C=$(curl -s -o /dev/null -w "%{http_code}" -H "Host: ${EU_HOST:-offermarket.eu}" "$EU_FETCH_URL/market/no-such-profession")
+check "EU /market/no-such-profession is 404" "$GATE_C" "^404$"
 
 if [ "$fail" = "1" ]; then
   echo "----------"

@@ -22,6 +22,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${siteUrl}/insights`, changeFrequency: "daily", priority: 0.9, lastModified: new Date() },
     { url: `${siteUrl}/for-workers`, changeFrequency: "weekly", priority: 0.8 },
     { url: `${siteUrl}/for-employers`, changeFrequency: "weekly", priority: 0.8 },
+    { url: `${siteUrl}/market`, changeFrequency: "weekly", priority: 0.6 },
     { url: `${siteUrl}/pricing`, changeFrequency: "monthly", priority: 0.7 },
     { url: `${siteUrl}/register`, changeFrequency: "monthly", priority: 0.7 },
     // Legal / DSA pages — indexable, low priority.
@@ -42,6 +43,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   try {
     const res = await insightsApi.listArticles({ limit: 100 });
     const articles: Array<{ slug: string; lastUpdatedAt?: string }> = res.data.items ?? [];
+
+    // Gate-passing /market pages (T10/T11): only (profession, city) pairs the
+    // API's gate marks indexable — hub is included above (noindex'd by the
+    // page itself while empty).
+    let marketPages: Array<{ profession: string; citySlug: string | null }> = [];
+    try {
+      const idx = await insightsApi.marketPublicIndexable();
+      marketPages = (idx.data ?? []) as Array<{ profession: string; citySlug: string | null }>;
+    } catch {
+      // Indexable-list failure must not drop article URLs from the sitemap.
+    }
+
     return [
       ...staticRoutes,
       ...articles.map((article) => ({
@@ -49,6 +62,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         lastModified: article.lastUpdatedAt ? new Date(article.lastUpdatedAt) : undefined,
         changeFrequency: "weekly" as const,
         priority: 0.8,
+      })),
+      ...marketPages.map((p) => ({
+        url: `${siteUrl}/market/${p.profession}${p.citySlug ? `/${p.citySlug}` : ""}`,
+        changeFrequency: "weekly" as const,
+        priority: p.citySlug ? 0.6 : 0.7,
       })),
     ];
   } catch (error) {
