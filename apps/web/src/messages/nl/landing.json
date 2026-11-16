@@ -1,0 +1,95 @@
+{
+  "forWorkers": {
+    "meta": {
+      "title": "Vacatureaanbiedingen voor elektriciens — werkgevers komen naar jou",
+      "description": "Maak anoniem je profiel en laat werkgevers met een concreet salaris op je aanbieden. €0 voor vakmensen — jij beslist welke voorstellen je accepteert."
+    },
+    "hero": {
+      "eyebrow": "Voor vakmensen",
+      "title": "Niet meer tientallen vacatures nageslagen. ",
+      "titleHighlight": "Laat werkgevers naar jou komen.",
+      "subtitle": "Maak één profiel, stel je voorwaarden in, en ontvang gestructureerde boden van werkgevers met salaris vooraf vermeld. Anoniem tot je zelf 'ja' zegt."
+    },
+    "steps": {
+      "title": "Zo werkt het",
+      "step1": {
+        "title": "Maak je profiel",
+        "text": "Vakgebied, vaardigheden, certificaten en beschikbaarheid. Geen naam, geen contactgegevens — werkgevers zien alleen je vakinhoud."
+      },
+      "step2": {
+        "title": "Werkgevers bieden aan",
+        "text": "Ieder bod is gestructureerd: salaris, uren, arbeidsvoorwaarden en contracttype staan vooraf vermeld."
+      },
+      "step3": {
+        "title": "Jij beslist",
+        "text": "Vergelijk de boden rustig en accepteer wat bij je past. Accepteren is altijd jouw keuze."
+      }
+    },
+    "privacy": {
+      "title": "Je bepaalt wat zichtbaar is",
+      "line1": "Anoniem standaard: werkgevers zien je handtekening niet, alleen je vakgebied, vaardigheden en regio.",
+      "line2": "Werkgever blokkeren: sluit je huidige werkgever (of elke andere) bij naam uit van je zoekresultaten.",
+      "line3": "Onzichtbaar op elk moment: zet je profiel op verborgen — net zo makkelijk als het aanzetten.",
+      "line4": "Salaris vooraf: in elk bod staan salaris en voorwaarden, zodat je met een volledig beeld vergelijkt."
+    },
+    "free": {
+      "title": "Voor vakmensen is OfferMarket gratis",
+      "text": "Altijd. Geen inschrijfgeld, geen abonnement, geen kosten per bod. Werkgevers dragen de marktplaats."
+    },
+    "honesty": {
+      "title": "Wat we je hier niet beloven",
+      "text": "Wij garanderen geen aantal boden. Een nieuw platform met echte, geverifieerde werkgevers betekent niet dat er dagelijks een bod binnenkomt — wel dat elk bod dat binnenkomt met een concreet salaris komt en op jou is gericht."
+    },
+    "cta": {
+      "primary": "Maak je anonieme profiel",
+      "secondary": "Zo werkt het in het kort",
+      "note": "Ben je werkgever? Bekijk hoe je vakmensen vindt → ga naar de werkgeverspagina."
+    }
+  },
+  "forEmployers": {
+    "meta": {
+      "title": "Gezochte elektricien vinden — gegarandeerde bod, €499 bij acceptatie",
+      "description": "Zoek geverifieerde elektricienprofielen met certificaten en beschikbaarheid. Gestructureerde boden, €499 pas bij acceptatie — geen wervingskosten."
+    },
+    "hero": {
+      "eyebrow": "Voor werkgevers",
+      "title": "Zoek bekwame elektriciens. ",
+      "titleHighlight": "Concurrentieer met een concreet bod.",
+      "subtitle": "Filter op vakgebied, certificaten (NEN 3140/VCA), beschikbaarheid en ervaring. Doe gestructureerde boden met salaris vooraf — en betaal alleen als de kandidaat accepteert."
+    },
+    "steps": {
+      "title": "Zo werkt het",
+      "step1": {
+        "title": "Registreer en verifieer je bedrijf",
+        "text": "Bedrijfsnaam en KvK-nummer bij inschrijving; wij verifiëren je inschrijving voor je eerste bod (doel: binnen 4 werkuuren op werkdagen)."
+      },
+      "step2": {
+        "title": "Zoek profielen passend bij de vraag",
+        "text": "Filter op vak, certificering, specialisatie, talen, beschikbaarheid en ervaring — inclusief vakmensen die niet actief solliciteren."
+      },
+      "step3": {
+        "title": "Doe een gestructureerd bod",
+        "text": "Salaris, uren, arbeidsvoorwaarden, contracttype — de kandidaat ziet het volledige beeld en jouw bod is pas geldig bij acceptatie."
+      }
+    },
+    "model": {
+      "title": "Eén bedrag, pas bij acceptatie",
+      "line1": "€499 per geaccepteerde introductie — geen abonnement, geen wervingsbudget, geen kosten als niemand accepteert.",
+      "line2": "Zoek en boden zoveel je wilt; je betaalt pas een factuur nadat een kandidaat 'ja' heeft gezegd.",
+      "line3": "Vergelijk dit met het klassieke bureau-model: werving & selectie rekent 20–25% van het jaarsalaris, vacatureplatforms €250–425 per vacature."
+    },
+    "privacy": {
+      "title": "Waarom vakmensen hier zichtbaar zijn die je nergens anders vindt",
+      "text": "Anonieme profielen halen drempels weg. Vakmensen die liever niet hun naam openbaren — maar wél naar een betere baan of betere voorwaarden openstaan — zijn hier te vinden, op vakinhoud en certificaat."
+    },
+    "honesty": {
+      "title": "Wat we hier niet beloven",
+      "text": "Wij garanderen geen plaatsingen. Een bod is een voorstel; de kandidaat beslist. Wat je wél weet: elk profiel dat je ziet is actief beschikbaar in onze zoekomgeving."
+    },
+    "cta": {
+      "primary": "Registreer je bedrijf",
+      "secondary": "Bekijk de tarieven",
+      "note": "Ben je vakman? OfferMarket is gratis — werkgevers betalen."
+    }
+  }
+}

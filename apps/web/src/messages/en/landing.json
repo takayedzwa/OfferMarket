@@ -1,0 +1,95 @@
+{
+  "forWorkers": {
+    "meta": {
+      "title": "Job offers for electricians — employers come to you",
+      "description": "Build an anonymous profile and let employers bid with a concrete salary. €0 for tradespeople — you decide which offers to accept."
+    },
+    "hero": {
+      "eyebrow": "For tradespeople",
+      "title": "Stop chasing dozens of vacancies. ",
+      "titleHighlight": "Let employers come to you.",
+      "subtitle": "Create one profile, set your terms, and receive structured offers from employers with the salary stated up front. Anonymous until you say yes."
+    },
+    "steps": {
+      "title": "How it works",
+      "step1": {
+        "title": "Build your profile",
+        "text": "Trade, skills, certifications and availability. No name, no contact details — employers see your trade content only."
+      },
+      "step2": {
+        "title": "Employers make offers",
+        "text": "Every offer is structured: salary, hours, benefits and contract type are stated up front."
+      },
+      "step3": {
+        "title": "You decide",
+        "text": "Compare offers at your own pace and accept what fits. Acceptance is always your choice."
+      }
+    },
+    "privacy": {
+      "title": "You control what's visible",
+      "line1": "Anonymous by default: employers don't see your identity — only your trade, skills and region.",
+      "line2": "Block employers: exclude your current employer (or any other) by name from your search results.",
+      "line3": "Invisible at any time: switch your profile to hidden — just as easily as turning it on.",
+      "line4": "Salary up front: every offer states salary and terms, so you compare with the full picture."
+    },
+    "free": {
+      "title": "OfferMarket is free for tradespeople",
+      "text": "Always. No sign-up fee, no subscription, no cost per offer. Employers fund the marketplace."
+    },
+    "honesty": {
+      "title": "What we don't promise here",
+      "text": "We don't guarantee a number of offers. A new platform with real, verified employers doesn't mean an offer arrives daily — it means every offer that does arrive comes with a concrete salary and is aimed at you."
+    },
+    "cta": {
+      "primary": "Create your anonymous profile",
+      "secondary": "How it works, in short",
+      "note": "Are you an employer? See how to find tradespeople → go to the employer page."
+    }
+  },
+  "forEmployers": {
+    "meta": {
+      "title": "Find a sought-after electrician — structured offers, €499 only on acceptance",
+      "description": "Search verified electrician profiles with certifications and availability. Structured offers, €499 only on acceptance — no placement fees."
+    },
+    "hero": {
+      "eyebrow": "For employers",
+      "title": "Search skilled electricians. ",
+      "titleHighlight": "Compete with a concrete offer.",
+      "subtitle": "Filter by trade, certifications (NEN 3140/VCA), availability and experience. Make structured offers with salary stated up front — and pay only if the candidate accepts."
+    },
+    "steps": {
+      "title": "How it works",
+      "step1": {
+        "title": "Register and verify your company",
+        "text": "Company name and KvK number at sign-up; we verify your registration before your first offer (target: within 4 working hours on weekdays)."
+      },
+      "step2": {
+        "title": "Search profiles that match your need",
+        "text": "Filter by trade, certification, specialisation, languages, availability and experience — including tradespeople who aren't actively job-hunting."
+      },
+      "step3": {
+        "title": "Make a structured offer",
+        "text": "Salary, hours, benefits and contract type — the candidate sees the full picture, and your offer only takes effect on acceptance."
+      }
+    },
+    "model": {
+      "title": "One amount, only on acceptance",
+      "line1": "€499 per accepted introduction — no subscription, no recruitment budget, no cost if nobody accepts.",
+      "line2": "Search and make as many offers as you want; you're invoiced only after a candidate says yes.",
+      "line3": "Compare that with the classic agency model: recruitment & selection firms charge 20–25% of annual salary, job boards €250–425 per posting."
+    },
+    "privacy": {
+      "title": "Why tradespeople are visible here that you'll find nowhere else",
+      "text": "Anonymous profiles remove the barrier. Skilled tradespeople who prefer not to publish their name — but are open to a better job or better terms — are searchable here, on trade content and certification."
+    },
+    "honesty": {
+      "title": "What we don't promise here",
+      "text": "We don't guarantee placements. An offer is a proposal; the candidate decides. What you do know: every profile you see is actively available in our search environment."
+    },
+    "cta": {
+      "primary": "Register your company",
+      "secondary": "See the pricing",
+      "note": "Are you a tradesperson? OfferMarket is free — employers pay."
+    }
+  }
+}

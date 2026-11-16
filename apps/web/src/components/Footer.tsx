@@ -103,6 +103,9 @@ export default function Footer() {
         <div className="mt-8 pt-8 border-t border-gray-800 flex flex-col sm:flex-row justify-between items-center gap-4">
           <p className="text-xs text-gray-500">{t('copyright', { year })}</p>
           <div className="flex gap-4 text-xs text-gray-500">
+            <Link href="/for-workers" className="hover:text-gray-300 transition-colors">{t('forWorkers')}</Link>
+            <Link href="/for-employers" className="hover:text-gray-300 transition-colors">{t('forEmployers')}</Link>
+            <Link href="/pricing" className="hover:text-gray-300 transition-colors">{t('pricing')}</Link>
             <Link href="/privacy" className="hover:text-gray-300 transition-colors">{t('privacy')}</Link>
             <Link href="/terms" className="hover:text-gray-300 transition-colors">{t('terms')}</Link>
             <Link href="/cookies" className="hover:text-gray-300 transition-colors">{t('cookies')}</Link>

@@ -11,6 +11,7 @@ import { InsightsSnapshotService } from './insights-snapshot.service';
 import { InsightsGeneratorService } from './insights-generator.service';
 import { MarketProfessionService } from './market-profession.service';
 import { InsightsDashboardService } from './insights-dashboard.service';
+import { MarketPageGateService } from './market-page-gate.service';
 
 /**
  * Offermarket Insights — labor-market intelligence module.
@@ -38,7 +39,8 @@ import { InsightsDashboardService } from './insights-dashboard.service';
     InsightsGeneratorService,
     MarketProfessionService,
     InsightsDashboardService,
+    MarketPageGateService,
   ],
-  exports: [InsightsService, InsightsStatsService],
+  exports: [InsightsService, InsightsStatsService, MarketPageGateService],
 })
 export class InsightsModule {}

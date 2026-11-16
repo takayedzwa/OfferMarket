@@ -5,6 +5,7 @@ import { NotificationEventType, CredentialReviewedPayload } from '../notificatio
 import { UpdateSettingsDto } from './dto/update-settings.dto';
 import { CreateStaffUserDto } from './dto/create-staff-user.dto';
 import { isCommonPassword } from '../auth/password-blocklist';
+import { MarketPageGateService, CitySignOff } from '../insights/market-page-gate.service';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
@@ -12,6 +13,7 @@ export class AdminService {
   constructor(
     private prisma: PrismaService,
     private eventEmitter: EventEmitter2,
+    private marketPageGateService: MarketPageGateService,
   ) {}
 
   // ============================================================================
@@ -912,5 +914,32 @@ export class AdminService {
     }
 
     return offer;
+  }
+
+  // ============================================================================
+  // MARKET PAGE GATE SIGN-OFFS (T11 — /market editorial sign-off registry)
+  // ============================================================================
+
+  async getMarketGateSignOffs(): Promise<CitySignOff[]> {
+    return this.marketPageGateService.listSignOffs();
+  }
+
+  async addMarketGateSignOff(input: {
+    profession: string;
+    citySlug: string;
+    adminUserId: string;
+  }): Promise<CitySignOff[]> {
+    if (!input.profession?.trim() || !input.citySlug?.trim()) {
+      throw new BadRequestException({ code: 'ADMIN_GATE_SIGNOFF_INVALID', message: 'profession and citySlug are required' });
+    }
+    return this.marketPageGateService.addSignOff({
+      profession: input.profession.trim(),
+      citySlug: input.citySlug.trim(),
+      signedOffBy: input.adminUserId,
+    });
+  }
+
+  async removeMarketGateSignOff(profession: string, citySlug: string): Promise<CitySignOff[]> {
+    return this.marketPageGateService.removeSignOff(profession, citySlug);
   }
 }

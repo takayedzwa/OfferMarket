@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Body, Param, Query, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards, Request } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { AdminGuard } from '../../guards/admin.guard';
 import { AdminService } from './admin.service';
@@ -194,6 +194,35 @@ export class AdminController {
   @Get('settings')
   async getSettings(@Query('category') category?: string) {
     return this.adminService.getSettings(category);
+  }
+
+  // ============================================================================
+  // MARKET PAGE GATE SIGN-OFFS (T11 — /market editorial sign-off registry)
+  // ============================================================================
+
+  @Get('market/gate-signoffs')
+  async getMarketGateSignOffs() {
+    return this.adminService.getMarketGateSignOffs();
+  }
+
+  @Post('market/gate-signoffs')
+  async addMarketGateSignOff(
+    @Body() body: { profession: string; citySlug: string },
+    @Request() req: any,
+  ) {
+    return this.adminService.addMarketGateSignOff({
+      profession: body.profession,
+      citySlug: body.citySlug,
+      adminUserId: req.user?.userId,
+    });
+  }
+
+  @Delete('market/gate-signoffs/:profession/:citySlug')
+  async removeMarketGateSignOff(
+    @Param('profession') profession: string,
+    @Param('citySlug') citySlug: string,
+  ) {
+    return this.adminService.removeMarketGateSignOff(profession, citySlug);
   }
 
   @Patch('settings')
