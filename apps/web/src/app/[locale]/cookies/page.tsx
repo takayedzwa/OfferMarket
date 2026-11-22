@@ -3,9 +3,11 @@
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import Navbar from '@/components/Navbar';
+import { COMPANY } from '@/lib/company';
 
 export default function CookiePolicyPage() {
   const t = useTranslations('legal.cookies');
+  const facts = { companyName: COMPANY.legalName, dpoEmail: COMPANY.emails.dpo };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -19,7 +21,7 @@ export default function CookiePolicyPage() {
               {t('lastUpdated')}
             </p>
             <p className="mt-1 text-sm text-gray-500">
-              <span lang="nl">{t('dutchTitle')}</span> · {t('companyName')}
+              <span lang="nl">{t('dutchTitle')}</span> · {t('companyName', facts)}
             </p>
           </div>
 
@@ -208,14 +210,14 @@ export default function CookiePolicyPage() {
             <section>
               <h2 className="text-xl font-semibold text-gray-900 mb-3">{t('s8.title')}</h2>
               <p>
-                {t.rich('s8.p1', { a: (chunks) => <a href="mailto:dpo@offermarket.nl" className="text-blue-600 hover:underline">{chunks}</a> })}
+                {t.rich('s8.p1', { dpoEmail: COMPANY.emails.dpo, a: (chunks) => <a href={`mailto:${COMPANY.emails.dpo}`} className="text-blue-600 hover:underline">{chunks}</a> })}
               </p>
             </section>
           </div>
 
           <div className="px-8 py-4 border-t border-gray-200 bg-gray-50 rounded-b-lg">
             <p className="text-xs text-gray-500 text-center">
-              {t('footer.copyright', { year: new Date().getFullYear() })}{' '}
+              {t('footer.copyright', { year: new Date().getFullYear(), ...facts })}{' '}
               <Link href="/privacy" className="text-blue-600 hover:underline">{t('footer.privacyLink')}</Link> ·{' '}
               <Link href="/terms" className="text-blue-600 hover:underline">{t('footer.termsLink')}</Link> ·{' '}
               <Link href="/cookies" className="text-blue-600 hover:underline">{t('footer.cookiesLink')}</Link> ·{' '}

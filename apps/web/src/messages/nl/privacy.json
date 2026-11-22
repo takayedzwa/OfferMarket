@@ -4,15 +4,15 @@
     "title": "Privacyverklaring",
     "lastUpdated": "Laatst bijgewerkt: 11 juli 2026 · Versie 1.0",
     "dutchTitle": "Privacyverklaring",
-    "companyName": "Offermarket",
+    "companyName": "{companyName}",
     "section1": {
       "title": "1. Verwerkingsverantwoordelijke",
       "intro": "De verwerkingsverantwoordelijke voor uw persoonsgegevens is:",
-      "company": "Offermarket",
-      "kvk": "KvK: 94632634",
-      "address": "Tulastraat 17, 3084BZ, Rotterdam, Nederland",
+      "company": "{companyName}",
+      "kvk": "KvK: {kvk}",
+      "address": "{street}, {postalCode}, {city}, Nederland",
       "dpoLabel": "Functionaris voor Gegevensbescherming:",
-      "dpoEmail": "dpo@offermarket.nl",
+      "dpoEmail": "{dpoEmail}",
       "contactQuestion": "Voor vragen over deze privacyverklaring of uw rechten onder de AVG (Algemene Verordening Gegevensbescherming) kunt u contact opnemen met onze FG via het bovenstaande e-mailadres."
     },
     "section2": {
@@ -140,7 +140,7 @@
       "exerciseIntro": "Om een van deze rechten uit te oefenen, gebruikt u uw",
       "privacyDashboardLink": "Privacy-dashboard",
       "exerciseMid": "of neemt u contact op met onze FG via",
-      "dpoEmail": "dpo@offermarket.nl",
+      "dpoEmail": "{dpoEmail}",
       "complaintIntro": "Als u niet tevreden bent met onze reactie, heeft u het recht een klacht in te dienen bij de",
       "apLink": "Autoriteit Persoonsgegevens",
       "complaintOutro": "(Nederlandse Toezichthouder voor Gegevensbescherming)."
@@ -217,15 +217,15 @@
       "title": "13. Contact",
       "intro": "Voor vragen over deze privacyverklaring of uw gegevensbeschermingsrechten:",
       "dpoLabel": "Functionaris voor Gegevensbescherming:",
-      "dpoValue": "dpo@offermarket.nl",
-      "companyLabel": "Offermarket",
-      "address": "Tulastraat 17, 3084BZ, Rotterdam, Nederland",
+      "dpoValue": "{dpoEmail}",
+      "companyLabel": "{companyName}",
+      "address": "{street}, {postalCode}, {city}, Nederland",
       "kvkLabel": "KvK:",
-      "kvkValue": "94632634",
-      "contact": "Telefoon: +31681412448 · E-mail: info@offermarket.nl · takayedzwa@offermarket.nl"
+      "kvkValue": "{kvk}",
+      "contact": "Telefoon: {phone} · E-mail: {infoEmail} · {secondaryEmail}"
     },
     "footer": {
-      "copyright": "© {year} Offermarket ·",
+      "copyright": "© {year} {companyName} ·",
       "privacyLink": "Privacyverklaring",
       "termsLink": "Servicevoorwaarden",
       "cookiesLink": "Cookiebeleid",

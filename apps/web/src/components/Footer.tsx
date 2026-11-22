@@ -2,6 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
+import { COMPANY } from '@/lib/company';
 
 /**
  * Shared footer with legal links including DSA Art. 12-compliant
@@ -86,22 +87,22 @@ export default function Footer() {
                 </a>
               </li>
               <li>
-                <a href="mailto:legal@offermarket.nl" className="hover:text-white transition-colors">
-                  legal@offermarket.nl
+                <a href={`mailto:${COMPANY.emails.legal}`} className="hover:text-white transition-colors">
+                  {COMPANY.emails.legal}
                 </a>
               </li>
               <li>
-                <a href="mailto:dpo@offermarket.nl" className="hover:text-white transition-colors">
+                <a href={`mailto:${COMPANY.emails.dpo}`} className="hover:text-white transition-colors">
                   {t('dataProtectionOfficer')}
                 </a>
               </li>
             </ul>
-            <p className="mt-3 text-xs text-gray-500">{t('companyLine')}</p>
+            <p className="mt-3 text-xs text-gray-500">{t('companyLine', { companyName: COMPANY.legalName })}</p>
           </div>
         </div>
 
         <div className="mt-8 pt-8 border-t border-gray-800 flex flex-col sm:flex-row justify-between items-center gap-4">
-          <p className="text-xs text-gray-500">{t('copyright', { year })}</p>
+          <p className="text-xs text-gray-500">{t('copyright', { year, companyName: COMPANY.legalName })}</p>
           <div className="flex gap-4 text-xs text-gray-500">
             <Link href="/for-workers" className="hover:text-gray-300 transition-colors">{t('forWorkers')}</Link>
             <Link href="/for-employers" className="hover:text-gray-300 transition-colors">{t('forEmployers')}</Link>

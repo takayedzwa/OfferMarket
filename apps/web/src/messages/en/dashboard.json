@@ -102,7 +102,7 @@
         "title": "Payment Instructions",
         "instructions": "Please transfer {amount} to the following bank account, referencing {invoiceNumber}:",
         "accountHolder": "Account Holder:",
-        "accountHolderValue": "Offermarket",
+        "accountHolderValue": "{companyName}",
         "reference": "Reference:",
         "dueWithin": "Payment is due within {date}."
       },

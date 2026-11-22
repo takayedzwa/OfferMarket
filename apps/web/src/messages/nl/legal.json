@@ -4,7 +4,7 @@
     "title": "Algemene Voorwaarden",
     "lastUpdated": "Laatst bijgewerkt: 12 juli 2026 · Versie 2.0",
     "dutchTitle": "Algemene Voorwaarden",
-    "companyName": "Offermarket",
+    "companyName": "{companyName}",
     "s1": {
       "title": "1. Definities",
       "list": {
@@ -198,7 +198,7 @@
     "s21": {
       "title": "21. Enkel contactpunt",
       "intro": "Voor alle zaken met betrekking tot de Digital Services Act kunt u contact opnemen met:",
-      "company": "Offermarket — DSA-enkelcontactpunt",
+      "company": "{companyName} — DSA-enkelcontactpunt",
       "emailLabel": "E-mail:",
       "email": "legal@offermarket.nl",
       "urgentNote": "Voor urgente zaken met bedreigingen voor leven of veiligheid, neem direct contact op met de bevoegde handhavingsautoriteiten."
@@ -229,15 +229,15 @@
     },
     "s24": {
       "title": "24. Contact",
-      "company": "Offermarket",
-      "address": "Tulastraat 17, 3084BZ, Rotterdam, Nederland",
-      "kvk": "KvK: 94632634",
+      "company": "{companyName}",
+      "address": "{street}, {postalCode}, {city}, Nederland",
+      "kvk": "KvK: {kvk}",
       "emailLabel": "E-mail:",
       "email": "legal@offermarket.nl",
-      "contact": "Telefoon: +31681412448 · E-mail: info@offermarket.nl · takayedzwa@offermarket.nl"
+      "contact": "Telefoon: {phone} · E-mail: {infoEmail} · {secondaryEmail}"
     },
     "footer": {
-      "copyright": "© {year} Offermarket ·",
+      "copyright": "© {year} {companyName} ·",
       "privacyLink": "Privacybeleid",
       "termsLink": "Algemene Voorwaarden",
       "cookiesLink": "Cookiebeleid",
@@ -249,7 +249,7 @@
     "title": "Cookiebeleid",
     "lastUpdated": "Laatst bijgewerkt: 12 juli 2026 · Versie 1.1",
     "dutchTitle": "Cookiebeleid",
-    "companyName": "Offermarket",
+    "companyName": "{companyName}",
     "s1": {
       "title": "1. Wat zijn cookies",
       "p1": "Cookies zijn kleine tekstbestanden die op uw apparaat worden opgeslagen wanneer u onze website bezoekt. Ze helpen ons u een betere ervaring te bieden door uw voorkeuren te onthouden, essentiële functionaliteit mogelijk te maken en ons inzicht te geven in hoe u ons platform gebruikt."
@@ -330,10 +330,10 @@
     },
     "s8": {
       "title": "8. Contact",
-      "p1": "Voor vragen over ons gebruik van cookies kunt u contact opnemen met onze Functionaris voor Gegevensbescherming via <a>dpo@offermarket.nl</a>."
+      "p1": "Voor vragen over ons gebruik van cookies kunt u contact opnemen met onze Functionaris voor Gegevensbescherming via <a>{dpoEmail}</a>."
     },
     "footer": {
-      "copyright": "© {year} Offermarket ·",
+      "copyright": "© {year} {companyName} ·",
       "privacyLink": "Privacybeleid",
       "termsLink": "Algemene Voorwaarden",
       "cookiesLink": "Cookiebeleid",

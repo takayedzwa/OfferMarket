@@ -4,7 +4,7 @@
     "title": "Terms of Service",
     "lastUpdated": "Last updated: July 12, 2026 · Version 2.0",
     "dutchTitle": "Algemene Voorwaarden",
-    "companyName": "Offermarket",
+    "companyName": "{companyName}",
     "s1": {
       "title": "1. Definitions",
       "list": {
@@ -198,7 +198,7 @@
     "s21": {
       "title": "21. Single Point of Contact",
       "intro": "For all matters related to the Digital Services Act, you may contact:",
-      "company": "Offermarket — DSA Single Point of Contact",
+      "company": "{companyName} — DSA Single Point of Contact",
       "emailLabel": "Email:",
       "email": "legal@offermarket.nl",
       "urgentNote": "For urgent matters involving threats to life or safety, contact the relevant law enforcement authorities directly."
@@ -229,15 +229,15 @@
     },
     "s24": {
       "title": "24. Contact",
-      "company": "Offermarket",
-      "address": "Tulastraat 17, 3084BZ, Rotterdam, Netherlands",
-      "kvk": "KvK: 94632634",
+      "company": "{companyName}",
+      "address": "{street}, {postalCode}, {city}, Netherlands",
+      "kvk": "KvK: {kvk}",
       "emailLabel": "Email:",
       "email": "legal@offermarket.nl",
-      "contact": "Phone: +31681412448 · Email: info@offermarket.nl · takayedzwa@offermarket.nl"
+      "contact": "Phone: {phone} · Email: {infoEmail} · {secondaryEmail}"
     },
     "footer": {
-      "copyright": "© {year} Offermarket ·",
+      "copyright": "© {year} {companyName} ·",
       "privacyLink": "Privacy Policy",
       "termsLink": "Terms of Service",
       "cookiesLink": "Cookie Policy",
@@ -249,7 +249,7 @@
     "title": "Cookie Policy",
     "lastUpdated": "Last updated: July 12, 2026 · Version 1.1",
     "dutchTitle": "Cookiebeleid",
-    "companyName": "Offermarket",
+    "companyName": "{companyName}",
     "s1": {
       "title": "1. What Are Cookies",
       "p1": "Cookies are small text files stored on your device when you visit our website. They help us provide you with a better experience by remembering your preferences, enabling essential functionality, and helping us understand how you use our platform."
@@ -330,10 +330,10 @@
     },
     "s8": {
       "title": "8. Contact",
-      "p1": "For questions about our use of cookies, contact our Data Protection Officer at <a>dpo@offermarket.nl</a>."
+      "p1": "For questions about our use of cookies, contact our Data Protection Officer at <a>{dpoEmail}</a>."
     },
     "footer": {
-      "copyright": "© {year} Offermarket ·",
+      "copyright": "© {year} {companyName} ·",
       "privacyLink": "Privacy Policy",
       "termsLink": "Terms of Service",
       "cookiesLink": "Cookie Policy",

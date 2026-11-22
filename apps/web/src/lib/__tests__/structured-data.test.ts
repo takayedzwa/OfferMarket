@@ -6,6 +6,7 @@ import {
   articleBreadcrumbJsonLd,
   SITE_NAME,
 } from '../structured-data';
+import { COMPANY } from '../company';
 import type { InsightArticleDetail } from '@/lib/api';
 
 // ============================================================================
@@ -21,25 +22,26 @@ describe('structured data builders', () => {
     expect(nl.url).toBe('https://offermarket.nl/');
   });
 
-  it('Organization: legal identity + logo + address + contact, values matching the published legal pages', () => {
+  it('Organization: legal identity + logo + address + contact, all derived from COMPANY', () => {
     for (const locale of ['en', 'nl'] as const) {
       const ld = buildOrganizationJsonLd(locale) as Record<string, unknown>;
-      expect(ld.legalName).toBe('Offermarket');
+      // Single-source guarantee: any drift from lib/company.ts fails here.
+      expect(ld.legalName).toBe(COMPANY.legalName);
       expect(ld.logo).toBe(`https://offermarket.${locale === 'nl' ? 'nl' : 'eu'}/opengraph-image`);
       const identifier = ld.identifier as Record<string, unknown>;
       expect(identifier.propertyID).toBe('KVK');
-      expect(identifier.value).toBe('94632634');
+      expect(identifier.value).toBe(COMPANY.kvk);
       const address = ld.address as Record<string, unknown>;
       expect(address['@type']).toBe('PostalAddress');
-      expect(address.streetAddress).toBe('Tulastraat 17');
-      expect(address.postalCode).toBe('3084BZ');
-      expect(address.addressLocality).toBe('Rotterdam');
-      expect(address.addressCountry).toBe('NL');
+      expect(address.streetAddress).toBe(COMPANY.address.streetAddress);
+      expect(address.postalCode).toBe(COMPANY.address.postalCode);
+      expect(address.addressLocality).toBe(COMPANY.address.city);
+      expect(address.addressCountry).toBe(COMPANY.address.countryCode);
       // sameAs stays absent until the real profiles exist (never invented).
       expect(ld.sameAs).toBeUndefined();
       const contact = (ld.contactPoint as Array<Record<string, unknown>>)[0];
-      expect(contact.telephone).toBe('+31681412448');
-      expect(contact.email).toBe('info@offermarket.nl');
+      expect(contact.telephone).toBe(COMPANY.phone);
+      expect(contact.email).toBe(COMPANY.emails.info);
     }
   });
 

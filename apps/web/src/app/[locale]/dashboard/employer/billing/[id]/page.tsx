@@ -6,6 +6,7 @@ import { useRouter } from "@/i18n/navigation";
 import { useParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { billingApi } from "@/lib/api";
+import { COMPANY } from "@/lib/company";
 import { useFormat } from "@/hooks/useFormat";
 import { Invoice, InvoiceStatus } from "@/lib/types";
 import {
@@ -186,7 +187,7 @@ export default function InvoiceDetailPage() {
                   {t("payment.instructions", { amount: currency(invoice.totalCents / 100), invoiceNumber: invoice.invoiceNumber })}
                 </p>
                 <div className="mt-3 bg-white rounded-lg p-4 border border-blue-200 text-sm space-y-1">
-                  <p><span className="text-gray-500">{t("payment.accountHolder")}</span> <span className="font-medium">{t("payment.accountHolderValue")}</span></p>
+                  <p><span className="text-gray-500">{t("payment.accountHolder")}</span> <span className="font-medium">{t("payment.accountHolderValue", { companyName: COMPANY.legalName })}</span></p>
                   <p><span className="text-gray-500">{t("payment.reference")}</span> <span className="font-medium">{invoice.invoiceNumber}</span></p>
                 </div>
                 <p className="text-blue-600 text-xs mt-2">
