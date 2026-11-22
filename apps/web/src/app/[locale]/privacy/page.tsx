@@ -290,6 +290,7 @@ export default function PrivacyPolicyPage() {
                 <p><strong>{t('section13.companyLabel')}</strong></p>
                 <p>{t('section13.address')}</p>
                 <p><strong>{t('section13.kvkLabel')}</strong> {t('section13.kvkValue')}</p>
+                <p>{t('section13.contact')}</p>
               </div>
             </section>
           </div>

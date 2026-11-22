@@ -4,11 +4,11 @@
     "title": "Algemene Voorwaarden",
     "lastUpdated": "Laatst bijgewerkt: 12 juli 2026 · Versie 2.0",
     "dutchTitle": "Algemene Voorwaarden",
-    "companyName": "OfferMarket B.V.",
+    "companyName": "Offermarket",
     "s1": {
       "title": "1. Definities",
       "list": {
-        "item1": "<strong>\"OfferMarket\"</strong> betekent OfferMarket B.V., gevestigd in Nederland.",
+        "item1": "<strong>\"OfferMarket\"</strong> betekent Offermarket, gevestigd in Nederland.",
         "item2": "<strong>\"Platform\"</strong> betekent de OfferMarket-webtoepassing en gerelateerde diensten.",
         "item3": "<strong>\"Werker\"</strong> betekent een professional die een profiel aanmaakt om aanbiedingen van werkgevers te ontvangen.",
         "item4": "<strong>\"Werkgever\"</strong> betekent een bedrijf of persoon die aanbiedingen naar werkers verzendt via het platform.",
@@ -72,7 +72,7 @@
     },
     "s7": {
       "title": "7. Intellectueel eigendom",
-      "p1": "Het platform, het ontwerp en de inhoud (uitgezonderd door gebruikers gegenereerde inhoud) zijn eigendom van OfferMarket B.V. U behoudt het eigendomsrecht over uw profielinhoud en aanbiedingen. Door inhoud te plaatsen, verleent u OfferMarket een beperkte, niet-exclusieve licentie om deze op het platform weer te geven."
+      "p1": "Het platform, het ontwerp en de inhoud (uitgezonderd door gebruikers gegenereerde inhoud) zijn eigendom van Offermarket U behoudt het eigendomsrecht over uw profielinhoud en aanbiedingen. Door inhoud te plaatsen, verleent u OfferMarket een beperkte, niet-exclusieve licentie om deze op het platform weer te geven."
     },
     "s8": {
       "title": "8. Privacy & gegevensbescherming",
@@ -99,7 +99,7 @@
       "title": "10. Overmacht",
       "p1": "Geen van beide partijen is aansprakelijk voor enige tekortkoming of vertraging in de nakoming van haar verplichtingen onder deze voorwaarden indien die tekortkoming of vertraging het gevolg is van omstandigheden buiten haar redelijke controle, waaronder maar niet beperkt tot: natuurrampen, pandemieën, oorlog, terrorisme, rellen, stakingen of andere arbeidsconflicten, brand, overstroming, storing of uitval van internetserviceproviders, telecommunicatienetwerken, nutsbedrijven of cloudinfrastructuurproviders, en overheidsmaatregelen of -bevelen.",
       "p2": "Indien een overmachtssituatie langer dan 30 opeenvolgende dagen voortduurt, kan elke partij deze voorwaarden met onmiddellijke ingang beëindigen door schriftelijke kennisgeving aan de andere partij, zonder aansprakelijkheid voor zodanige beëindiging.",
-      "p3": "OfferMarket B.V. doet redelijke inspanningen om gebruikers op de hoogte te stellen van de aard en verwachte duur van enige overmachtssituatie die het platform treft via e-mail of een kennisgeving op het platform."
+      "p3": "Offermarket doet redelijke inspanningen om gebruikers op de hoogte te stellen van de aard en verwachte duur van enige overmachtssituatie die het platform treft via e-mail of een kennisgeving op het platform."
     },
     "s11": {
       "title": "11. Beëindiging",
@@ -198,7 +198,7 @@
     "s21": {
       "title": "21. Enkel contactpunt",
       "intro": "Voor alle zaken met betrekking tot de Digital Services Act kunt u contact opnemen met:",
-      "company": "OfferMarket B.V. — DSA-enkelcontactpunt",
+      "company": "Offermarket — DSA-enkelcontactpunt",
       "emailLabel": "E-mail:",
       "email": "legal@offermarket.nl",
       "urgentNote": "Voor urgente zaken met bedreigingen voor leven of veiligheid, neem direct contact op met de bevoegde handhavingsautoriteiten."
@@ -229,14 +229,15 @@
     },
     "s24": {
       "title": "24. Contact",
-      "company": "OfferMarket B.V.",
-      "address": "Herengracht 420, 1017 Amsterdam, Nederland",
-      "kvk": "KvK: 93075284",
+      "company": "Offermarket",
+      "address": "Tulastraat 17, 3084BZ, Rotterdam, Nederland",
+      "kvk": "KvK: 94632634",
       "emailLabel": "E-mail:",
-      "email": "legal@offermarket.nl"
+      "email": "legal@offermarket.nl",
+      "contact": "Telefoon: +31681412448 · E-mail: info@offermarket.nl · takayedzwa@offermarket.nl"
     },
     "footer": {
-      "copyright": "© {year} OfferMarket B.V. ·",
+      "copyright": "© {year} Offermarket ·",
       "privacyLink": "Privacybeleid",
       "termsLink": "Algemene Voorwaarden",
       "cookiesLink": "Cookiebeleid",
@@ -248,7 +249,7 @@
     "title": "Cookiebeleid",
     "lastUpdated": "Laatst bijgewerkt: 12 juli 2026 · Versie 1.1",
     "dutchTitle": "Cookiebeleid",
-    "companyName": "OfferMarket B.V.",
+    "companyName": "Offermarket",
     "s1": {
       "title": "1. Wat zijn cookies",
       "p1": "Cookies zijn kleine tekstbestanden die op uw apparaat worden opgeslagen wanneer u onze website bezoekt. Ze helpen ons u een betere ervaring te bieden door uw voorkeuren te onthouden, essentiële functionaliteit mogelijk te maken en ons inzicht te geven in hoe u ons platform gebruikt."
@@ -332,7 +333,7 @@
       "p1": "Voor vragen over ons gebruik van cookies kunt u contact opnemen met onze Functionaris voor Gegevensbescherming via <a>dpo@offermarket.nl</a>."
     },
     "footer": {
-      "copyright": "© {year} OfferMarket B.V. ·",
+      "copyright": "© {year} Offermarket ·",
       "privacyLink": "Privacybeleid",
       "termsLink": "Algemene Voorwaarden",
       "cookiesLink": "Cookiebeleid",

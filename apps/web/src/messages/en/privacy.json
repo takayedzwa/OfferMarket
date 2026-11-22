@@ -3,13 +3,13 @@
     "title": "Privacy Policy",
     "lastUpdated": "Last updated: July 11, 2026 · Version 1.0",
     "dutchTitle": "Privacyverklaring",
-    "companyName": "OfferMarket B.V.",
+    "companyName": "Offermarket",
     "section1": {
       "title": "1. Controller",
       "intro": "The data controller responsible for your personal data is:",
-      "company": "OfferMarket B.V.",
-      "kvk": "KvK: 93075284",
-      "address": "Herengracht 420, 1017 Amsterdam, Netherlands",
+      "company": "Offermarket",
+      "kvk": "KvK: 94632634",
+      "address": "Tulastraat 17, 3084BZ, Rotterdam, Netherlands",
       "dpoLabel": "Data Protection Officer:",
       "dpoEmail": "dpo@offermarket.nl",
       "contactQuestion": "For questions about this privacy policy or your rights under the AVG (Algemene Verordening Gegevensbescherming), contact our DPO at the email above."
@@ -217,13 +217,14 @@
       "intro": "For any questions about this privacy policy or your data protection rights:",
       "dpoLabel": "Data Protection Officer:",
       "dpoValue": "dpo@offermarket.nl",
-      "companyLabel": "OfferMarket B.V.",
-      "address": "Herengracht 420, 1017 Amsterdam, Netherlands",
+      "companyLabel": "Offermarket",
+      "address": "Tulastraat 17, 3084BZ, Rotterdam, Netherlands",
       "kvkLabel": "KvK:",
-      "kvkValue": "93075284"
+      "kvkValue": "94632634",
+      "contact": "Phone: +31681412448 · Email: info@offermarket.nl · takayedzwa@offermarket.nl"
     },
     "footer": {
-      "copyright": "© {year} OfferMarket B.V. ·",
+      "copyright": "© {year} Offermarket ·",
       "privacyLink": "Privacy Policy",
       "termsLink": "Terms of Service",
       "cookiesLink": "Cookie Policy",

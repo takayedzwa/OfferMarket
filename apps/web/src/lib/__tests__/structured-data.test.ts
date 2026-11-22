@@ -21,6 +21,28 @@ describe('structured data builders', () => {
     expect(nl.url).toBe('https://offermarket.nl/');
   });
 
+  it('Organization: legal identity + logo + address + contact, values matching the published legal pages', () => {
+    for (const locale of ['en', 'nl'] as const) {
+      const ld = buildOrganizationJsonLd(locale) as Record<string, unknown>;
+      expect(ld.legalName).toBe('Offermarket');
+      expect(ld.logo).toBe(`https://offermarket.${locale === 'nl' ? 'nl' : 'eu'}/opengraph-image`);
+      const identifier = ld.identifier as Record<string, unknown>;
+      expect(identifier.propertyID).toBe('KVK');
+      expect(identifier.value).toBe('94632634');
+      const address = ld.address as Record<string, unknown>;
+      expect(address['@type']).toBe('PostalAddress');
+      expect(address.streetAddress).toBe('Tulastraat 17');
+      expect(address.postalCode).toBe('3084BZ');
+      expect(address.addressLocality).toBe('Rotterdam');
+      expect(address.addressCountry).toBe('NL');
+      // sameAs stays absent until the real profiles exist (never invented).
+      expect(ld.sameAs).toBeUndefined();
+      const contact = (ld.contactPoint as Array<Record<string, unknown>>)[0];
+      expect(contact.telephone).toBe('+31681412448');
+      expect(contact.email).toBe('info@offermarket.nl');
+    }
+  });
+
   it('WebSite: no SearchAction (retired rich result)', () => {
     const ws = buildWebSiteJsonLd('en') as Record<string, unknown>;
     expect(ws['@type']).toBe('WebSite');

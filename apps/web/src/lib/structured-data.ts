@@ -27,10 +27,41 @@ type JsonLd = Record<string, unknown>;
 export const SITE_NAME = "OfferMarket";
 
 export function buildOrganizationJsonLd(locale: "en" | "nl"): JsonLd {
+  // Legal identity values are the ones the site itself publishes
+  // (apps/web/src/messages/*/privacy.json + legal.json): trade name,
+  // KvK 94632634, postal address, contact details — entity data must stay
+  // in sync with what the legal pages claim. Deliberately absent until it
+  // exists (never invent entity data): sameAs (no LinkedIn / Wikidata /
+  // press profiles yet — P1 gap in AI_SEARCH_STRATEGY).
+  const origin = new URL(siteUrlForLocale(locale, "/")).origin;
   return {
     "@context": "https://schema.org",
     "@type": "Organization",
     name: SITE_NAME,
+    legalName: "Offermarket",
+    // Stable brand image already served live (1200×630 PNG; the favicon is
+    // only 48×48 — below schema guidance for logo).
+    logo: `${origin}/opengraph-image`,
+    identifier: {
+      "@type": "PropertyValue",
+      propertyID: "KVK",
+      value: "94632634",
+    },
+    address: {
+      "@type": "PostalAddress",
+      streetAddress: "Tulastraat 17",
+      postalCode: "3084BZ",
+      addressLocality: "Rotterdam",
+      addressCountry: "NL",
+    },
+    contactPoint: [
+      {
+        "@type": "ContactPoint",
+        contactType: "customer support",
+        telephone: "+31681412448",
+        email: "info@offermarket.nl",
+      },
+    ],
     // The Organization is the same legal entity on both locale domains; the
     // serving locale's canonical domain is the URL anchor.
     url: siteUrlForLocale(locale, "/"),

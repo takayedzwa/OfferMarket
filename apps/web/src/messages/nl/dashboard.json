@@ -102,7 +102,7 @@
         "title": "Betalingsinstructies",
         "instructions": "Maak {amount} over naar de volgende bankrekening met vermelding van {invoiceNumber}:",
         "accountHolder": "Rekeninghouder:",
-        "accountHolderValue": "OfferMarket B.V.",
+        "accountHolderValue": "Offermarket",
         "reference": "Referentie:",
         "dueWithin": "Betaling is uiterlijk {date} verschuldigd."
       },

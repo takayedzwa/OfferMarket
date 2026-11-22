@@ -359,6 +359,7 @@ export default function TermsOfServicePage() {
                 <p>{t('s24.address')}</p>
                 <p>{t('s24.kvk')}</p>
                 <p>{t('s24.emailLabel')} <a href="mailto:legal@offermarket.nl" className="text-blue-600 hover:underline">{t('s24.email')}</a></p>
+                <p>{t('s24.contact')}</p>
               </div>
             </section>
           </div>
