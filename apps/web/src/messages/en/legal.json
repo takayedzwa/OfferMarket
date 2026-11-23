@@ -4,11 +4,11 @@
     "title": "Terms of Service",
     "lastUpdated": "Last updated: July 12, 2026 · Version 2.0",
     "dutchTitle": "Algemene Voorwaarden",
-    "companyName": "OfferMarket B.V.",
+    "companyName": "{companyName}",
     "s1": {
       "title": "1. Definitions",
       "list": {
-        "item1": "<strong>\"OfferMarket\"</strong> means OfferMarket B.V., registered in the Netherlands.",
+        "item1": "<strong>\"OfferMarket\"</strong> means Offermarket, registered in the Netherlands.",
         "item2": "<strong>\"Platform\"</strong> means the OfferMarket web application and related services.",
         "item3": "<strong>\"Worker\"</strong> means a professional who creates a profile to receive offers from employers.",
         "item4": "<strong>\"Employer\"</strong> means a company or individual who sends offers to workers through the platform.",
@@ -72,7 +72,7 @@
     },
     "s7": {
       "title": "7. Intellectual Property",
-      "p1": "The platform, its design, and its content (excluding user-generated content) are owned by OfferMarket B.V. You retain ownership of your profile content and offers. By posting content, you grant OfferMarket a limited, non-exclusive license to display it on the platform."
+      "p1": "The platform, its design, and its content (excluding user-generated content) are owned by Offermarket You retain ownership of your profile content and offers. By posting content, you grant OfferMarket a limited, non-exclusive license to display it on the platform."
     },
     "s8": {
       "title": "8. Privacy & Data Protection",
@@ -99,7 +99,7 @@
       "title": "10. Force Majeure",
       "p1": "Neither party shall be liable for any failure or delay in performing its obligations under these terms where such failure or delay results from circumstances beyond its reasonable control, including but not limited to: natural disasters, pandemics, war, terrorism, riots, strikes or other labour disputes, fire, flood, interruption or failure of internet service providers, telecommunications networks, power utilities, or cloud infrastructure providers, and governmental actions or orders.",
       "p2": "If a force majeure event continues for more than 30 consecutive days, either party may terminate these terms with immediate effect by written notice to the other party, without liability for such termination.",
-      "p3": "OfferMarket B.V. will make reasonable efforts to notify users of the nature and expected duration of any force majeure event affecting the platform via email or a notice on the platform."
+      "p3": "Offermarket will make reasonable efforts to notify users of the nature and expected duration of any force majeure event affecting the platform via email or a notice on the platform."
     },
     "s11": {
       "title": "11. Termination",
@@ -198,7 +198,7 @@
     "s21": {
       "title": "21. Single Point of Contact",
       "intro": "For all matters related to the Digital Services Act, you may contact:",
-      "company": "OfferMarket B.V. — DSA Single Point of Contact",
+      "company": "{companyName} — DSA Single Point of Contact",
       "emailLabel": "Email:",
       "email": "legal@offermarket.nl",
       "urgentNote": "For urgent matters involving threats to life or safety, contact the relevant law enforcement authorities directly."
@@ -229,14 +229,15 @@
     },
     "s24": {
       "title": "24. Contact",
-      "company": "OfferMarket B.V.",
-      "address": "Herengracht 420, 1017 Amsterdam, Netherlands",
-      "kvk": "KvK: 93075284",
+      "company": "{companyName}",
+      "address": "{street}, {postalCode}, {city}, Netherlands",
+      "kvk": "KvK: {kvk}",
       "emailLabel": "Email:",
-      "email": "legal@offermarket.nl"
+      "email": "legal@offermarket.nl",
+      "contact": "Phone: {phone} · Email: {infoEmail} · {secondaryEmail}"
     },
     "footer": {
-      "copyright": "© {year} OfferMarket B.V. ·",
+      "copyright": "© {year} {companyName} ·",
       "privacyLink": "Privacy Policy",
       "termsLink": "Terms of Service",
       "cookiesLink": "Cookie Policy",
@@ -248,7 +249,7 @@
     "title": "Cookie Policy",
     "lastUpdated": "Last updated: July 12, 2026 · Version 1.1",
     "dutchTitle": "Cookiebeleid",
-    "companyName": "OfferMarket B.V.",
+    "companyName": "{companyName}",
     "s1": {
       "title": "1. What Are Cookies",
       "p1": "Cookies are small text files stored on your device when you visit our website. They help us provide you with a better experience by remembering your preferences, enabling essential functionality, and helping us understand how you use our platform."
@@ -329,10 +330,10 @@
     },
     "s8": {
       "title": "8. Contact",
-      "p1": "For questions about our use of cookies, contact our Data Protection Officer at <a>dpo@offermarket.nl</a>."
+      "p1": "For questions about our use of cookies, contact our Data Protection Officer at <a>{dpoEmail}</a>."
     },
     "footer": {
-      "copyright": "© {year} OfferMarket B.V. ·",
+      "copyright": "© {year} {companyName} ·",
       "privacyLink": "Privacy Policy",
       "termsLink": "Terms of Service",
       "cookiesLink": "Cookie Policy",

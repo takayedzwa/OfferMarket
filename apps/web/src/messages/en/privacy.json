@@ -3,15 +3,15 @@
     "title": "Privacy Policy",
     "lastUpdated": "Last updated: July 11, 2026 · Version 1.0",
     "dutchTitle": "Privacyverklaring",
-    "companyName": "OfferMarket B.V.",
+    "companyName": "{companyName}",
     "section1": {
       "title": "1. Controller",
       "intro": "The data controller responsible for your personal data is:",
-      "company": "OfferMarket B.V.",
-      "kvk": "KvK: 93075284",
-      "address": "Herengracht 420, 1017 Amsterdam, Netherlands",
+      "company": "{companyName}",
+      "kvk": "KvK: {kvk}",
+      "address": "{street}, {postalCode}, {city}, Netherlands",
       "dpoLabel": "Data Protection Officer:",
-      "dpoEmail": "dpo@offermarket.nl",
+      "dpoEmail": "{dpoEmail}",
       "contactQuestion": "For questions about this privacy policy or your rights under the AVG (Algemene Verordening Gegevensbescherming), contact our DPO at the email above."
     },
     "section2": {
@@ -139,7 +139,7 @@
       "exerciseIntro": "To exercise any of these rights, use your",
       "privacyDashboardLink": "Privacy Dashboard",
       "exerciseMid": "or contact our DPO at",
-      "dpoEmail": "dpo@offermarket.nl",
+      "dpoEmail": "{dpoEmail}",
       "complaintIntro": "If you are not satisfied with our response, you have the right to lodge a complaint with the",
       "apLink": "Autoriteit Persoonsgegevens",
       "complaintOutro": "(Dutch Data Protection Authority)."
@@ -216,14 +216,15 @@
       "title": "13. Contact",
       "intro": "For any questions about this privacy policy or your data protection rights:",
       "dpoLabel": "Data Protection Officer:",
-      "dpoValue": "dpo@offermarket.nl",
-      "companyLabel": "OfferMarket B.V.",
-      "address": "Herengracht 420, 1017 Amsterdam, Netherlands",
+      "dpoValue": "{dpoEmail}",
+      "companyLabel": "{companyName}",
+      "address": "{street}, {postalCode}, {city}, Netherlands",
       "kvkLabel": "KvK:",
-      "kvkValue": "93075284"
+      "kvkValue": "{kvk}",
+      "contact": "Phone: {phone} · Email: {infoEmail} · {secondaryEmail}"
     },
     "footer": {
-      "copyright": "© {year} OfferMarket B.V. ·",
+      "copyright": "© {year} {companyName} ·",
       "privacyLink": "Privacy Policy",
       "termsLink": "Terms of Service",
       "cookiesLink": "Cookie Policy",

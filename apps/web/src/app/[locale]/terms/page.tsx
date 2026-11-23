@@ -3,9 +3,22 @@
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import Navbar from '@/components/Navbar';
+import { COMPANY } from '@/lib/company';
 
 export default function TermsOfServicePage() {
   const t = useTranslations('legal.terms');
+  // Entity facts render from the single COMPANY source (see privacy page).
+  const facts = {
+    companyName: COMPANY.legalName,
+    kvk: COMPANY.kvk,
+    street: COMPANY.address.streetAddress,
+    postalCode: COMPANY.address.postalCode,
+    city: COMPANY.address.city,
+    dpoEmail: COMPANY.emails.dpo,
+    phone: COMPANY.phone,
+    infoEmail: COMPANY.emails.info,
+    secondaryEmail: COMPANY.emails.secondary,
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -19,7 +32,7 @@ export default function TermsOfServicePage() {
               {t('lastUpdated')}
             </p>
             <p className="mt-1 text-sm text-gray-500">
-              <span lang="nl">{t('dutchTitle')}</span> · {t('companyName')}
+              <span lang="nl">{t('dutchTitle')}</span> · {t('companyName', facts)}
             </p>
           </div>
 
@@ -355,17 +368,18 @@ export default function TermsOfServicePage() {
             <section>
               <h2 className="text-xl font-semibold text-gray-900 mb-3">{t('s24.title')}</h2>
               <div className="bg-gray-50 rounded-md p-4">
-                <p><strong>{t('s24.company')}</strong></p>
-                <p>{t('s24.address')}</p>
-                <p>{t('s24.kvk')}</p>
+                <p><strong>{t('s24.company', facts)}</strong></p>
+                <p>{t('s24.address', facts)}</p>
+                <p>{t('s24.kvk', facts)}</p>
                 <p>{t('s24.emailLabel')} <a href="mailto:legal@offermarket.nl" className="text-blue-600 hover:underline">{t('s24.email')}</a></p>
+                <p>{t('s24.contact', facts)}</p>
               </div>
             </section>
           </div>
 
           <div className="px-8 py-4 border-t border-gray-200 bg-gray-50 rounded-b-lg">
             <p className="text-xs text-gray-500 text-center">
-              {t('footer.copyright', { year: new Date().getFullYear() })}{' '}
+              {t('footer.copyright', { year: new Date().getFullYear(), ...facts })}{' '}
               <Link href="/privacy" className="text-blue-600 hover:underline">{t('footer.privacyLink')}</Link> ·{' '}
               <Link href="/terms" className="text-blue-600 hover:underline">{t('footer.termsLink')}</Link> ·{' '}
               <Link href="/cookies" className="text-blue-600 hover:underline">{t('footer.cookiesLink')}</Link> ·{' '}

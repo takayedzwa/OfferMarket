@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { insightsApi } from "@/lib/api";
 import { getSiteUrl } from "@/lib/site-url";
+import { GUIDES } from "@/components/guides/content";
 
 // SEO architecture: clean URLs + a generated sitemap that includes every
 // published insight article. Static marketing/legal routes are listed
@@ -24,6 +25,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${siteUrl}/for-employers`, changeFrequency: "weekly", priority: 0.8 },
     { url: `${siteUrl}/market`, changeFrequency: "weekly", priority: 0.6 },
     { url: `${siteUrl}/guide`, changeFrequency: "weekly", priority: 0.7 },
+    // Guide article pages (T13 content wave): slugs live in the static
+    // content module — no API call needed, they ship with the build.
+    ...GUIDES.map((guide) => ({
+      url: `${siteUrl}/guide/${guide.slug}`,
+      changeFrequency: "weekly" as const,
+      priority: 0.7,
+    })),
     { url: `${siteUrl}/insights/developers`, changeFrequency: "monthly", priority: 0.5 },
     { url: `${siteUrl}/pricing`, changeFrequency: "monthly", priority: 0.7 },
     { url: `${siteUrl}/register`, changeFrequency: "monthly", priority: 0.7 },

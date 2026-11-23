@@ -47,7 +47,9 @@ prisma/dev.db
 prisma/generated/
 
 # IDE
-.claude
+.claude/*
+!.claude/agents/
+!.claude/settings.json
 .idea/
 .vscode/
 *.swp

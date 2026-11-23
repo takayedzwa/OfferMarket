@@ -3,9 +3,23 @@
 import { useTranslations } from 'next-intl';
 import { Link } from '@/i18n/navigation';
 import Navbar from '@/components/Navbar';
+import { COMPANY } from '@/lib/company';
 
 export default function PrivacyPolicyPage() {
   const t = useTranslations('privacy.overview');
+  // Entity facts render from the single COMPANY source; the sentence shells
+  // stay in privacy.json as {placeholders}.
+  const facts = {
+    companyName: COMPANY.legalName,
+    kvk: COMPANY.kvk,
+    street: COMPANY.address.streetAddress,
+    postalCode: COMPANY.address.postalCode,
+    city: COMPANY.address.city,
+    dpoEmail: COMPANY.emails.dpo,
+    phone: COMPANY.phone,
+    infoEmail: COMPANY.emails.info,
+    secondaryEmail: COMPANY.emails.secondary,
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -19,7 +33,7 @@ export default function PrivacyPolicyPage() {
               {t('lastUpdated')}
             </p>
             <p className="mt-1 text-sm text-gray-500">
-              <span lang="nl">{t('dutchTitle')}</span> · {t('companyName')}
+              <span lang="nl">{t('dutchTitle')}</span> · {t('companyName', facts)}
             </p>
           </div>
 
@@ -31,10 +45,10 @@ export default function PrivacyPolicyPage() {
                 {t('section1.intro')}
               </p>
               <div className="mt-2 bg-gray-50 rounded-md p-4">
-                <p className="font-medium">{t('section1.company')}</p>
-                <p>{t('section1.kvk')}</p>
-                <p>{t('section1.address')}</p>
-                <p>{t('section1.dpoLabel')} <a href="mailto:dpo@offermarket.nl" className="text-blue-600 hover:underline">{t('section1.dpoEmail')}</a></p>
+                <p className="font-medium">{t('section1.company', facts)}</p>
+                <p>{t('section1.kvk', facts)}</p>
+                <p>{t('section1.address', facts)}</p>
+                <p>{t('section1.dpoLabel')} <a href={`mailto:${COMPANY.emails.dpo}`} className="text-blue-600 hover:underline">{t('section1.dpoEmail', facts)}</a></p>
               </div>
               <p className="mt-3">
                 {t('section1.contactQuestion')}
@@ -192,7 +206,7 @@ export default function PrivacyPolicyPage() {
                 {t('section7.exerciseIntro')}{' '}
                 <Link href="/privacy/dashboard" className="text-blue-600 hover:underline">{t('section7.privacyDashboardLink')}</Link>{' '}
                 {t('section7.exerciseMid')}{' '}
-                <a href="mailto:dpo@offermarket.nl" className="text-blue-600 hover:underline">{t('section7.dpoEmail')}</a>.
+                <a href={`mailto:${COMPANY.emails.dpo}`} className="text-blue-600 hover:underline">{t('section7.dpoEmail', facts)}</a>.
               </p>
               <p className="mt-2">
                 {t('section7.complaintIntro')}{' '}
@@ -286,17 +300,18 @@ export default function PrivacyPolicyPage() {
                 {t('section13.intro')}
               </p>
               <div className="mt-2 bg-gray-50 rounded-md p-4">
-                <p><strong>{t('section13.dpoLabel')}</strong> {t('section13.dpoValue')}</p>
-                <p><strong>{t('section13.companyLabel')}</strong></p>
-                <p>{t('section13.address')}</p>
-                <p><strong>{t('section13.kvkLabel')}</strong> {t('section13.kvkValue')}</p>
+                <p><strong>{t('section13.dpoLabel')}</strong> {t('section13.dpoValue', facts)}</p>
+                <p><strong>{t('section13.companyLabel', facts)}</strong></p>
+                <p>{t('section13.address', facts)}</p>
+                <p><strong>{t('section13.kvkLabel')}</strong> {t('section13.kvkValue', facts)}</p>
+                <p>{t('section13.contact', facts)}</p>
               </div>
             </section>
           </div>
 
           <div className="px-8 py-4 border-t border-gray-200 bg-gray-50 rounded-b-lg">
             <p className="text-xs text-gray-500 text-center">
-              {t('footer.copyright', { year: new Date().getFullYear() })}{' '}
+              {t('footer.copyright', { year: new Date().getFullYear(), ...facts })}{' '}
               <Link href="/privacy" className="text-blue-600 hover:underline">{t('footer.privacyLink')}</Link> ·{' '}
               <Link href="/terms" className="text-blue-600 hover:underline">{t('footer.termsLink')}</Link> ·{' '}
               <Link href="/cookies" className="text-blue-600 hover:underline">{t('footer.cookiesLink')}</Link> ·{' '}
